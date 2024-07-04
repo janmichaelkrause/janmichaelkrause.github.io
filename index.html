@@ -1,2 +1,103 @@
-Hello World
-This is a test
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> JMK</title>
+    <meta name="description" content="JMK">
+    <link rel="icon" type="image/jpeg" href="PFP_780.jpeg">
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/sf-mono');
+        body {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.8em;
+            line-height: 2;
+            margin: 2vw;
+            padding: 10vw;
+            background-color: #fff;
+            color: #000;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        @media (hover: hover) {
+            a:hover {
+                font-weight: bold;
+            }
+        }
+        footer {
+            margin-top: 2vw;
+            padding-top: 1vw;
+            border-top: 0.1vw solid lightgray;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            color: #000;
+            text-align: center;
+        }
+        .italics {
+            font-style: italic;
+        }
+        .center-align {
+            text-align: center;
+            flex: 1 1 100%;
+        }
+        .left-align, .right-align {
+            flex: 1 1 100%;
+            text-align: center;
+        }
+        .footer-content {
+            margin-bottom: -1em;
+        }
+        @media (max-width: 375px) {
+            .left-align, .right-align {
+                text-align: center;
+                flex: 1 1 100%;
+            }
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: rgb(66, 20, 71);
+                color: #fff;
+            }
+            a {
+                color: inherit;
+            }
+            footer {
+                border-top-color: #666;
+                color: #fff;
+            }
+        }
+        @media (prefers-color-scheme: light) {
+            body {
+                background-color: #fff;
+                color: #000;
+            }
+            footer {
+                color: #000;
+            }
+        }
+        .play-icon {
+            width: 0.8em;
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <section>
+            <p>Hi! I’m Jan Michael Krause, and I’m currently pursuing a Bachelor in Computer Science (AI) at Stanford University.</p>
+            <strong>Jan Michael Krause 🌴</strong></p>
+        </section>
+    </main>
+    <footer>
+        <div class="left-align footer-content">
+            <p>Jan Michael Krause<br>
+            <a href="https://x.com/jmichakrause">@jmichakrause</a><br>
+            <a href="mailto:jmkrause@stanford.edu">jmkrause@stanford.edu</a></p>
+        </div>
+    </footer>
+</body>
+</html>
