@@ -117,8 +117,7 @@
                 <input type="text" id="username" name="username"><br>
                 <label for="password">Password:</label><br>
                 <input type="password" id="password" name="password"><br><br>
-                <input type="submit" value="Login" onclick="showLoginFailed(event)">
-                <p id="loginFailedText" class="login-failed" style="display: none;">Login Failed</p>
+                <input type="submit" value="Login" onclick="redirectToVideo(event)">
             </form>
         </section>
     </main>
@@ -130,9 +129,9 @@
         </div>
     </footer>
     <script>
-        function showLoginFailed(event) {
+        function redirectToVideo(event) {
             event.preventDefault();
-            document.getElementById("loginFailedText").style.display = "block";
+            window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
         }
     </script>
 </body>
