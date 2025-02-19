@@ -16,6 +16,7 @@
             padding: 10vw 3vw;
             background-color: #fff;
             color: #000;
+            transition: background-color 0.3s, color 0.3s;
         }
         a {
             color: inherit;
@@ -36,6 +37,7 @@
             align-items: center;
             color: #000;
             text-align: center;
+            transition: border-top-color 0.3s, color 0.3s;
         }
         .italics {
             font-style: italic;
@@ -57,27 +59,20 @@
                 flex: 1 1 100%;
             }
         }
-        @media (prefers-color-scheme: dark) {
-            body {
-                background-color: rgb(2, 2, 42);
-                color: #fff;
-            }
-            a {
-                color: inherit;
-            }
-            footer {
-                border-top-color: #666;
-                color: #fff;
-            }
+        body.dark-mode {
+            background-color: rgb(2, 2, 42);
+            color: #fff;
         }
-        @media (prefers-color-scheme: light) {
-            body {
-                background-color: rgb(66, 20, 71);
-                color: #fff;
-            }
-            footer {
-                color: #fff;
-            }
+        body.dark-mode footer {
+            border-top-color: #666;
+            color: #fff;
+        }
+        body.light-mode {
+            background-color: rgb(66, 20, 71);
+            color: #fff;
+        }
+        body.light-mode footer {
+            color: #fff;
         }
         .play-icon {
             width: 0.8em;
@@ -97,9 +92,26 @@
         section {
             margin: 0 15vw;
         }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border: 1px solid currentColor;
+            border-radius: 4px;
+            background: none;
+            color: inherit;
+            cursor: pointer;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.8em;
+        }
+        .theme-toggle:hover {
+            opacity: 0.8;
+        }
     </style>
 </head>
-<body>
+<body class="light-mode">
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
     <header>
         <nav class="menu">
             <!-- <a href="index.html">Home</a>
@@ -124,5 +136,17 @@
             <a href="mailto:janmichaelkrause@stanford.edu">janmichaelkrause@stanford.edu</a></p>
         </div>
     </footer>
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+            } else {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+            }
+        }
+    </script>
 </body>
 </html>
