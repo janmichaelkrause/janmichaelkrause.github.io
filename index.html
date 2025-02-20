@@ -59,21 +59,30 @@
                 flex: 1 1 100%;
             }
         }
-        body.dark-mode {
-            background-color: rgb(2, 2, 42);
-            color: #fff;
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: rgb(2, 2, 42);
+                color: #fff;
+            }
+            footer {
+                border-top-color: #666;
+                color: #fff;
+            }
+            .theme-toggle {
+                content: 'Light Mode';
+            }
         }
-        body.dark-mode footer {
-            border-top-color: #666;
-            color: #fff;
-        }
-        body.light-mode {
-            <!-- background-color: rgb(66, 20, 71); -->
-            background-color: rgb(255, 255, 255);
-            color: #010101;
-        }
-        body.light-mode footer {
-            color: #020202;
+        @media (prefers-color-scheme: light) {
+            body {
+                background-color: rgb(255, 255, 255);
+                color: #010101;
+            }
+            footer {
+                color: #020202;
+            }
+            .theme-toggle {
+                content: 'Night Mode';
+            }
         }
         .play-icon {
             width: 0.8em;
@@ -111,7 +120,7 @@
         }
     </style>
 </head>
-<body class="light-mode">
+<body>
     <button class="theme-toggle" onclick="toggleTheme()">Night Mode</button>
     <header>
         <nav class="menu">
@@ -139,18 +148,34 @@
     </footer>
     <script>
         function toggleTheme() {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             const body = document.body;
             const button = document.querySelector('.theme-toggle');
+            
             if (body.classList.contains('light-mode')) {
                 body.classList.remove('light-mode');
                 body.classList.add('dark-mode');
                 button.textContent = 'Light Mode';
-            } else {
+            } else if (body.classList.contains('dark-mode')) {
                 body.classList.remove('dark-mode');
                 body.classList.add('light-mode');
                 button.textContent = 'Night Mode';
+            } else {
+                // Initial state based on system preference
+                if (prefersDark) {
+                    body.classList.add('light-mode');
+                    button.textContent = 'Night Mode';
+                } else {
+                    body.classList.add('dark-mode');
+                    button.textContent = 'Light Mode';
+                }
             }
         }
+
+        // Set initial theme based on system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const button = document.querySelector('.theme-toggle');
+        button.textContent = prefersDark ? 'Light Mode' : 'Night Mode';
     </script>
 </body>
 </html>
