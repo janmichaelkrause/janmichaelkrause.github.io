@@ -213,7 +213,7 @@
 <body>
 <div class="ui-date" id="ui-date"></div>
     <div class="ui-time" id="ui-time"></div>
-    <div class="theme-toggle" id="theme-toggle">Light/Dark</div>
+    <!-- <div class="theme-toggle" id="theme-toggle">Light/Dark</div> -->
     <div class="ui-bottom">
         <div class="ui-name">Jan Michael Krause</div>
         <span class="ui-info-link" id="info-open">Info</span>
@@ -251,12 +251,12 @@
             infoText.classList.toggle('active');
         });
 
-        // Theme toggle
-        let manualTheme = null;
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            manualTheme = !document.body.classList.contains('dark-mode');
-            applyTheme(manualTheme);
-        });
+        // Theme toggle (commented out)
+        // let manualTheme = null;
+        // document.getElementById('theme-toggle').addEventListener('click', () => {
+        //     manualTheme = !document.body.classList.contains('dark-mode');
+        //     applyTheme(manualTheme);
+        // });
 
         // Three.js: 3D black hole scene
         const canvas = document.getElementById('logo-canvas');
