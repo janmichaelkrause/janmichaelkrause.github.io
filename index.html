@@ -530,10 +530,13 @@
         // ── Exodus fleet (tiny dots moving star-to-star) ──
         let exodusFleet = null;
         let exodusSpawnTime = 15000 + Math.random() * 30000; // first fleet 15-45s in
+        let exodusScreenPos = null; // { x, y } in canvas pixels for lock-on
 
-        // ── Von Neumann probe (hops star-to-star) ──
-        let vonNeumann = null;
-        let vonNeumannSpawnTime = 40000 + Math.random() * 40000; // 40-80s in
+        // ── Von Neumann probes (hops star-to-star) ──
+        let vonNeumannProbes = [];
+        let vonNeumannNextSpawn = 20000 + Math.random() * 20000; // first probe 20-40s in
+        const VON_NEUMANN_MAX = 3; // up to 3 simultaneous probes
+        let vonNeumannScreenPositions = []; // array of { x, y } for lock-on
 
         // ── Mobile gyroscope parallax ──
         let gyroX = 0, gyroY = 0;
@@ -1213,12 +1216,12 @@
                 }
             }
 
-            if (!exodusFleet) return;
+            if (!exodusFleet) { exodusScreenPos = null; return; }
 
             const fleet = exodusFleet;
             const age = now - fleet.born;
             if (age > fleet.duration) {
-                exodusFleet = null;
+                exodusFleet = null; exodusScreenPos = null;
                 exodusSpawnTime = now + 30000 + Math.random() * 60000; // next fleet in 30-90s
                 return;
             }
@@ -1261,6 +1264,9 @@
                 const formX = (s % 2 === 0 ? 1 : -1) * Math.ceil(s / 2) * 3 * dpr;
                 const formY = Math.ceil(s / 2) * 2 * dpr;
 
+                // Store lead ship position for lock-on
+                if (s === 0) exodusScreenPos = { x: sx, y: sy };
+
                 // Ship dot
                 starsCtx.fillStyle = `rgba(220, 200, 170, ${alpha})`;
                 starsCtx.beginPath();
@@ -1275,15 +1281,16 @@
             }
         }
 
-        // ── Von Neumann probe — hops from star to star ──
+        // ── Von Neumann probes — hop from star to star ──
         function updateVonNeumann(now, w, h, isDark, viewRotX, viewRotY) {
             if (!isDark) return;
+            vonNeumannScreenPositions = [];
 
-            // Spawn
-            if (!vonNeumann && now > vonNeumannSpawnTime) {
+            // Spawn new probes
+            if (vonNeumannProbes.length < VON_NEUMANN_MAX && now > vonNeumannNextSpawn) {
                 const from = pickRandomVisibleStar(viewRotX, viewRotY);
                 if (from) {
-                    vonNeumann = {
+                    vonNeumannProbes.push({
                         currentTheta: from.star.theta,
                         currentPhi: from.star.phi,
                         targetTheta: 0,
@@ -1296,106 +1303,104 @@
                         pausing: false,
                         pauseUntil: 0,
                         needTarget: true,
-                    };
+                    });
                 }
+                vonNeumannNextSpawn = now + 15000 + Math.random() * 25000;
             }
 
-            if (!vonNeumann) return;
-            const vn = vonNeumann;
+            const dpr = window.devicePixelRatio;
 
-            // Find a target star to hop to
-            if (vn.needTarget) {
-                // Pick nearest-ish star on same layer
-                const layer = starLayers[vn.layerIdx];
-                let bestDist = Infinity, bestStar = null;
-                for (const star of layer.stars) {
-                    if (star.dead) continue;
-                    const dTheta = star.theta - vn.currentTheta;
-                    const dPhi = star.phi - vn.currentPhi;
-                    const d = Math.sqrt(dTheta * dTheta + dPhi * dPhi);
-                    if (d > 0.1 && d < 0.8 && d < bestDist) {
-                        bestDist = d;
-                        bestStar = star;
+            for (let vi = vonNeumannProbes.length - 1; vi >= 0; vi--) {
+                const vn = vonNeumannProbes[vi];
+
+                // Find a target star to hop to
+                if (vn.needTarget) {
+                    const layer = starLayers[vn.layerIdx];
+                    let bestDist = Infinity, bestStar = null;
+                    for (const star of layer.stars) {
+                        if (star.dead) continue;
+                        const dTheta = star.theta - vn.currentTheta;
+                        const dPhi = star.phi - vn.currentPhi;
+                        const d = Math.sqrt(dTheta * dTheta + dPhi * dPhi);
+                        if (d > 0.1 && d < 0.8 && d < bestDist) {
+                            bestDist = d;
+                            bestStar = star;
+                        }
+                    }
+                    if (bestStar) {
+                        vn.targetTheta = bestStar.theta;
+                        vn.targetPhi = bestStar.phi;
+                        vn.needTarget = false;
+                        vn.hopStart = now;
+                        vn.hopDuration = 6000 + Math.random() * 4000;
+                    } else {
+                        vonNeumannProbes.splice(vi, 1);
+                        continue;
                     }
                 }
-                if (bestStar) {
-                    vn.targetTheta = bestStar.theta;
-                    vn.targetPhi = bestStar.phi;
-                    vn.needTarget = false;
-                    vn.hopStart = now;
-                    vn.hopDuration = 6000 + Math.random() * 4000;
-                } else {
-                    vonNeumann = null;
-                    vonNeumannSpawnTime = now + 60000 + Math.random() * 60000;
-                    return;
-                }
-            }
 
-            // Pausing at a star
-            if (vn.pausing) {
-                if (now > vn.pauseUntil) {
-                    vn.pausing = false;
-                    vn.hopsRemaining--;
-                    if (vn.hopsRemaining <= 0) {
-                        vonNeumann = null;
-                        vonNeumannSpawnTime = now + 60000 + Math.random() * 60000;
-                        return;
+                // Pausing at a star
+                if (vn.pausing) {
+                    if (now > vn.pauseUntil) {
+                        vn.pausing = false;
+                        vn.hopsRemaining--;
+                        if (vn.hopsRemaining <= 0) {
+                            vonNeumannProbes.splice(vi, 1);
+                            continue;
+                        }
+                        vn.currentTheta = vn.targetTheta;
+                        vn.currentPhi = vn.targetPhi;
+                        vn.needTarget = true;
                     }
-                    vn.currentTheta = vn.targetTheta;
-                    vn.currentPhi = vn.targetPhi;
-                    vn.needTarget = true;
-                }
-                // Draw pulsing at star
-                const p = projectStar({ theta: vn.targetTheta, phi: vn.targetPhi }, vn.layerSpeed, viewRotX, viewRotY);
-                if (p) {
-                    const dpr = window.devicePixelRatio;
-                    const pulse = 0.4 + 0.3 * Math.sin(now * 0.005);
-                    starsCtx.fillStyle = `rgba(160, 255, 180, ${pulse})`;
-                    starsCtx.beginPath();
-                    starsCtx.arc(p.x, p.y, 3 * dpr, 0, Math.PI * 2);
-                    starsCtx.fill();
-                }
-                return;
-            }
-
-            // Traveling
-            const hopT = Math.min(1, (now - vn.hopStart) / vn.hopDuration);
-            const theta = vn.currentTheta + (vn.targetTheta - vn.currentTheta) * hopT;
-            const phi = vn.currentPhi + (vn.targetPhi - vn.currentPhi) * hopT;
-
-            const proj = projectStar({ theta, phi }, vn.layerSpeed, viewRotX, viewRotY);
-            if (proj) {
-                const dpr = window.devicePixelRatio;
-                let alpha = 0.8;
-                if (hopT < 0.05) alpha *= hopT / 0.05;
-                if (hopT > 0.95) alpha *= (1 - hopT) / 0.05;
-
-                // Probe dot (slightly green-tinted — artificial)
-                starsCtx.fillStyle = `rgba(160, 255, 180, ${alpha})`;
-                starsCtx.beginPath();
-                starsCtx.arc(proj.x, proj.y, 1.2 * dpr, 0, Math.PI * 2);
-                starsCtx.fill();
-
-                // Faint trail
-                const trailSteps = 4;
-                for (let i = 1; i <= trailSteps; i++) {
-                    const tt = Math.max(0, hopT - i * 0.02);
-                    const tTheta = vn.currentTheta + (vn.targetTheta - vn.currentTheta) * tt;
-                    const tPhi = vn.currentPhi + (vn.targetPhi - vn.currentPhi) * tt;
-                    const tp = projectStar({ theta: tTheta, phi: tPhi }, vn.layerSpeed, viewRotX, viewRotY);
-                    if (tp) {
-                        starsCtx.fillStyle = `rgba(160, 255, 180, ${alpha * (1 - i / trailSteps) * 0.3})`;
+                    const p = projectStar({ theta: vn.targetTheta, phi: vn.targetPhi }, vn.layerSpeed, viewRotX, viewRotY);
+                    if (p) {
+                        vonNeumannScreenPositions.push({ x: p.x, y: p.y });
+                        const pulse = 0.4 + 0.3 * Math.sin(now * 0.005 + vi * 2);
+                        starsCtx.fillStyle = `rgba(160, 255, 180, ${pulse})`;
                         starsCtx.beginPath();
-                        starsCtx.arc(tp.x, tp.y, 0.8 * dpr, 0, Math.PI * 2);
+                        starsCtx.arc(p.x, p.y, 3 * dpr, 0, Math.PI * 2);
                         starsCtx.fill();
                     }
+                    continue;
                 }
-            }
 
-            // Arrived — pause at star
-            if (hopT >= 1) {
-                vn.pausing = true;
-                vn.pauseUntil = now + 2000 + Math.random() * 2000;
+                // Traveling
+                const hopT = Math.min(1, (now - vn.hopStart) / vn.hopDuration);
+                const theta = vn.currentTheta + (vn.targetTheta - vn.currentTheta) * hopT;
+                const phi = vn.currentPhi + (vn.targetPhi - vn.currentPhi) * hopT;
+
+                const proj = projectStar({ theta, phi }, vn.layerSpeed, viewRotX, viewRotY);
+                if (proj) {
+                    let alpha = 0.8;
+                    if (hopT < 0.05) alpha *= hopT / 0.05;
+                    if (hopT > 0.95) alpha *= (1 - hopT) / 0.05;
+
+                    vonNeumannScreenPositions.push({ x: proj.x, y: proj.y });
+
+                    starsCtx.fillStyle = `rgba(160, 255, 180, ${alpha})`;
+                    starsCtx.beginPath();
+                    starsCtx.arc(proj.x, proj.y, 1.2 * dpr, 0, Math.PI * 2);
+                    starsCtx.fill();
+
+                    const trailSteps = 4;
+                    for (let i = 1; i <= trailSteps; i++) {
+                        const tt = Math.max(0, hopT - i * 0.02);
+                        const tTheta = vn.currentTheta + (vn.targetTheta - vn.currentTheta) * tt;
+                        const tPhi = vn.currentPhi + (vn.targetPhi - vn.currentPhi) * tt;
+                        const tp = projectStar({ theta: tTheta, phi: tPhi }, vn.layerSpeed, viewRotX, viewRotY);
+                        if (tp) {
+                            starsCtx.fillStyle = `rgba(160, 255, 180, ${alpha * (1 - i / trailSteps) * 0.3})`;
+                            starsCtx.beginPath();
+                            starsCtx.arc(tp.x, tp.y, 0.8 * dpr, 0, Math.PI * 2);
+                            starsCtx.fill();
+                        }
+                    }
+                }
+
+                if (hopT >= 1) {
+                    vn.pausing = true;
+                    vn.pauseUntil = now + 2000 + Math.random() * 2000;
+                }
             }
         }
 
@@ -1544,6 +1549,22 @@
                     }
                 }
             }
+            // Also check exodus fleet and von neumann probe
+            if (exodusScreenPos) {
+                const d = Math.sqrt((exodusScreenPos.x - px) ** 2 + (exodusScreenPos.y - py) ** 2);
+                if (d < bestDist) {
+                    bestDist = d; bestSX = exodusScreenPos.x; bestSY = exodusScreenPos.y;
+                    bestLayer = -1; bestIdx = -1;
+                }
+            }
+            for (const vnPos of vonNeumannScreenPositions) {
+                const d = Math.sqrt((vnPos.x - px) ** 2 + (vnPos.y - py) ** 2);
+                if (d < bestDist) {
+                    bestDist = d; bestSX = vnPos.x; bestSY = vnPos.y;
+                    bestLayer = -2; bestIdx = -1;
+                }
+            }
+
             const threshold = LOCK_RADIUS * dpr;
             if (bestDist < threshold) {
                 return { layerIdx: bestLayer, starIdx: bestIdx, screenX: bestSX, screenY: bestSY, dist: bestDist };
@@ -1556,25 +1577,44 @@
             if (!isDark || !lockActive || !lockTarget) return;
 
             const dpr = window.devicePixelRatio;
-            const layer = starLayers[lockTarget.layerIdx];
-            const star = layer.stars[lockTarget.starIdx];
-            if (!star || star.dead) { lockActive = false; lockTarget = null; return; }
+            let sx, sy;
 
-            // Re-project star position
-            const cx = w / 2, cy = h / 2;
-            const fov = Math.min(w, h) * 0.55;
-            const rX = userDragX * layer.speed, rY = userDragY * layer.speed;
-            const cosY = Math.cos(rY), sinY = Math.sin(rY);
-            const cosX = Math.cos(rX), sinX = Math.sin(rX);
-            const sp = Math.sin(star.phi);
-            const x = sp * Math.cos(star.theta), y = Math.cos(star.phi), z = sp * Math.sin(star.theta);
-            const x1 = x * cosY - z * sinY;
-            const z1 = x * sinY + z * cosY;
-            const y2 = y * cosX - z1 * sinX;
-            const z2 = y * sinX + z1 * cosX;
-            if (z2 < 0.4) return;
-            const sx = cx + (x1 / z2) * fov;
-            const sy = cy - (y2 / z2) * fov;
+            if (lockTarget.layerIdx === -1) {
+                // Exodus fleet — use stored screen position
+                if (!exodusScreenPos) { lockActive = false; lockTarget = null; return; }
+                sx = exodusScreenPos.x; sy = exodusScreenPos.y;
+            } else if (lockTarget.layerIdx === -2) {
+                // Von Neumann probe — use stored screen position
+                if (vonNeumannScreenPositions.length === 0) { lockActive = false; lockTarget = null; return; }
+                // Find closest probe to last known position
+                let closestVN = vonNeumannScreenPositions[0];
+                let closestD = Infinity;
+                for (const vp of vonNeumannScreenPositions) {
+                    const d = Math.sqrt((vp.x - lockTarget.screenX) ** 2 + (vp.y - lockTarget.screenY) ** 2);
+                    if (d < closestD) { closestD = d; closestVN = vp; }
+                }
+                sx = closestVN.x; sy = closestVN.y;
+            } else {
+                const layer = starLayers[lockTarget.layerIdx];
+                const star = layer.stars[lockTarget.starIdx];
+                if (!star || star.dead) { lockActive = false; lockTarget = null; return; }
+
+                // Re-project star position
+                const cx = w / 2, cy = h / 2;
+                const fov = Math.min(w, h) * 0.55;
+                const rX = userDragX * layer.speed, rY = userDragY * layer.speed;
+                const cosY = Math.cos(rY), sinY = Math.sin(rY);
+                const cosX = Math.cos(rX), sinX = Math.sin(rX);
+                const sp = Math.sin(star.phi);
+                const x = sp * Math.cos(star.theta), y = Math.cos(star.phi), z = sp * Math.sin(star.theta);
+                const x1 = x * cosY - z * sinY;
+                const z1 = x * sinY + z * cosY;
+                const y2 = y * cosX - z1 * sinX;
+                const z2 = y * sinX + z1 * cosX;
+                if (z2 < 0.4) return;
+                sx = (w / 2) + (x1 / z2) * (Math.min(w, h) * 0.55);
+                sy = (h / 2) - (y2 / z2) * (Math.min(w, h) * 0.55);
+            }
 
             // Update lock target screen position
             lockTarget.screenX = sx;
@@ -1584,10 +1624,13 @@
             lockFadeIn = Math.min(1, lockFadeIn + 0.04);
             const alpha = lockFadeIn * 0.85;
 
-            // Corner brackets around star
+            // Corner brackets — color by type
             const bracketSize = (8 + 2 * Math.sin(now * 0.003)) * dpr;
             const bracketLen = 4 * dpr;
-            starsCtx.strokeStyle = `rgba(100, 200, 255, ${alpha})`;
+            const lockColor = lockTarget.layerIdx === -1 ? `rgba(255, 200, 120, ${alpha})`
+                            : lockTarget.layerIdx === -2 ? `rgba(160, 255, 180, ${alpha})`
+                            : `rgba(100, 200, 255, ${alpha})`;
+            starsCtx.strokeStyle = lockColor;
             starsCtx.lineWidth = 1 * dpr;
 
             // Top-left
@@ -1615,24 +1658,33 @@
             starsCtx.lineTo(sx + bracketSize, sy + bracketSize - bracketLen);
             starsCtx.stroke();
 
-            // Generate deterministic label from star index
+            // Generate label based on object type
             let label;
-            const isPBD = paleBlueDotStar && lockTarget.layerIdx === paleBlueDotStar.layerIdx && lockTarget.starIdx === paleBlueDotStar.starIdx;
-            if (isPBD) {
-                label = 'Sol  ·  G2V  ·  Home';
+            if (lockTarget.layerIdx === -1) {
+                label = 'Exodus Fleet  ·  Human  ·  In Transit';
+            } else if (lockTarget.layerIdx === -2) {
+                label = 'Von Neumann Probe  ·  Artificial  ·  Self-Replicating';
             } else {
-                const seed = lockTarget.layerIdx * 10000 + lockTarget.starIdx;
-                const name = STAR_NAMES[seed % STAR_NAMES.length];
-                const cls = STAR_CLASSES[seed % STAR_CLASSES.length];
-                const catalog = `JMK-${String(seed).padStart(4, '0')}`;
-                label = `${name}  ·  ${cls}  ·  ${catalog}`;
+                const isPBD = paleBlueDotStar && lockTarget.layerIdx === paleBlueDotStar.layerIdx && lockTarget.starIdx === paleBlueDotStar.starIdx;
+                if (isPBD) {
+                    label = 'Sol  ·  G2V  ·  Home';
+                } else {
+                    const seed = lockTarget.layerIdx * 10000 + lockTarget.starIdx;
+                    const name = STAR_NAMES[seed % STAR_NAMES.length];
+                    const cls = STAR_CLASSES[seed % STAR_CLASSES.length];
+                    const catalog = `JMK-${String(seed).padStart(4, '0')}`;
+                    label = `${name}  ·  ${cls}  ·  ${catalog}`;
+                }
             }
 
             const fontSize = Math.round(9 * dpr);
             starsCtx.font = `${fontSize}px 'SF Mono', monospace`;
             starsCtx.textAlign = 'left';
             starsCtx.textBaseline = 'top';
-            starsCtx.fillStyle = `rgba(100, 200, 255, ${alpha * 0.8})`;
+            const textColor = lockTarget.layerIdx === -1 ? `rgba(255, 200, 120, ${alpha * 0.8})`
+                           : lockTarget.layerIdx === -2 ? `rgba(160, 255, 180, ${alpha * 0.8})`
+                           : `rgba(100, 200, 255, ${alpha * 0.8})`;
+            starsCtx.fillStyle = textColor;
             starsCtx.fillText(label, sx + bracketSize + 4 * dpr, sy - bracketSize);
         }
 
