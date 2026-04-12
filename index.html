@@ -288,8 +288,14 @@
 
         // Info toggle
         const infoText = document.getElementById('info-text');
-        document.getElementById('info-open').addEventListener('click', () => {
+        const infoOpen = document.getElementById('info-open');
+        infoOpen.addEventListener('click', () => {
             infoText.classList.toggle('active');
+        });
+        document.addEventListener('click', e => {
+            if (!infoText.classList.contains('active')) return;
+            if (infoText.contains(e.target) || infoOpen.contains(e.target)) return;
+            infoText.classList.remove('active');
         });
 
         // Theme toggle
@@ -462,6 +468,49 @@
         let lastNovaTime = 0;
         let nextNovaWait = 3000 + Math.random() * 12000;
 
+        // ── Distant galaxy (on celestial sphere) ──
+        const galaxy = {
+            theta: 0.8 + Math.random() * 3,
+            phi: 0.7 + Math.random() * 1.6,
+            rotation: Math.random() * Math.PI * 2,
+            size: 14 + Math.random() * 8,
+            layerSpeed: 0.85,
+        };
+
+        // ── Nebula wisps (on celestial sphere) ──
+        const nebulae = [];
+        for (let i = 0; i < 5; i++) {
+            nebulae.push({
+                theta: Math.random() * Math.PI * 2,
+                phi: Math.acos(2 * Math.random() - 1),
+                size: 25 + Math.random() * 35,
+                r: Math.random() < 0.5 ? 100 + Math.random() * 80 : 50 + Math.random() * 40,
+                g: 20 + Math.random() * 60,
+                b: 120 + Math.random() * 135,
+                opacity: 0.025 + Math.random() * 0.035,
+                driftTheta: (Math.random() - 0.5) * 0.00004,
+                driftPhi: (Math.random() - 0.5) * 0.00002,
+                layerSpeed: 0.85,
+            });
+        }
+
+        // ── Hawking radiation particles ──
+        let hawkingParticles = [];
+        let lastHawkingSpawn = 0;
+
+        // ── Binary star system (on celestial sphere) ──
+        const binaryStar = {
+            theta: Math.random() * Math.PI * 2,
+            phi: Math.acos(2 * Math.random() - 1),
+            orbitAngle: 0,
+            separation: 0.018,
+            layerSpeed: 1.0,
+            sizeA: 0.8 + Math.random() * 0.4,
+            sizeB: 0.5 + Math.random() * 0.3,
+            opacityA: 0.5 + Math.random() * 0.3,
+            opacityB: 0.35 + Math.random() * 0.25,
+        };
+
         // Theme: follow OS preference, update live if it changes
         const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
         function applyTheme(dark) {
@@ -505,6 +554,10 @@
             drawStars(isDark, userDragX, userDragY, now);
             maybeSpawnSupernova(now, userDragX, userDragY);
             drawSupernovae(now, sw, sh, isDark, userDragX, userDragY);
+            drawGalaxy(now, sw, sh, isDark, userDragX, userDragY);
+            drawNebulae(now, sw, sh, isDark, userDragX, userDragY);
+            updateHawkingRadiation(now, sw, sh, isDark);
+            drawBinarySystem(now, sw, sh, isDark, userDragX, userDragY);
 
             renderer.render(scene, camera);
         }
@@ -808,6 +861,233 @@
             }
         }
 
+
+        // ── Distant galaxy drawing ──
+        function drawGalaxy(time, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            const cx = w / 2, cy = h / 2;
+            const fov = Math.min(w, h) * 0.55;
+
+            const rX = viewRotX * galaxy.layerSpeed;
+            const rY = viewRotY * galaxy.layerSpeed;
+            const cosY = Math.cos(rY), sinY = Math.sin(rY);
+            const cosX = Math.cos(rX), sinX = Math.sin(rX);
+
+            const sp = Math.sin(galaxy.phi);
+            const x = sp * Math.cos(galaxy.theta);
+            const y = Math.cos(galaxy.phi);
+            const z = sp * Math.sin(galaxy.theta);
+
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+            const y2 = y * cosX - z1 * sinX;
+            const z2 = y * sinX + z1 * cosX;
+
+            if (z2 < 0.3) return;
+
+            const sx = cx + (x1 / z2) * fov;
+            const sy = cy - (y2 / z2) * fov;
+            if (sx < -60 || sx > w + 60 || sy < -60 || sy > h + 60) return;
+
+            galaxy.rotation += 0.0003;
+            const dpr = window.devicePixelRatio;
+            const size = galaxy.size * dpr;
+
+            starsCtx.save();
+            starsCtx.translate(sx, sy);
+            starsCtx.rotate(galaxy.rotation);
+            starsCtx.globalAlpha = 0.12 * Math.min(1, z2 * 3);
+
+            // Draw spiral arms as soft elliptical smudges
+            for (let arm = 0; arm < 2; arm++) {
+                const armAngle = arm * Math.PI;
+                for (let j = 0; j < 8; j++) {
+                    const t = j / 8;
+                    const spiralR = size * (0.15 + t * 0.85);
+                    const angle = armAngle + t * 2.5;
+                    const bx = Math.cos(angle) * spiralR;
+                    const by = Math.sin(angle) * spiralR * 0.5;
+                    const blobSize = size * (0.2 - t * 0.1);
+                    const grad = starsCtx.createRadialGradient(bx, by, 0, bx, by, blobSize);
+                    grad.addColorStop(0, `rgba(220, 200, 255, ${0.15 - t * 0.1})`);
+                    grad.addColorStop(1, 'rgba(180, 160, 220, 0)');
+                    starsCtx.fillStyle = grad;
+                    starsCtx.beginPath();
+                    starsCtx.arc(bx, by, blobSize, 0, Math.PI * 2);
+                    starsCtx.fill();
+                }
+            }
+            // Central bulge
+            const bulge = starsCtx.createRadialGradient(0, 0, 0, 0, 0, size * 0.25);
+            bulge.addColorStop(0, 'rgba(255, 240, 220, 0.3)');
+            bulge.addColorStop(0.5, 'rgba(255, 220, 180, 0.1)');
+            bulge.addColorStop(1, 'rgba(200, 180, 220, 0)');
+            starsCtx.fillStyle = bulge;
+            starsCtx.beginPath();
+            starsCtx.arc(0, 0, size * 0.25, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            starsCtx.restore();
+        }
+
+        // ── Nebula wisps drawing ──
+        function drawNebulae(time, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            const cx = w / 2, cy = h / 2;
+            const fov = Math.min(w, h) * 0.55;
+            const dpr = window.devicePixelRatio;
+
+            for (const neb of nebulae) {
+                // Slow drift
+                neb.theta += neb.driftTheta;
+                neb.phi += neb.driftPhi;
+                // Bounce phi to stay in range
+                if (neb.phi < 0.1 || neb.phi > Math.PI - 0.1) neb.driftPhi *= -1;
+
+                const rX = viewRotX * neb.layerSpeed;
+                const rY = viewRotY * neb.layerSpeed;
+                const cosY = Math.cos(rY), sinY = Math.sin(rY);
+                const cosX = Math.cos(rX), sinX = Math.sin(rX);
+
+                const sp = Math.sin(neb.phi);
+                const x = sp * Math.cos(neb.theta);
+                const y = Math.cos(neb.phi);
+                const z = sp * Math.sin(neb.theta);
+
+                const x1 = x * cosY - z * sinY;
+                const z1 = x * sinY + z * cosY;
+                const y2 = y * cosX - z1 * sinX;
+                const z2 = y * sinX + z1 * cosX;
+
+                if (z2 < 0.2) continue;
+
+                const sx = cx + (x1 / z2) * fov;
+                const sy = cy - (y2 / z2) * fov;
+                if (sx < -100 || sx > w + 100 || sy < -100 || sy > h + 100) continue;
+
+                const size = neb.size * dpr;
+                const alpha = neb.opacity * Math.min(1, z2 * 2);
+
+                // Soft colored cloud
+                const grad = starsCtx.createRadialGradient(sx, sy, 0, sx, sy, size);
+                grad.addColorStop(0, `rgba(${neb.r}, ${neb.g}, ${neb.b}, ${alpha})`);
+                grad.addColorStop(0.4, `rgba(${neb.r}, ${neb.g}, ${neb.b}, ${alpha * 0.5})`);
+                grad.addColorStop(1, `rgba(${neb.r}, ${neb.g}, ${neb.b}, 0)`);
+                starsCtx.fillStyle = grad;
+                starsCtx.beginPath();
+                starsCtx.arc(sx, sy, size, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── Hawking radiation ──
+        function updateHawkingRadiation(time, w, h, isDark) {
+            if (!isDark) return;
+            const cx = w / 2, cy = h / 2;
+            const bhRadius = Math.min(w, h) * 0.055;
+            const dpr = window.devicePixelRatio;
+
+            // Spawn new particles
+            if (time - lastHawkingSpawn > 200 + Math.random() * 300) {
+                lastHawkingSpawn = time;
+                const angle = Math.random() * Math.PI * 2;
+                const spawnR = bhRadius * (1.0 + Math.random() * 0.3);
+                hawkingParticles.push({
+                    x: cx + Math.cos(angle) * spawnR,
+                    y: cy + Math.sin(angle) * spawnR,
+                    vx: Math.cos(angle) * (0.3 + Math.random() * 0.5) * dpr,
+                    vy: Math.sin(angle) * (0.3 + Math.random() * 0.5) * dpr,
+                    born: time,
+                    life: 800 + Math.random() * 1200,
+                    size: (0.3 + Math.random() * 0.5) * dpr,
+                });
+            }
+
+            // Draw and update
+            for (let i = hawkingParticles.length - 1; i >= 0; i--) {
+                const p = hawkingParticles[i];
+                const age = time - p.born;
+                if (age > p.life) { hawkingParticles.splice(i, 1); continue; }
+
+                p.x += p.vx;
+                p.y += p.vy;
+                // Slight curve away
+                p.vx *= 0.995;
+                p.vy *= 0.995;
+
+                const t = age / p.life;
+                const alpha = t < 0.1 ? t / 0.1 : (1 - (t - 0.1) / 0.9);
+                alpha * 0.4; // faint
+
+                starsCtx.fillStyle = `rgba(200, 220, 255, ${alpha * 0.35})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+
+            // Cap particle count
+            if (hawkingParticles.length > 60) hawkingParticles.splice(0, hawkingParticles.length - 60);
+        }
+
+        // ── Binary star system ──
+        function drawBinarySystem(time, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            const cx = w / 2, cy = h / 2;
+            const fov = Math.min(w, h) * 0.55;
+            const dpr = window.devicePixelRatio;
+
+            binaryStar.orbitAngle += 0.002;
+
+            // Project center of mass
+            const rX = viewRotX * binaryStar.layerSpeed;
+            const rY = viewRotY * binaryStar.layerSpeed;
+            const cosY = Math.cos(rY), sinY = Math.sin(rY);
+            const cosX = Math.cos(rX), sinX = Math.sin(rX);
+
+            const sp = Math.sin(binaryStar.phi);
+            const x = sp * Math.cos(binaryStar.theta);
+            const y = Math.cos(binaryStar.phi);
+            const z = sp * Math.sin(binaryStar.theta);
+
+            const x1 = x * cosY - z * sinY;
+            const z1 = x * sinY + z * cosY;
+            const y2 = y * cosX - z1 * sinX;
+            const z2 = y * sinX + z1 * cosX;
+
+            if (z2 < 0.4) return;
+
+            const screenCX = cx + (x1 / z2) * fov;
+            const screenCY = cy - (y2 / z2) * fov;
+            if (screenCX < -30 || screenCX > w + 30 || screenCY < -30 || screenCY > h + 30) return;
+
+            const sep = binaryStar.separation * fov;
+            const angle = binaryStar.orbitAngle;
+            const alpha = Math.min(1, z2 * 3);
+
+            // Star A (larger, warmer)
+            const ax = screenCX + Math.cos(angle) * sep;
+            const ay = screenCY + Math.sin(angle) * sep * 0.6; // slight tilt
+            starsCtx.fillStyle = `rgba(255, 240, 220, ${binaryStar.opacityA * alpha})`;
+            starsCtx.beginPath();
+            starsCtx.arc(ax, ay, binaryStar.sizeA * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Star B (smaller, cooler)
+            const bx = screenCX - Math.cos(angle) * sep;
+            const by = screenCY - Math.sin(angle) * sep * 0.6;
+            starsCtx.fillStyle = `rgba(200, 220, 255, ${binaryStar.opacityB * alpha})`;
+            starsCtx.beginPath();
+            starsCtx.arc(bx, by, binaryStar.sizeB * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Faint glow connecting them
+            starsCtx.strokeStyle = `rgba(220, 220, 255, ${0.04 * alpha})`;
+            starsCtx.lineWidth = 0.5 * dpr;
+            starsCtx.beginPath();
+            starsCtx.moveTo(ax, ay);
+            starsCtx.lineTo(bx, by);
+            starsCtx.stroke();
+        }
 
         generateStars();
         drawStars(darkMQ.matches, 0, 0, 0);
