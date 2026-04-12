@@ -199,6 +199,45 @@
         .theme-toggle:hover {
             opacity: 0.8;
         }
+
+        /* ── Star field ── */
+        .stars {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .stars canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── Dark mode glow behind the black hole ── */
+        .hero-glow {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(90vw, 44rem);
+            height: min(90vw, 44rem);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            background: radial-gradient(
+                circle,
+                rgba(255, 140, 50, 0.08) 0%,
+                rgba(255, 100, 30, 0.04) 30%,
+                rgba(255, 60, 10, 0.015) 55%,
+                transparent 75%
+            );
+            z-index: 0;
+        }
+        body.dark-mode .hero-glow {
+            opacity: 1;
+        }
+
         @media (max-width: 768px) {
             section {
                 margin: 0;
@@ -224,6 +263,8 @@
         <p><a href="https://x.com/jmichaelkrause" target="_blank">Twitter @jmichaelkrause</a></p>
         <p><a href="mailto:janmichaelkrause@stanford.edu">janmichaelkrause@stanford.edu</a></p>
     </div>
+    <div class="stars"><canvas id="stars-canvas"></canvas></div>
+    <div class="hero-glow"></div>
     <main>
         <section class="hero">
             <canvas id="logo-canvas" aria-label="Interactive 3D black hole"></canvas>
@@ -265,8 +306,9 @@
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
-        camera.position.set(0, 0, 5.5);
+        const frustum = 1.5;
+        const camera = new THREE.OrthographicCamera(-frustum, frustum, frustum, -frustum, 0.1, 50);
+        camera.position.set(0, 0, 20);
 
         function resizeRenderer() {
             const s = canvas.offsetWidth || Math.round(window.innerWidth <= 768
@@ -288,13 +330,19 @@
             const cx = size / 2, cy = size / 2;
             const img = ctx.createImageData(size, size);
             const d = img.data;
-            const ri = 0.22, ro = 0.92;
+            const riBase = 0.22, ro = 0.92;
 
             for (let py = 0; py < size; py++) {
                 for (let px = 0; px < size; px++) {
                     const dx = px - cx, dy = py - cy;
                     const r = Math.sqrt(dx * dx + dy * dy) / (size / 2);
                     const angle = Math.atan2(dy, dx);
+
+                    // Gravitational lensing — inner edge bends toward the sphere
+                    // Light from behind the hole bends around it, creating a tighter
+                    // inner edge where the disk wraps closest to the shadow
+                    const lensing = 0.07 * Math.cos(angle * 2 + 0.5);
+                    const ri = riBase - lensing;
 
                     // Spiral-wisp outer edge
                     const spiral = angle + r * 12;
@@ -307,7 +355,8 @@
                     let temp = Math.pow(1 - t, 0.55);          // very slow falloff — stays orange/yellow to the edge
 
                     // Doppler beaming — subtle asymmetry
-                    temp *= 1 + 0.25 * Math.cos(angle - 0.6);
+                    const doppler = Math.cos(angle - 0.6);
+                    temp *= 1 + 0.25 * doppler;
 
                     // Turbulence — organic streaks
                     temp *= 0.86 + 0.14 * (
@@ -339,10 +388,23 @@
                         R = u * 100; G = u * 10; B = 0;
                     }
 
+                    // Doppler colour shift — blueshift approaching, redshift receding
+                    const shift = doppler * 0.3 * (1 - t);
+                    if (shift > 0) {
+                        // Approaching: push toward blue/white
+                        B = Math.min(255, B + shift * 600);
+                        G = Math.min(255, G + shift * 200);
+                    } else {
+                        // Receding: push toward deeper red
+                        R = Math.min(255, R - shift * 300);
+                        G = Math.max(0, G + shift * 200);
+                        B = Math.max(0, B + shift * 100);
+                    }
+
                     // Alpha: fully opaque, then fade out at the edge
                     let A = 255;
                     if (t < 0.03) A *= t / 0.03;
-                    if (t > 0.8) A *= Math.pow((1 - t) / 0.2, 3);
+                    if (t > 0.75) A *= Math.pow((1 - t) / 0.25, 5);
 
                     const idx = (py * size + px) * 4;
                     d[idx]     = Math.min(255, R | 0);
@@ -354,6 +416,9 @@
             ctx.putImageData(img, 0, 0);
             const tex = new THREE.CanvasTexture(c);
             tex.colorSpace = THREE.SRGBColorSpace;
+            tex.generateMipmaps = false;
+            tex.minFilter = THREE.LinearFilter;
+            tex.magFilter = THREE.LinearFilter;
             return tex;
         }
 
@@ -365,10 +430,10 @@
             new THREE.MeshBasicMaterial({ color: 0x000000 })
         ));
 
-        // Accretion disk — textured plane
+        // Accretion disk
         const diskTex = createDiskTexture(1024);
         const diskMesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(4.4, 4.4),
+            new THREE.CircleGeometry(2.2, 128),
             new THREE.MeshBasicMaterial({
                 map: diskTex,
                 transparent: true,
@@ -380,61 +445,79 @@
         group.add(diskMesh);
 
 
+
         group.scale.setScalar(0.55);
+
+        // ── Star field (declare early so applyTheme can call drawStars) ──
+        const starsCanvas = document.getElementById('stars-canvas');
+        const starsCtx = starsCanvas.getContext('2d');
+        const starLayers = [
+            { speed: 1.15, stars: [] },  // near
+            { speed: 1.0, stars: [] },   // mid
+            { speed: 0.85, stars: [] },  // far
+        ];
 
         // Theme: follow OS preference, update live if it changes
         const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
         function applyTheme(dark) {
             document.body.classList.toggle('dark-mode', dark);
             document.body.classList.toggle('light-mode', !dark);
+            if (typeof drawStars === 'function') drawStars(dark);
         }
         applyTheme(darkMQ.matches);
         darkMQ.addEventListener('change', e => applyTheme(e.matches));
 
         // Rotation state & drag interaction
         const DEG = Math.PI / 180;
-        let rotX = 12 * DEG, rotY = 0, momX = 0, momY = 0;
+        let rotX = 12 * DEG, rotY = 0;
+        let userDragY = 0, userDragX = 0;  // user drag only, no idle spin
         const idleSpin = -0.28 * DEG;
-        let isDragging = false, lastX = 0, lastY = 0;
+        let isDragging = false, resetting = false, lastX = 0, lastY = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             if (resetting) {
                 rotX += (12 * DEG - rotX) * 0.12;
-                rotY += idleSpin;
                 if (Math.abs(rotX - 12 * DEG) < 0.001) {
                     rotX = 12 * DEG;
                     resetting = false;
                 }
-            } else if (!isDragging) {
-                rotX += momX; rotY += momY;
-                momX *= 0.93;  momY *= 0.93;
             }
             rotY += idleSpin;
             group.rotation.x = rotX;
             group.rotation.y = rotY;
+
+            // Disk flickering — subtle turbulent brightness variation
+            const now = performance.now();
+            const flicker = 0.96 + 0.04 * Math.sin(now * 0.003)
+                          + 0.025 * Math.sin(now * 0.0071 + 1.3)
+                          + 0.015 * Math.sin(now * 0.0137 + 2.7);
+            diskMesh.material.color.setScalar(flicker);
+
+            // Redraw stars — celestial sphere projection tied to user drag
+            drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY);
+
             renderer.render(scene, camera);
         }
 
         canvas.addEventListener('pointerdown', e => {
             isDragging = true; resetting = false;
             lastX = e.clientX; lastY = e.clientY;
-            momX = 0; momY = 0;
             canvas.setPointerCapture(e.pointerId); e.preventDefault();
         });
         window.addEventListener('pointermove', e => {
             if (!isDragging) return;
             const dx = e.clientX - lastX, dy = e.clientY - lastY;
-            rotY += dx * 0.5 * DEG; rotX += dy * 0.5 * DEG;
-            momY = dx * 0.5 * DEG;  momX = dy * 0.5 * DEG;
+            const dY = dx * 0.5 * DEG, dX = dy * 0.5 * DEG;
+            rotY += dY; rotX += dX;
+            userDragY += dY; userDragX += dX;
             lastX = e.clientX; lastY = e.clientY;
         });
         window.addEventListener('pointerup', () => { isDragging = false; });
         window.addEventListener('pointercancel', () => { isDragging = false; });
-        let resetting = false;
         canvas.addEventListener('dblclick', () => {
-            momX = 0; momY = 0;
             resetting = true;
+            userDragX = 0; userDragY = 0;
         });
 
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -442,6 +525,113 @@
         } else {
             renderer.render(scene, camera);
         }
+
+        // ── Star field — 3 depth layers with different rotation speeds ──
+        function generateStars() {
+            const w = starsCanvas.width = window.innerWidth * window.devicePixelRatio;
+            const h = starsCanvas.height = window.innerHeight * window.devicePixelRatio;
+            starsCanvas.style.width = window.innerWidth + 'px';
+            starsCanvas.style.height = window.innerHeight + 'px';
+
+            for (const layer of starLayers) layer.stars = [];
+
+            for (let i = 0; i < 5000; i++) {
+                const theta = Math.random() * 2 * Math.PI;
+                const phi = Math.acos(2 * Math.random() - 1);
+
+                const size = Math.random() < 0.05
+                    ? 1.5 + Math.random() * 1.0
+                    : 0.4 + Math.random() * 0.8;
+                const opacity = 0.15 + Math.random() * 0.4;
+
+                // Assign to depth layer: 15% near, 35% mid, 50% far
+                const roll = Math.random();
+                const layerIdx = roll < 0.15 ? 0 : roll < 0.5 ? 1 : 2;
+                starLayers[layerIdx].stars.push({ theta, phi, size, opacity });
+            }
+        }
+
+        function drawStars(isDark, viewRotX = 0, viewRotY = 0) {
+            const w = starsCanvas.width, h = starsCanvas.height;
+            starsCtx.clearRect(0, 0, w, h);
+            const cx = w / 2, cy = h / 2;
+            const fov = Math.min(w, h) * 0.55;
+            const horizonR = Math.min(w, h) * 0.055;
+            const lensR = Math.min(w, h) * 0.18;
+
+            for (const layer of starLayers) {
+                const rotX = viewRotX * layer.speed;
+                const rotYL = viewRotY * layer.speed;
+                const cosY = Math.cos(rotYL), sinY = Math.sin(rotYL);
+                const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+
+                for (const star of layer.stars) {
+                    const sp = Math.sin(star.phi);
+                    const x = sp * Math.cos(star.theta);
+                    const y = Math.cos(star.phi);
+                    const z = sp * Math.sin(star.theta);
+
+                    const x1 = x * cosY - z * sinY;
+                    const z1 = x * sinY + z * cosY;
+                    const y2 = y * cosX - z1 * sinX;
+                    const z2 = y * sinX + z1 * cosX;
+
+                    if (z2 < 0.4) continue;
+
+                    let sx = cx + (x1 / z2) * fov;
+                    let sy = cy - (y2 / z2) * fov;
+
+                    if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) continue;
+
+                    // Gravitational lensing
+                    const dx = sx - cx, dy = sy - cy;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > lensR * 0.5 && dist < lensR * 3) {
+                        const strength = (lensR * lensR) / (dist * dist);
+                        const clamped = Math.min(strength, 8);
+                        sx += (dx / dist) * clamped * 0.6;
+                        sy += (dy / dist) * clamped * 0.6;
+                    }
+
+                    const finalDist = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
+                    if (finalDist < horizonR) continue;
+
+                    let alpha = star.opacity;
+                    if (finalDist < horizonR * 2.5) {
+                        alpha *= (finalDist - horizonR) / (horizonR * 1.5);
+                    }
+                    alpha *= Math.min(1, z2 * 4);
+
+                    if (isDark) {
+                        starsCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    } else {
+                        starsCtx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.25})`;
+                    }
+                    starsCtx.beginPath();
+                    starsCtx.arc(sx, sy, star.size, 0, Math.PI * 2);
+                    starsCtx.fill();
+                }
+            }
+        }
+
+        generateStars();
+        drawStars(darkMQ.matches, 0, 0);
+        window.addEventListener('resize', () => { generateStars(); drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY); });
+
+        // ── Cursor vanishes over the event horizon ──
+        canvas.addEventListener('pointermove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dx = e.clientX - cx, dy = e.clientY - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const holeRadius = rect.width * 0.07;
+            if (dist < holeRadius && !isDragging) {
+                canvas.style.cursor = 'none';
+            } else {
+                canvas.style.cursor = isDragging ? 'grabbing' : 'grab';
+            }
+        });
     </script>
 </body>
 </html>
