@@ -792,8 +792,10 @@
             renderer.render(scene, camera);
         }
 
+        let downX = 0, downY = 0;
         canvas.addEventListener('pointerdown', e => {
             isDragging = true; resetting = false;
+            downX = e.clientX; downY = e.clientY;
             lastX = e.clientX; lastY = e.clientY;
             canvas.setPointerCapture(e.pointerId); e.preventDefault();
         });
@@ -807,9 +809,11 @@
         });
         window.addEventListener('pointerup', () => { isDragging = false; });
         window.addEventListener('pointercancel', () => { isDragging = false; });
-        canvas.addEventListener('dblclick', () => {
-            resetting = true;
-            userDragX = 0; userDragY = 0;
+        canvas.addEventListener('click', e => {
+            if (Math.abs(e.clientX - downX) < 5 && Math.abs(e.clientY - downY) < 5) {
+                resetting = true;
+                userDragX = 0; userDragY = 0;
+            }
         });
 
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
