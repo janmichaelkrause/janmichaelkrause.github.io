@@ -460,6 +460,7 @@
         // ── Event state (declared early to avoid TDZ in animate) ──
         let supernovae = [];
         let lastNovaTime = 0;
+        let nextNovaWait = 3000 + Math.random() * 12000;
 
         // Theme: follow OS preference, update live if it changes
         const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
@@ -636,7 +637,7 @@
 
         // ── Supernovae ──
         function maybeSpawnSupernova(time, viewRotX, viewRotY) {
-            if (time - lastNovaTime < 2500 + Math.random() * 12000) return; // 3-15s
+            if (time - lastNovaTime < nextNovaWait) return;
             // Find a star that is currently visible on screen
             const fov = Math.min(starsCanvas.width, starsCanvas.height) * 0.55;
             const cx = starsCanvas.width / 2, cy = starsCanvas.height / 2;
@@ -682,7 +683,8 @@
                 // Cyan-teal
                 r1 = 220; g1 = 255; b1 = 255; r2 = 60; g2 = 200; b2 = 220;
             }
-            donor.dead = true; // star dies as the supernova begins
+            donor.dead = true;
+                nextNovaWait = 3000 + Math.random() * 12000; // pick next wait
             supernovae.push({
                 theta, phi, layerSpeed,
                 born: time,
