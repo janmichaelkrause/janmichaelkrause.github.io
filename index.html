@@ -20,9 +20,7 @@
             overflow: hidden;
             height: 100dvh;
         }
-        @media (hover: hover) {
-            body { cursor: none; }
-        }
+        body, body * { cursor: none !important; }
         a {
             color: inherit;
             text-decoration: none;
@@ -304,15 +302,19 @@
         let manualTheme = null;
         document.getElementById('theme-toggle').addEventListener('click', () => {
             manualTheme = !document.body.classList.contains('dark-mode');
-            idleDark = false; // user explicitly chose a theme
+            idleFadeStarted = false;
+            idleFadeCommitted = false;
+            setThemeTransition(0.3);
             applyTheme(manualTheme);
         });
 
-        // ── Idle cursor → fade to dark mode ──
+        // ── Idle cursor → permanent fade to dark mode ──
         let idleTimer = null;
-        let idleDark = false;
-        let themeBeforeIdle = null;
+        let idleFadeStarted = false;
+        let idleFadeCommitted = false;
         const IDLE_TIMEOUT = 10000;
+        const IDLE_FADE_DURATION = 18; // seconds
+        const IDLE_COMMIT_TIME = IDLE_FADE_DURATION * 0.5 * 1000; // halfway = committed
 
         function setThemeTransition(seconds) {
             document.body.style.transition = `background-color ${seconds}s, color ${seconds}s`;
@@ -320,23 +322,27 @@
 
         function startIdleTimer() {
             clearTimeout(idleTimer);
-            // If returning from idle dark, restore previous theme
-            if (idleDark) {
-                idleDark = false;
-                setThemeTransition(2); // fast return to light
-                if (themeBeforeIdle !== null) {
-                    applyTheme(themeBeforeIdle);
-                } else {
-                    applyTheme(manualTheme !== null ? manualTheme : darkMQ.matches);
-                }
+            // If fade already committed, do nothing
+            if (idleFadeCommitted) return;
+            // If fading but not yet committed, revert
+            if (idleFadeStarted) {
+                idleFadeStarted = false;
+                setThemeTransition(2);
+                applyTheme(manualTheme !== null ? manualTheme : darkMQ.matches);
             }
             idleTimer = setTimeout(() => {
-                // Only fade to dark if currently in light mode
+                if (idleFadeCommitted) return;
                 if (!document.body.classList.contains('dark-mode')) {
-                    themeBeforeIdle = false; // was light
-                    idleDark = true;
-                    setThemeTransition(18); // slow fade to dark
+                    idleFadeStarted = true;
+                    setThemeTransition(IDLE_FADE_DURATION);
                     applyTheme(true);
+                    // After halfway, commit permanently
+                    setTimeout(() => {
+                        if (idleFadeStarted) {
+                            idleFadeCommitted = true;
+                            manualTheme = true;
+                        }
+                    }, IDLE_COMMIT_TIME);
                 }
             }, IDLE_TIMEOUT);
         }
@@ -793,13 +799,14 @@
         }
 
         let downX = 0, downY = 0;
-        canvas.addEventListener('pointerdown', e => {
+        document.addEventListener('pointerdown', e => {
+            if (e.target.closest('.info-text, .ui-info-link, .theme-toggle, a[href]')) return;
             isDragging = true; resetting = false;
             downX = e.clientX; downY = e.clientY;
             lastX = e.clientX; lastY = e.clientY;
-            canvas.setPointerCapture(e.pointerId); e.preventDefault();
+            e.preventDefault();
         });
-        window.addEventListener('pointermove', e => {
+        document.addEventListener('pointermove', e => {
             if (!isDragging) return;
             const dx = e.clientX - lastX, dy = e.clientY - lastY;
             const dY = dx * 0.5 * DEG, dX = dy * 0.5 * DEG;
@@ -807,12 +814,21 @@
             userDragY += dY; userDragX += dX;
             lastX = e.clientX; lastY = e.clientY;
         });
-        window.addEventListener('pointerup', () => { isDragging = false; });
-        window.addEventListener('pointercancel', () => { isDragging = false; });
-        canvas.addEventListener('click', e => {
+        document.addEventListener('pointerup', () => { isDragging = false; });
+        document.addEventListener('pointercancel', () => { isDragging = false; });
+        document.addEventListener('click', e => {
+            if (e.target.closest('.info-text, .ui-info-link, .theme-toggle, a[href]')) return;
             if (Math.abs(e.clientX - downX) < 5 && Math.abs(e.clientY - downY) < 5) {
-                resetting = true;
-                userDragX = 0; userDragY = 0;
+                // Only reset if click is on the black hole
+                const rect = canvas.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+                const holeR = rect.width * 0.62 * 0.55 / (frustum * 2);
+                if (dist < holeR) {
+                    resetting = true;
+                    userDragX = 0; userDragY = 0;
+                }
             }
         });
 
@@ -2238,12 +2254,7 @@
         document.addEventListener('pointermove', e => {
             cursorX = e.clientX;
             cursorY = e.clientY;
-            const overText = isTextElement(e.target);
-            if (overText !== cursorOverText) {
-                cursorOverText = overText;
-                document.body.style.cursor = overText ? '' : 'none';
-            }
-            cursorVisible = !overText;
+            cursorVisible = true;
         });
 
         // Find nearest visible star to cursor (in CSS pixels)
@@ -2498,7 +2509,7 @@
         const isTouchDevice = !window.matchMedia('(hover: hover)').matches;
         function updateCursorReticle() {
             requestAnimationFrame(updateCursorReticle);
-            if (isTouchDevice || !cursorVisible) {
+            if (isTouchDevice) {
                 cursorCanvas.style.display = 'none';
                 return;
             }
