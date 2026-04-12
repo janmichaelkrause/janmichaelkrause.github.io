@@ -502,7 +502,7 @@
             const isDark = document.body.classList.contains('dark-mode');
             const sw = starsCanvas.width, sh = starsCanvas.height;
             drawStars(isDark, userDragX, userDragY, now);
-            maybeSpawnSupernova(now);
+            maybeSpawnSupernova(now, userDragX, userDragY);
             drawSupernovae(now, sw, sh, isDark, userDragX, userDragY);
 
             renderer.render(scene, camera);
@@ -578,6 +578,7 @@
                 const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
 
                 for (const star of layer.stars) {
+                    if (star.dead) continue;
                     const sp = Math.sin(star.phi);
                     const x = sp * Math.cos(star.theta);
                     const y = Math.cos(star.phi);
@@ -634,19 +635,63 @@
         }
 
         // ── Supernovae ──
-        function maybeSpawnSupernova(time) {
-            if (time - lastNovaTime < 5000 + Math.random() * 10000) return;
-            lastNovaTime = time;
-            // Spawn on the celestial sphere, pick a random mid-layer speed
-            const theta = Math.random() * 2 * Math.PI;
-            const phi = Math.acos(2 * Math.random() - 1);
-            const layerSpeed = starLayers[Math.floor(Math.random() * 3)].speed;
+        function maybeSpawnSupernova(time, viewRotX, viewRotY) {
+            if (time - lastNovaTime < 2500 + Math.random() * 12000) return; // 3-15s
+            // Find a star that is currently visible on screen
+            const fov = Math.min(starsCanvas.width, starsCanvas.height) * 0.55;
+            const cx = starsCanvas.width / 2, cy = starsCanvas.height / 2;
+            const w = starsCanvas.width, h = starsCanvas.height;
+            for (let attempt = 0; attempt < 30; attempt++) {
+                const layerIdx = Math.floor(Math.random() * 3);
+                const layer = starLayers[layerIdx];
+                if (layer.stars.length === 0) continue;
+                const starIdx = Math.floor(Math.random() * layer.stars.length);
+                const donor = layer.stars[starIdx];
+                if (donor.dead) continue;
+                // Check if this star is currently visible
+                const rX = viewRotX * layer.speed, rY = viewRotY * layer.speed;
+                const cosY = Math.cos(rY), sinY = Math.sin(rY);
+                const cosX = Math.cos(rX), sinX = Math.sin(rX);
+                const sp = Math.sin(donor.phi);
+                const x = sp * Math.cos(donor.theta), y = Math.cos(donor.phi), z = sp * Math.sin(donor.theta);
+                const x1 = x * cosY - z * sinY;
+                const z1 = x * sinY + z * cosY;
+                const y2 = y * cosX - z1 * sinX;
+                const z2 = y * sinX + z1 * cosX;
+                if (z2 < 0.4) continue;
+                const sx = cx + (x1 / z2) * fov;
+                const sy = cy - (y2 / z2) * fov;
+                if (sx < 50 || sx > w - 50 || sy < 50 || sy > h - 50) continue;
+                // Visible — spawn here
+                lastNovaTime = time;
+                const theta = donor.theta, phi = donor.phi;
+                const layerSpeed = layer.speed;
+            // Random color palette
+            const hue = Math.random();
+            let r1, g1, b1, r2, g2, b2;
+            if (hue < 0.25) {
+                // Blue-white
+                r1 = 220; g1 = 235; b1 = 255; r2 = 100; g2 = 160; b2 = 255;
+            } else if (hue < 0.5) {
+                // Gold-orange
+                r1 = 255; g1 = 240; b1 = 200; r2 = 255; g2 = 160; b2 = 50;
+            } else if (hue < 0.75) {
+                // Red-pink
+                r1 = 255; g1 = 220; b1 = 220; r2 = 255; g2 = 80; b2 = 100;
+            } else {
+                // Cyan-teal
+                r1 = 220; g1 = 255; b1 = 255; r2 = 60; g2 = 200; b2 = 220;
+            }
+            donor.dead = true; // star dies as the supernova begins
             supernovae.push({
                 theta, phi, layerSpeed,
                 born: time,
                 duration: 4000 + Math.random() * 3000,
-                maxRadius: 5 + Math.random() * 6,
+                maxRadius: (8 + Math.random() * 10) * window.devicePixelRatio,
+                r1, g1, b1, r2, g2, b2,
             });
+                return;
+            }
         }
 
         function drawSupernovae(time, w, h, isDark, viewRotX, viewRotY) {
@@ -685,25 +730,48 @@
                 const t = age / nova.duration;
                 const brightness = t < 0.1 ? t / 0.1 : Math.pow(1 - (t - 0.1) / 0.9, 2);
                 const radius = nova.maxRadius * (0.3 + t * 0.7);
-                const alpha = brightness;
+
+                // Gravitational interaction with the black hole
+                const dxBH = sx - cx, dyBH = sy - cy;
+                const distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
+                const horizonR = Math.min(w, h) * 0.055;
+                const lensR = Math.min(w, h) * 0.18;
+
+                // Black hole absorbs light — dim supernovae near the center
+                let alpha = brightness;
+                if (distBH < horizonR * 2) {
+                    alpha *= Math.max(0, (distBH - horizonR) / horizonR);
+                }
 
                 if (alpha < 0.01) continue;
 
-                const grad = starsCtx.createRadialGradient(sx, sy, 0, sx, sy, radius * 5);
-                if (isDark) {
-                    grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-                    grad.addColorStop(0.3, `rgba(200, 220, 255, ${alpha * 0.6})`);
-                    grad.addColorStop(0.6, `rgba(150, 180, 255, ${alpha * 0.2})`);
-                    grad.addColorStop(1, `rgba(100, 140, 255, 0)`);
-                } else {
-                    grad.addColorStop(0, `rgba(0, 0, 0, ${alpha})`);
-                    grad.addColorStop(0.5, `rgba(0, 0, 0, ${alpha * 0.3})`);
-                    grad.addColorStop(1, `rgba(0, 0, 0, 0)`);
+                // Gravitational lensing — bend supernova position away from center
+                let drawX = sx, drawY = sy;
+                if (distBH > 1 && distBH < lensR * 3) {
+                    const strength = (lensR * lensR) / (distBH * distBH);
+                    const clamped = Math.min(strength, 8);
+                    drawX += (dxBH / distBH) * clamped * 0.6;
+                    drawY += (dyBH / distBH) * clamped * 0.6;
                 }
+
+                // Clip around the event horizon — don't paint over the black hole
+                starsCtx.save();
+                starsCtx.beginPath();
+                starsCtx.rect(0, 0, w, h);
+                starsCtx.arc(cx, cy, horizonR * 1.2, 0, Math.PI * 2, true);
+                starsCtx.clip();
+
+                const grad = starsCtx.createRadialGradient(drawX, drawY, 0, drawX, drawY, radius * 5);
+                grad.addColorStop(0, `rgba(${nova.r1}, ${nova.g1}, ${nova.b1}, ${alpha})`);
+                grad.addColorStop(0.3, `rgba(${nova.r2}, ${nova.g2}, ${nova.b2}, ${alpha * 0.6})`);
+                grad.addColorStop(0.6, `rgba(${nova.r2}, ${nova.g2}, ${nova.b2}, ${alpha * 0.2})`);
+                grad.addColorStop(1, `rgba(${nova.r2}, ${nova.g2}, ${nova.b2}, 0)`);
                 starsCtx.fillStyle = grad;
                 starsCtx.beginPath();
-                starsCtx.arc(sx, sy, radius * 5, 0, Math.PI * 2);
+                starsCtx.arc(drawX, drawY, radius * 5, 0, Math.PI * 2);
                 starsCtx.fill();
+
+                starsCtx.restore();
             }
         }
 
