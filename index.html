@@ -16,7 +16,7 @@
             padding: 0;
             background-color: #fff;
             color: #000;
-            transition: background-color 0.3s, color 0.3s;
+            transition: background-color 2s, color 2s;
             overflow: hidden;
             height: 100dvh;
         }
@@ -304,8 +304,47 @@
         let manualTheme = null;
         document.getElementById('theme-toggle').addEventListener('click', () => {
             manualTheme = !document.body.classList.contains('dark-mode');
+            idleDark = false; // user explicitly chose a theme
             applyTheme(manualTheme);
         });
+
+        // ── Idle cursor → fade to dark mode ──
+        let idleTimer = null;
+        let idleDark = false;
+        let themeBeforeIdle = null;
+        const IDLE_TIMEOUT = 10000;
+
+        function setThemeTransition(seconds) {
+            document.body.style.transition = `background-color ${seconds}s, color ${seconds}s`;
+        }
+
+        function startIdleTimer() {
+            clearTimeout(idleTimer);
+            // If returning from idle dark, restore previous theme
+            if (idleDark) {
+                idleDark = false;
+                setThemeTransition(2); // fast return to light
+                if (themeBeforeIdle !== null) {
+                    applyTheme(themeBeforeIdle);
+                } else {
+                    applyTheme(manualTheme !== null ? manualTheme : darkMQ.matches);
+                }
+            }
+            idleTimer = setTimeout(() => {
+                // Only fade to dark if currently in light mode
+                if (!document.body.classList.contains('dark-mode')) {
+                    themeBeforeIdle = false; // was light
+                    idleDark = true;
+                    setThemeTransition(18); // slow fade to dark
+                    applyTheme(true);
+                }
+            }, IDLE_TIMEOUT);
+        }
+
+        document.addEventListener('pointermove', () => startIdleTimer());
+        document.addEventListener('pointerdown', () => startIdleTimer());
+        document.addEventListener('keydown', () => startIdleTimer());
+        startIdleTimer();
 
         // Three.js: 3D black hole scene
         const canvas = document.getElementById('logo-canvas');
@@ -427,6 +466,7 @@
             tex.generateMipmaps = false;
             tex.minFilter = THREE.LinearFilter;
             tex.magFilter = THREE.LinearFilter;
+            tex.center.set(0.5, 0.5); // rotate around center
             return tex;
         }
 
@@ -452,7 +492,65 @@
         diskMesh.rotation.x = -Math.PI / 2;
         group.add(diskMesh);
 
+        // Spiral flow overlay — rotates faster to give depth to the accretion flow
+        function createFlowTexture(size) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            const cx = size / 2, cy = size / 2;
+            const img = ctx.createImageData(size, size);
+            const d = img.data;
+            const ri = 0.20, ro = 0.88;
 
+            for (let py = 0; py < size; py++) {
+                for (let px = 0; px < size; px++) {
+                    const dx = px - cx, dy = py - cy;
+                    const r = Math.sqrt(dx * dx + dy * dy) / (size / 2);
+                    if (r < ri || r > ro) continue;
+                    const angle = Math.atan2(dy, dx);
+                    const t = (r - ri) / (ro - ri);
+
+                    // Tight spiral arms
+                    const spiral = angle + r * 18;
+                    const arm = Math.pow(Math.max(0, Math.sin(spiral * 2)), 3);
+                    // Clumps
+                    const clump = 0.5 + 0.5 * Math.sin(angle * 8 + r * 40)
+                                * Math.cos(angle * 5 - r * 25);
+
+                    let brightness = arm * clump * (1 - t) * 0.6;
+                    if (t < 0.05) brightness *= t / 0.05;
+                    if (t > 0.8) brightness *= (1 - t) / 0.2;
+
+                    const R = 255, G = Math.round(160 + brightness * 60), B = Math.round(80 + brightness * 40);
+                    const A = Math.min(255, brightness * 255);
+
+                    const idx = (py * size + px) * 4;
+                    d[idx] = R; d[idx+1] = G; d[idx+2] = B; d[idx+3] = A | 0;
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+            const tex = new THREE.CanvasTexture(c);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.generateMipmaps = false;
+            tex.minFilter = THREE.LinearFilter;
+            tex.center.set(0.5, 0.5);
+            return tex;
+        }
+
+        const flowTex = createFlowTexture(1024);
+        const flowMesh = new THREE.Mesh(
+            new THREE.CircleGeometry(2.2, 128),
+            new THREE.MeshBasicMaterial({
+                map: flowTex,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                opacity: 0.35,
+            })
+        );
+        flowMesh.rotation.x = -Math.PI / 2;
+        flowMesh.position.y = 0.001; // slight offset to avoid z-fighting
+        group.add(flowMesh);
 
         group.scale.setScalar(0.55);
 
@@ -540,6 +638,87 @@
         const VON_NEUMANN_MAX = 3; // up to 3 simultaneous probes
         let vonNeumannScreenPositions = []; // array of { x, y } for lock-on
 
+        // ── Dyson Swarm — orbiting dots around a host star ──
+        let dysonSwarmStar = null; // { layerIdx, starIdx } set after generateStars
+        let dysonScreenPos = null;
+
+        // ── Ringworld — edge-on ring visible around a star ──
+        let ringworldStar = null;
+        let ringworldScreenPos = null;
+
+        // ── Stellar Engine — star drifting through the field ──
+        const stellarEngine = {
+            theta: Math.random() * Math.PI * 2,
+            phi: Math.acos(2 * Math.random() - 1),
+            dTheta: 0.00012 * (Math.random() > 0.5 ? 1 : -1),
+            dPhi: 0.00006 * (Math.random() > 0.5 ? 1 : -1),
+            layerSpeed: 1.15,
+            size: 2.0,
+        };
+        let stellarEngineScreenPos = null;
+
+        // ── Shkadov Shell — half-enclosed star (asymmetric brightness) ──
+        let shkadovStar = null;
+        let shkadovScreenPos = null;
+
+        // ── Bracewell Probe — slowly drifts through the star field ──
+        const bracewellProbe = {
+            theta: Math.random() * Math.PI * 2,
+            phi: Math.acos(2 * Math.random() - 1),
+            dTheta: 0.00006,
+            dPhi: 0.00003,
+            layerSpeed: 1.15,
+        };
+        let bracewellScreenPos = null;
+
+        // ── SETI Hit — star pulsing in hydrogen line pattern ──
+        let setiStar = null;
+        let setiScreenPos = null;
+
+        // ── Space Elevator — thin line extending from a star with climbing dot ──
+        let spaceElevatorStar = null;
+        let spaceElevatorScreenPos = null;
+
+        // ── Generation Ship — large slow vessel on a centuries-long journey ──
+        let genShip = null;
+        let genShipSpawnTime = 25000 + Math.random() * 35000;
+        let genShipScreenPos = null;
+
+        // ── Asteroid Mining — cluster of dots with occasional flashes ──
+        let asteroidMiningStar = null;
+        let asteroidMiningScreenPos = null;
+
+        // ── Rocket Launch — accelerates away from Sol ──
+        let rocketLaunch = null;
+        let rocketNextLaunch = 40000 + Math.random() * 30000;
+        let rocketScreenPos = null;
+
+        // ── Derelict Ship — dim tumbling dot drifting through space ──
+        const derelictShip = {
+            theta: Math.random() * Math.PI * 2,
+            phi: Math.acos(2 * Math.random() - 1),
+            dTheta: 0.00003 * (Math.random() > 0.5 ? 1 : -1),
+            dPhi: 0.00002 * (Math.random() > 0.5 ? 1 : -1),
+            layerSpeed: 1.15,
+            tumblePhase: Math.random() * Math.PI * 2,
+        };
+        let derelictScreenPos = null;
+
+        // ── Encyclopedia Galactica — lore for special objects ──
+        const GALACTICA_LORE = {
+            'dyson': 'Dyson Swarm  ·  Kardashev II  ·  3.8×10²⁶ W',
+            'ringworld': 'Ringworld  ·  1 AU Radius  ·  6×10⁸ km²',
+            'stellarEngine': 'Stellar Engine  ·  Shkadov-Class  ·  Accelerating',
+            'shkadov': 'Shkadov Shell  ·  Partial Enclosure  ·  Stellar Thrust',
+            'bracewell': 'Bracewell Probe  ·  Autonomous  ·  First Contact Protocol',
+            'seti': 'SETI Hit  ·  1420 MHz  ·  Hydrogen Line  ·  Non-Natural',
+            'elevator': 'Space Elevator  ·  36,000 km  ·  Orbital Tether',
+            'genShip': 'Generation Ship  ·  Human  ·  ETA 4,200 yr',
+            'mining': 'Asteroid Mining  ·  Autonomous  ·  Rare Earth Extraction',
+            'rocket': 'Rocket Launch  ·  Sol Origin  ·  Chemical Propulsion',
+            'derelict': 'Unknown  ·  No Signal  ·  4,200 yr Drift',
+        };
+
 
         // Theme: follow OS preference, update live if it changes
         const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
@@ -578,6 +757,12 @@
                           + 0.015 * Math.sin(now * 0.0137 + 2.7);
             diskMesh.material.color.setScalar(flicker);
 
+            // Accretion disk rotation — material spiraling inward
+            // Rotate texture (not mesh) so Doppler beaming stays camera-fixed
+            diskTex.rotation += 0.0008;
+            flowTex.rotation += 0.0014; // faster spiral overlay
+
+
             // Redraw stars with events
             const isDark = document.body.classList.contains('dark-mode');
             const sw = starsCanvas.width, sh = starsCanvas.height;
@@ -592,6 +777,17 @@
             drawLockOnLabel(now, sw, sh, isDark);
             updateExodusFleet(now, sw, sh, isDark, userDragX, userDragY);
             updateVonNeumann(now, sw, sh, isDark, userDragX, userDragY);
+            drawDysonSwarm(now, sw, sh, isDark, userDragX, userDragY);
+            drawRingworld(now, sw, sh, isDark, userDragX, userDragY);
+            drawStellarEngine(now, sw, sh, isDark, userDragX, userDragY);
+            drawShkadovShell(now, sw, sh, isDark, userDragX, userDragY);
+            updateBracewellProbe(now, sw, sh, isDark, userDragX, userDragY);
+            drawSetiHit(now, sw, sh, isDark, userDragX, userDragY);
+            drawSpaceElevator(now, sw, sh, isDark, userDragX, userDragY);
+            updateGenShip(now, sw, sh, isDark, userDragX, userDragY);
+            drawAsteroidMining(now, sw, sh, isDark, userDragX, userDragY);
+            updateRocketLaunch(now, sw, sh, isDark, userDragX, userDragY);
+            drawDerelictShip(now, sw, sh, isDark, userDragX, userDragY);
 
             renderer.render(scene, camera);
         }
@@ -828,12 +1024,12 @@
                 // Gravitational interaction with the black hole
                 const dxBH = sx - cx, dyBH = sy - cy;
                 const distBH = Math.sqrt(dxBH * dxBH + dyBH * dyBH);
-                const horizonR = Math.min(w, h) * 0.055;
-                const lensR = Math.min(w, h) * 0.18;
+                const bhScreenRDim = getHorizonRadius();
+                const horizonR = bhScreenRDim;
+                const lensR = bhScreenRDim * 3.2;
 
-                // Black hole absorbs light — dim supernovae near the center
-                const canvasRectDim = canvas.getBoundingClientRect();
-                const bhScreenRDim = (canvasRectDim.width * window.devicePixelRatio) * 0.62 * 0.55 / (frustum * 2);
+                // Black hole absorbs light — cull inside horizon, dim near it
+                if (distBH < bhScreenRDim) continue;
                 let alpha = brightness;
                 if (distBH < bhScreenRDim * 1.5) {
                     alpha *= Math.max(0, (distBH - bhScreenRDim) / (bhScreenRDim * 0.5));
@@ -932,6 +1128,7 @@
             const sx = cx + (x1 / z2) * fov;
             const sy = cy - (y2 / z2) * fov;
             if (sx < -60 || sx > w + 60 || sy < -60 || sy > h + 60) return;
+            if (isOccludedByHole(sx, sy)) return;
 
             galaxy.rotation += 0.0003;
             const dpr = window.devicePixelRatio;
@@ -1008,6 +1205,7 @@
                 const sx = cx + (x1 / z2) * fov;
                 const sy = cy - (y2 / z2) * fov;
                 if (sx < -100 || sx > w + 100 || sy < -100 || sy > h + 100) continue;
+                if (isOccludedByHole(sx, sy)) continue;
 
                 const size = neb.size * dpr;
                 const alpha = neb.opacity * Math.min(1, z2 * 2);
@@ -1103,6 +1301,7 @@
             const screenCX = cx + (x1 / z2) * fov;
             const screenCY = cy - (y2 / z2) * fov;
             if (screenCX < -30 || screenCX > w + 30 || screenCY < -30 || screenCY > h + 30) return;
+            if (isOccludedByHole(screenCX, screenCY)) return;
 
             const sep = binaryStar.separation * fov;
             const angle = binaryStar.orbitAngle;
@@ -1131,6 +1330,18 @@
             starsCtx.moveTo(ax, ay);
             starsCtx.lineTo(bx, by);
             starsCtx.stroke();
+        }
+
+        // ── Shared: black hole occlusion check ──
+        function getHorizonRadius() {
+            const canvasR = canvas.getBoundingClientRect();
+            return (canvasR.width * window.devicePixelRatio) * 0.62 * 0.55 / (frustum * 2);
+        }
+        function isOccludedByHole(sx, sy) {
+            const w = starsCanvas.width, h = starsCanvas.height;
+            const cx = w / 2, cy = h / 2;
+            const dx = sx - cx, dy = sy - cy;
+            return Math.sqrt(dx * dx + dy * dy) < getHorizonRadius();
         }
 
         // ── Exodus fleet — tiny dots moving in formation between stars ──
@@ -1224,6 +1435,7 @@
                 const sx = cx + (x1 / z2) * fov;
                 const sy = cy - (y2 / z2) * fov;
                 if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) continue;
+                if (isOccludedByHole(sx, sy)) continue;
 
                 // Fade in/out at endpoints
                 let alpha = 0.7;
@@ -1324,7 +1536,7 @@
                         vn.needTarget = true;
                     }
                     const p = projectStar({ theta: vn.targetTheta, phi: vn.targetPhi }, vn.layerSpeed, viewRotX, viewRotY);
-                    if (p) {
+                    if (p && !isOccludedByHole(p.x, p.y)) {
                         vonNeumannScreenPositions.push({ x: p.x, y: p.y });
                         const pulse = 0.4 + 0.3 * Math.sin(now * 0.005 + vi * 2);
                         starsCtx.fillStyle = `rgba(160, 255, 180, ${pulse})`;
@@ -1341,7 +1553,7 @@
                 const phi = vn.currentPhi + (vn.targetPhi - vn.currentPhi) * hopT;
 
                 const proj = projectStar({ theta, phi }, vn.layerSpeed, viewRotX, viewRotY);
-                if (proj) {
+                if (proj && !isOccludedByHole(proj.x, proj.y)) {
                     let alpha = 0.8;
                     if (hopT < 0.05) alpha *= hopT / 0.05;
                     if (hopT > 0.95) alpha *= (1 - hopT) / 0.05;
@@ -1375,6 +1587,537 @@
             }
         }
 
+        // ── Dyson Swarm — tiny orbiting dots around a host star ──
+        function drawDysonSwarm(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !dysonSwarmStar) return;
+            const star = starLayers[dysonSwarmStar.layerIdx].stars[dysonSwarmStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[dysonSwarmStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { dysonScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            dysonScreenPos = { x: p.x, y: p.y };
+
+            // Draw the host star slightly dimmed with periodic eclipses
+            const eclipse = 0.6 + 0.4 * Math.abs(Math.sin(now * 0.0008));
+            starsCtx.fillStyle = `rgba(255, 220, 150, ${0.7 * eclipse})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 2.2 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Orbiting swarm particles
+            const swarmCount = 12;
+            const orbitR = 6 * dpr;
+            for (let i = 0; i < swarmCount; i++) {
+                const angle = now * 0.002 + (i / swarmCount) * Math.PI * 2;
+                const wobble = Math.sin(now * 0.001 + i * 1.7) * 1.5 * dpr;
+                const rx = orbitR + wobble;
+                const ry = (orbitR + wobble) * 0.35; // elliptical
+                const dx = Math.cos(angle) * rx;
+                const dy = Math.sin(angle) * ry;
+                const alpha = 0.4 + 0.3 * Math.sin(now * 0.003 + i);
+                starsCtx.fillStyle = `rgba(255, 200, 100, ${alpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x + dx, p.y + dy, 0.6 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+
+            // Faint golden halo
+            starsCtx.strokeStyle = `rgba(255, 200, 80, 0.08)`;
+            starsCtx.lineWidth = 0.5 * dpr;
+            starsCtx.beginPath();
+            starsCtx.ellipse(p.x, p.y, orbitR, orbitR * 0.35, 0, 0, Math.PI * 2);
+            starsCtx.stroke();
+        }
+
+        // ── Ringworld — thin line through a star (edge-on view) ──
+        function drawRingworld(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !ringworldStar) return;
+            const star = starLayers[ringworldStar.layerIdx].stars[ringworldStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[ringworldStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { ringworldScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            ringworldScreenPos = { x: p.x, y: p.y };
+
+            // Host star
+            starsCtx.fillStyle = `rgba(255, 245, 220, 0.8)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.8 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Edge-on ring — thin line through the star with subtle wobble
+            const ringLen = 14 * dpr;
+            const tilt = Math.sin(now * 0.0003) * 0.15; // very slow wobble
+            starsCtx.strokeStyle = `rgba(180, 220, 255, 0.5)`;
+            starsCtx.lineWidth = 0.8 * dpr;
+            starsCtx.beginPath();
+            starsCtx.moveTo(p.x - ringLen * Math.cos(tilt), p.y - ringLen * Math.sin(tilt));
+            starsCtx.lineTo(p.x + ringLen * Math.cos(tilt), p.y + ringLen * Math.sin(tilt));
+            starsCtx.stroke();
+
+            // Faint inner glow on the ring
+            starsCtx.strokeStyle = `rgba(200, 240, 255, 0.15)`;
+            starsCtx.lineWidth = 2.5 * dpr;
+            starsCtx.beginPath();
+            starsCtx.moveTo(p.x - ringLen * 0.7 * Math.cos(tilt), p.y - ringLen * 0.7 * Math.sin(tilt));
+            starsCtx.lineTo(p.x + ringLen * 0.7 * Math.cos(tilt), p.y + ringLen * 0.7 * Math.sin(tilt));
+            starsCtx.stroke();
+        }
+
+        // ── Stellar Engine — a star moving slowly across the sky ──
+        function drawStellarEngine(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            // Update position
+            stellarEngine.theta += stellarEngine.dTheta;
+            stellarEngine.phi += stellarEngine.dPhi;
+            // Wrap
+            if (stellarEngine.phi < 0.2) stellarEngine.dPhi = Math.abs(stellarEngine.dPhi);
+            if (stellarEngine.phi > Math.PI - 0.2) stellarEngine.dPhi = -Math.abs(stellarEngine.dPhi);
+
+            const p = projectStar(stellarEngine, stellarEngine.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { stellarEngineScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            stellarEngineScreenPos = { x: p.x, y: p.y };
+
+            // Star with slight orange tint (hot exhaust side)
+            starsCtx.fillStyle = `rgba(255, 200, 140, 0.85)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, stellarEngine.size * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Thrust trail — faint line behind it
+            const trailAngle = Math.atan2(-stellarEngine.dPhi, -stellarEngine.dTheta);
+            const trailLen = 12 * dpr;
+            const grad = starsCtx.createLinearGradient(
+                p.x, p.y,
+                p.x + Math.cos(trailAngle) * trailLen,
+                p.y + Math.sin(trailAngle) * trailLen
+            );
+            grad.addColorStop(0, `rgba(255, 150, 50, 0.4)`);
+            grad.addColorStop(1, `rgba(255, 150, 50, 0)`);
+            starsCtx.strokeStyle = grad;
+            starsCtx.lineWidth = 1.5 * dpr;
+            starsCtx.beginPath();
+            starsCtx.moveTo(p.x, p.y);
+            starsCtx.lineTo(p.x + Math.cos(trailAngle) * trailLen, p.y + Math.sin(trailAngle) * trailLen);
+            starsCtx.stroke();
+
+            // Faint engine glow
+            starsCtx.fillStyle = `rgba(255, 120, 40, 0.15)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x + Math.cos(trailAngle) * 3 * dpr, p.y + Math.sin(trailAngle) * 3 * dpr, 3 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+        }
+
+        // ── Shkadov Shell — half-enclosed star, asymmetric glow ──
+        function drawShkadovShell(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !shkadovStar) return;
+            const star = starLayers[shkadovStar.layerIdx].stars[shkadovStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[shkadovStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { shkadovScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            shkadovScreenPos = { x: p.x, y: p.y };
+
+            // Bright side (unshielded) — warm white
+            starsCtx.fillStyle = `rgba(255, 250, 230, 0.9)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 2.2 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Asymmetric glow — brighter on one side
+            const glowAngle = now * 0.0002; // slow rotation of the shell orientation
+            const gx = Math.cos(glowAngle) * 2 * dpr;
+            const gy = Math.sin(glowAngle) * 2 * dpr;
+            starsCtx.fillStyle = `rgba(255, 240, 180, 0.35)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x + gx, p.y + gy, 4.5 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Dark shell arc on the opposite side
+            const shellAngle = glowAngle + Math.PI;
+            starsCtx.strokeStyle = `rgba(80, 80, 100, 0.35)`;
+            starsCtx.lineWidth = 1.2 * dpr;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 5 * dpr, shellAngle - 0.8, shellAngle + 0.8);
+            starsCtx.stroke();
+        }
+
+        // ── Bracewell Probe — drifts slowly through the star field ──
+        function updateBracewellProbe(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            // Slow drift
+            bracewellProbe.theta += bracewellProbe.dTheta;
+            bracewellProbe.phi += bracewellProbe.dPhi;
+            if (bracewellProbe.phi < 0.3) bracewellProbe.dPhi = Math.abs(bracewellProbe.dPhi);
+            if (bracewellProbe.phi > Math.PI - 0.3) bracewellProbe.dPhi = -Math.abs(bracewellProbe.dPhi);
+
+            const p = projectStar(bracewellProbe, bracewellProbe.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { bracewellScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            bracewellScreenPos = { x: p.x, y: p.y };
+
+            // Probe dot — silver/white with slow pulse
+            const pulse = 0.5 + 0.3 * Math.sin(now * 0.003);
+            starsCtx.fillStyle = `rgba(200, 220, 255, ${pulse})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.3 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Periodic transmission ping — expanding ring every 4s
+            const pingPhase = (now % 4000) / 4000;
+            if (pingPhase < 0.5) {
+                const ringR = pingPhase * 16 * dpr;
+                const ringAlpha = (1 - pingPhase * 2) * 0.3;
+                starsCtx.strokeStyle = `rgba(180, 200, 255, ${ringAlpha})`;
+                starsCtx.lineWidth = 0.5 * dpr;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
+                starsCtx.stroke();
+            }
+        }
+
+        // ── SETI Hit — star pulsing at hydrogen line timing ──
+        function drawSetiHit(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !setiStar) return;
+            const star = starLayers[setiStar.layerIdx].stars[setiStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[setiStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { setiScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            setiScreenPos = { x: p.x, y: p.y };
+
+            // Hydrogen line pattern: short-short-long pulse (like meaningful signal)
+            const cycle = now % 3000;
+            let pulse = 0.3;
+            if (cycle < 200) pulse = 1.0;          // short
+            else if (cycle > 400 && cycle < 600) pulse = 1.0;  // short
+            else if (cycle > 900 && cycle < 1400) pulse = 0.9;  // long
+            else if (cycle > 1600 && cycle < 1800) pulse = 1.0;  // short
+            else if (cycle > 2000 && cycle < 2200) pulse = 1.0;  // short
+            else if (cycle > 2400 && cycle < 2900) pulse = 0.9;  // long
+
+            // Star with greenish tint when pulsing
+            const r = Math.round(100 + pulse * 50);
+            const g = Math.round(200 + pulse * 55);
+            const b = Math.round(100 + pulse * 80);
+            starsCtx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.4 + pulse * 0.5})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, (1.5 + pulse * 1.2) * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Signal ring when pulsing
+            if (pulse > 0.5) {
+                starsCtx.strokeStyle = `rgba(100, 255, 140, ${(pulse - 0.5) * 0.3})`;
+                starsCtx.lineWidth = 0.5 * dpr;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, (3 + pulse * 3) * dpr, 0, Math.PI * 2);
+                starsCtx.stroke();
+            }
+        }
+
+        // ── Space Elevator — vertical line extending from a star with climbing car ──
+        function drawSpaceElevator(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !spaceElevatorStar) return;
+            const star = starLayers[spaceElevatorStar.layerIdx].stars[spaceElevatorStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[spaceElevatorStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { spaceElevatorScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            spaceElevatorScreenPos = { x: p.x, y: p.y };
+
+            // Host star
+            starsCtx.fillStyle = `rgba(255, 240, 220, 0.75)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.8 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Tether — thin vertical line extending upward
+            const tetherLen = 22 * dpr;
+            starsCtx.strokeStyle = `rgba(180, 200, 220, 0.3)`;
+            starsCtx.lineWidth = 0.6 * dpr;
+            starsCtx.beginPath();
+            starsCtx.moveTo(p.x, p.y);
+            starsCtx.lineTo(p.x, p.y - tetherLen);
+            starsCtx.stroke();
+
+            // Counterweight at top
+            starsCtx.fillStyle = `rgba(180, 200, 220, 0.4)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y - tetherLen, 0.8 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Climbing car — oscillates up and down the tether
+            const carT = (Math.sin(now * 0.0006) + 1) / 2; // 0→1→0
+            const carY = p.y - carT * tetherLen;
+            starsCtx.fillStyle = `rgba(255, 220, 120, 0.8)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, carY, 1.0 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Faint glow around car
+            starsCtx.fillStyle = `rgba(255, 220, 120, 0.15)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, carY, 2.5 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+        }
+
+        // ── Generation Ship — large slow vessel, visible rotating habitat ring ──
+        function updateGenShip(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+
+            // Spawn
+            if (!genShip && now > genShipSpawnTime) {
+                const from = pickRandomVisibleStar(viewRotX, viewRotY);
+                const to = pickRandomVisibleStar(viewRotX, viewRotY);
+                if (from && to && from.starIdx !== to.starIdx) {
+                    genShip = {
+                        fromTheta: from.star.theta, fromPhi: from.star.phi,
+                        toTheta: to.star.theta, toPhi: to.star.phi,
+                        layerSpeed: starLayers[from.layerIdx].speed,
+                        born: now,
+                        duration: 120000 + Math.random() * 60000, // 2-3 minutes
+                    };
+                }
+            }
+
+            if (!genShip) { genShipScreenPos = null; return; }
+            const age = now - genShip.born;
+            if (age > genShip.duration) {
+                genShip = null; genShipScreenPos = null;
+                genShipSpawnTime = now + 60000 + Math.random() * 90000;
+                return;
+            }
+
+            const dpr = window.devicePixelRatio;
+            const t = age / genShip.duration;
+            const theta = genShip.fromTheta + (genShip.toTheta - genShip.fromTheta) * t;
+            const phi = genShip.fromPhi + (genShip.toPhi - genShip.fromPhi) * t;
+
+            const p = projectStar({ theta, phi }, genShip.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { genShipScreenPos = null; return; }
+
+            genShipScreenPos = { x: p.x, y: p.y };
+
+            // Fade in/out
+            let alpha = 0.85;
+            if (t < 0.03) alpha *= t / 0.03;
+            if (t > 0.97) alpha *= (1 - t) / 0.03;
+
+            // Main hull — larger than exodus ships
+            starsCtx.fillStyle = `rgba(220, 210, 200, ${alpha})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.6 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Rotating habitat ring
+            const ringAngle = now * 0.003;
+            const ringR = 4.5 * dpr;
+            starsCtx.strokeStyle = `rgba(200, 190, 180, ${alpha * 0.5})`;
+            starsCtx.lineWidth = 0.7 * dpr;
+            starsCtx.beginPath();
+            starsCtx.ellipse(p.x, p.y, ringR, ringR * 0.3, ringAngle, 0, Math.PI * 2);
+            starsCtx.stroke();
+
+            // Running lights — 3 dots on the ring
+            for (let i = 0; i < 3; i++) {
+                const la = ringAngle + (i / 3) * Math.PI * 2 + now * 0.003;
+                const lx = p.x + Math.cos(la) * ringR;
+                const ly = p.y + Math.sin(la) * ringR * 0.3;
+                starsCtx.fillStyle = `rgba(255, 240, 200, ${alpha * 0.6})`;
+                starsCtx.beginPath();
+                starsCtx.arc(lx, ly, 0.5 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+
+            // Engine glow behind the ship
+            const dx = genShip.toTheta - genShip.fromTheta;
+            const dy = genShip.toPhi - genShip.fromPhi;
+            const moveAngle = Math.atan2(-dy, -dx);
+            starsCtx.fillStyle = `rgba(100, 180, 255, ${alpha * 0.25})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x + Math.cos(moveAngle) * 3 * dpr, p.y + Math.sin(moveAngle) * 3 * dpr, 2.5 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+        }
+
+        // ── Asteroid Mining — cluster of dots with flashes ──
+        function drawAsteroidMining(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !asteroidMiningStar) return;
+            const star = starLayers[asteroidMiningStar.layerIdx].stars[asteroidMiningStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[asteroidMiningStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { asteroidMiningScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            asteroidMiningScreenPos = { x: p.x, y: p.y };
+
+            // Dim asteroid (brownish)
+            starsCtx.fillStyle = `rgba(160, 130, 100, 0.6)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.6 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Orbiting mining drones — 5 tiny dots
+            for (let i = 0; i < 5; i++) {
+                const orbitA = now * 0.0015 + (i / 5) * Math.PI * 2;
+                const orbitR = (4 + Math.sin(now * 0.001 + i * 2) * 1.5) * dpr;
+                const mx = p.x + Math.cos(orbitA) * orbitR;
+                const my = p.y + Math.sin(orbitA) * orbitR * 0.5;
+                starsCtx.fillStyle = `rgba(200, 200, 210, 0.5)`;
+                starsCtx.beginPath();
+                starsCtx.arc(mx, my, 0.5 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+
+            // Periodic mining flash — bright spark every ~2.5s
+            const flashCycle = now % 2500;
+            if (flashCycle < 150) {
+                const flashAlpha = (1 - flashCycle / 150) * 0.8;
+                const flashR = (2 + flashCycle / 150 * 5) * dpr;
+                // Random offset for the flash
+                const flashAngle = Math.floor(now / 2500) * 2.3;
+                const flashDist = 3 * dpr;
+                const fx = p.x + Math.cos(flashAngle) * flashDist;
+                const fy = p.y + Math.sin(flashAngle) * flashDist * 0.5;
+
+                starsCtx.fillStyle = `rgba(255, 240, 180, ${flashAlpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(fx, fy, flashR, 0, Math.PI * 2);
+                starsCtx.fill();
+
+                // Bright core
+                starsCtx.fillStyle = `rgba(255, 255, 240, ${flashAlpha * 0.8})`;
+                starsCtx.beginPath();
+                starsCtx.arc(fx, fy, flashR * 0.3, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+
+            // Faint ore trail — wispy particles drifting away
+            for (let i = 0; i < 3; i++) {
+                const trailT = ((now * 0.0004 + i * 0.33) % 1);
+                const trailR = (6 + trailT * 8) * dpr;
+                const trailAngle = i * 2.1 + 0.5;
+                const tx = p.x + Math.cos(trailAngle) * trailR;
+                const ty = p.y + Math.sin(trailAngle) * trailR * 0.4;
+                starsCtx.fillStyle = `rgba(180, 160, 120, ${0.2 * (1 - trailT)})`;
+                starsCtx.beginPath();
+                starsCtx.arc(tx, ty, 0.4 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── Rocket Launch — accelerates away from Sol (pale blue dot) ──
+        function updateRocketLaunch(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+
+            // Spawn from Sol
+            if (!rocketLaunch && now > rocketNextLaunch && paleBlueDotStar) {
+                const sol = starLayers[paleBlueDotStar.layerIdx].stars[paleBlueDotStar.starIdx];
+                if (sol) {
+                    // Pick a random direction to launch toward
+                    const destAngle = Math.random() * Math.PI * 2;
+                    const destDist = 0.3 + Math.random() * 0.4;
+                    rocketLaunch = {
+                        fromTheta: sol.theta, fromPhi: sol.phi,
+                        toTheta: sol.theta + Math.cos(destAngle) * destDist,
+                        toPhi: sol.phi + Math.sin(destAngle) * destDist,
+                        layerSpeed: starLayers[paleBlueDotStar.layerIdx].speed,
+                        born: now,
+                        duration: 20000 + Math.random() * 15000, // 20-35s
+                    };
+                }
+            }
+
+            if (!rocketLaunch) { rocketScreenPos = null; return; }
+            const age = now - rocketLaunch.born;
+            if (age > rocketLaunch.duration) {
+                rocketLaunch = null; rocketScreenPos = null;
+                rocketNextLaunch = now + 50000 + Math.random() * 40000;
+                return;
+            }
+
+            const dpr = window.devicePixelRatio;
+            // Accelerating — ease-in curve
+            const rawT = age / rocketLaunch.duration;
+            const t = rawT * rawT; // quadratic acceleration
+            const theta = rocketLaunch.fromTheta + (rocketLaunch.toTheta - rocketLaunch.fromTheta) * t;
+            const phi = rocketLaunch.fromPhi + (rocketLaunch.toPhi - rocketLaunch.fromPhi) * t;
+
+            const p = projectStar({ theta, phi }, rocketLaunch.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { rocketScreenPos = null; return; }
+
+            rocketScreenPos = { x: p.x, y: p.y };
+
+            // Fade in/out
+            let alpha = 0.9;
+            if (rawT < 0.05) alpha *= rawT / 0.05;
+            if (rawT > 0.85) alpha *= (1 - rawT) / 0.15;
+
+            // Rocket dot
+            starsCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.0 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Exhaust plume — bright orange trail
+            const trailSteps = 6;
+            for (let i = 1; i <= trailSteps; i++) {
+                const tt = Math.max(0, rawT - i * 0.015);
+                const accT = tt * tt;
+                const tTheta = rocketLaunch.fromTheta + (rocketLaunch.toTheta - rocketLaunch.fromTheta) * accT;
+                const tPhi = rocketLaunch.fromPhi + (rocketLaunch.toPhi - rocketLaunch.fromPhi) * accT;
+                const tp = projectStar({ theta: tTheta, phi: tPhi }, rocketLaunch.layerSpeed, viewRotX, viewRotY);
+                if (tp) {
+                    const fade = (1 - i / trailSteps);
+                    starsCtx.fillStyle = `rgba(255, ${150 + i * 15}, ${50 + i * 10}, ${alpha * fade * 0.5})`;
+                    starsCtx.beginPath();
+                    starsCtx.arc(tp.x, tp.y, (1.2 - i * 0.1) * dpr, 0, Math.PI * 2);
+                    starsCtx.fill();
+                }
+            }
+
+            // Engine flicker
+            const flickerAlpha = alpha * (0.3 + 0.4 * Math.random());
+            starsCtx.fillStyle = `rgba(255, 200, 80, ${flickerAlpha})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 2.2 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+        }
+
+        // ── Derelict Ship — dim tumbling dot drifting through empty space ──
+        function drawDerelictShip(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            // Slow drift
+            derelictShip.theta += derelictShip.dTheta;
+            derelictShip.phi += derelictShip.dPhi;
+            if (derelictShip.phi < 0.3) derelictShip.dPhi = Math.abs(derelictShip.dPhi);
+            if (derelictShip.phi > Math.PI - 0.3) derelictShip.dPhi = -Math.abs(derelictShip.dPhi);
+
+            const p = projectStar(derelictShip, derelictShip.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { derelictScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            derelictScreenPos = { x: p.x, y: p.y };
+
+            // Tumbling — brightness varies as it rotates
+            const tumble = 0.3 + 0.3 * Math.sin(now * 0.0008 + derelictShip.tumblePhase)
+                               * Math.sin(now * 0.0013 + derelictShip.tumblePhase * 1.6);
+
+            // Dim hull — grayish, no engine glow
+            starsCtx.fillStyle = `rgba(150, 150, 160, ${tumble})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.3 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Occasional glint — reflected starlight off hull (every ~5s, brief)
+            const glintCycle = now % 5000;
+            if (glintCycle < 120) {
+                const glintAlpha = (1 - glintCycle / 120) * 0.6;
+                starsCtx.fillStyle = `rgba(255, 255, 255, ${glintAlpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, 2.0 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
         generateStars();
         // Assign one star as the Pale Blue Dot (Sol)
         paleBlueDotStar = { layerIdx: 0, starIdx: 42 }; // near layer, star #42
@@ -1384,6 +2127,27 @@
             pbd.size = 2.2;
             pbd.opacity = 0.55;
         }
+        // Assign special stars for sci-fi megastructures (near layer, distinct indices)
+        if (starLayers[0].stars.length > 100) {
+            dysonSwarmStar = { layerIdx: 0, starIdx: 10 };
+            starLayers[0].stars[10].size = 2.2; starLayers[0].stars[10].opacity = 0.7;
+
+            ringworldStar = { layerIdx: 0, starIdx: 25 };
+            starLayers[0].stars[25].size = 1.8; starLayers[0].stars[25].opacity = 0.7;
+
+            shkadovStar = { layerIdx: 0, starIdx: 60 };
+            starLayers[0].stars[60].size = 2.2; starLayers[0].stars[60].opacity = 0.8;
+
+            setiStar = { layerIdx: 0, starIdx: 80 };
+            starLayers[0].stars[80].size = 1.5; starLayers[0].stars[80].opacity = 0.6;
+
+            spaceElevatorStar = { layerIdx: 0, starIdx: 95 };
+            starLayers[0].stars[95].size = 1.8; starLayers[0].stars[95].opacity = 0.7;
+
+            asteroidMiningStar = { layerIdx: 0, starIdx: 115 };
+            starLayers[0].stars[115].size = 1.6; starLayers[0].stars[115].opacity = 0.6;
+        }
+
         drawStars(darkMQ.matches, 0, 0, 0);
         window.addEventListener('resize', () => { generateStars(); drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY, performance.now()); });
 
@@ -1535,6 +2299,29 @@
                     bestLayer = -2; bestIdx = -1;
                 }
             }
+            // Check new sci-fi objects
+            const sciFiChecks = [
+                { pos: dysonScreenPos, layer: -3 },
+                { pos: ringworldScreenPos, layer: -4 },
+                { pos: stellarEngineScreenPos, layer: -5 },
+                { pos: shkadovScreenPos, layer: -7 },
+                { pos: bracewellScreenPos, layer: -8 },
+                { pos: setiScreenPos, layer: -9 },
+                { pos: spaceElevatorScreenPos, layer: -10 },
+                { pos: genShipScreenPos, layer: -11 },
+                { pos: asteroidMiningScreenPos, layer: -12 },
+                { pos: rocketScreenPos, layer: -13 },
+                { pos: derelictScreenPos, layer: -14 },
+            ];
+            for (const check of sciFiChecks) {
+                if (check.pos) {
+                    const d = Math.sqrt((check.pos.x - px) ** 2 + (check.pos.y - py) ** 2);
+                    if (d < bestDist) {
+                        bestDist = d; bestSX = check.pos.x; bestSY = check.pos.y;
+                        bestLayer = check.layer; bestIdx = -1;
+                    }
+                }
+            }
 
             const threshold = LOCK_RADIUS * dpr;
             if (bestDist < threshold) {
@@ -1565,6 +2352,17 @@
                     if (d < closestD) { closestD = d; closestVN = vp; }
                 }
                 sx = closestVN.x; sy = closestVN.y;
+            } else if (lockTarget.layerIdx <= -3) {
+                // Sci-fi megastructure objects
+                const posMap = {
+                    '-3': dysonScreenPos, '-4': ringworldScreenPos, '-5': stellarEngineScreenPos,
+                    '-7': shkadovScreenPos, '-8': bracewellScreenPos, '-9': setiScreenPos,
+                    '-10': spaceElevatorScreenPos, '-11': genShipScreenPos, '-12': asteroidMiningScreenPos,
+                    '-13': rocketScreenPos, '-14': derelictScreenPos,
+                };
+                const pos = posMap[String(lockTarget.layerIdx)];
+                if (!pos) { lockActive = false; lockTarget = null; return; }
+                sx = pos.x; sy = pos.y;
             } else {
                 const layer = starLayers[lockTarget.layerIdx];
                 const star = layer.stars[lockTarget.starIdx];
@@ -1598,9 +2396,29 @@
             // Corner brackets — color by type
             const bracketSize = (8 + 2 * Math.sin(now * 0.003)) * dpr;
             const bracketLen = 4 * dpr;
-            const lockColor = lockTarget.layerIdx === -1 ? `rgba(255, 200, 120, ${alpha})`
-                            : lockTarget.layerIdx === -2 ? `rgba(160, 255, 180, ${alpha})`
-                            : `rgba(100, 200, 255, ${alpha})`;
+            const sciFiColors = {
+                '-1': [255, 200, 120], '-2': [160, 255, 180], '-3': [255, 200, 100],
+                '-4': [180, 220, 255], '-5': [255, 180, 100], '-7': [255, 240, 180],
+                '-8': [200, 220, 255], '-9': [100, 255, 140],
+                '-10': [180, 200, 220], '-11': [200, 190, 180], '-12': [200, 180, 120],
+                '-13': [255, 200, 80], '-14': [150, 150, 160],
+            };
+            // Also map regular star indices to special colors
+            const starColorMap = [
+                { ref: dysonSwarmStar, color: [255, 200, 100] },
+                { ref: ringworldStar, color: [180, 220, 255] },
+                { ref: shkadovStar, color: [255, 240, 180] },
+                { ref: setiStar, color: [100, 255, 140] },
+                { ref: spaceElevatorStar, color: [180, 200, 220] },
+                { ref: asteroidMiningStar, color: [200, 180, 120] },
+            ];
+            let lc = sciFiColors[String(lockTarget.layerIdx)];
+            if (!lc && lockTarget.layerIdx >= 0) {
+                const cm = starColorMap.find(s => s.ref && s.ref.layerIdx === lockTarget.layerIdx && s.ref.starIdx === lockTarget.starIdx);
+                lc = cm ? cm.color : [100, 200, 255];
+            }
+            if (!lc) lc = [100, 200, 255];
+            const lockColor = `rgba(${lc[0]}, ${lc[1]}, ${lc[2]}, ${alpha})`;
             starsCtx.strokeStyle = lockColor;
             starsCtx.lineWidth = 1 * dpr;
 
@@ -1631,14 +2449,30 @@
 
             // Generate label based on object type
             let label;
-            if (lockTarget.layerIdx === -1) {
+            const loreMap = { '-3': 'dyson', '-4': 'ringworld', '-5': 'stellarEngine', '-7': 'shkadov', '-8': 'bracewell', '-9': 'seti', '-10': 'elevator', '-11': 'genShip', '-12': 'mining', '-13': 'rocket', '-14': 'derelict' };
+            const loreKey = loreMap[String(lockTarget.layerIdx)];
+            if (loreKey && GALACTICA_LORE[loreKey]) {
+                label = GALACTICA_LORE[loreKey];
+            } else if (lockTarget.layerIdx === -1) {
                 label = 'Exodus Fleet  ·  Human  ·  In Transit';
             } else if (lockTarget.layerIdx === -2) {
                 label = 'Von Neumann Probe  ·  Artificial  ·  Self-Replicating';
             } else {
                 const isPBD = paleBlueDotStar && lockTarget.layerIdx === paleBlueDotStar.layerIdx && lockTarget.starIdx === paleBlueDotStar.starIdx;
+                // Check if this regular star is actually a special sci-fi object
+                const specialStars = [
+                    { ref: dysonSwarmStar, key: 'dyson' },
+                    { ref: ringworldStar, key: 'ringworld' },
+                    { ref: shkadovStar, key: 'shkadov' },
+                    { ref: setiStar, key: 'seti' },
+                    { ref: spaceElevatorStar, key: 'elevator' },
+                    { ref: asteroidMiningStar, key: 'mining' },
+                ];
+                const specialMatch = specialStars.find(s => s.ref && s.ref.layerIdx === lockTarget.layerIdx && s.ref.starIdx === lockTarget.starIdx);
                 if (isPBD) {
                     label = 'Sol  ·  G2V  ·  Home';
+                } else if (specialMatch) {
+                    label = GALACTICA_LORE[specialMatch.key];
                 } else {
                     const seed = lockTarget.layerIdx * 10000 + lockTarget.starIdx;
                     const name = STAR_NAMES[seed % STAR_NAMES.length];
@@ -1652,9 +2486,7 @@
             starsCtx.font = `${fontSize}px 'SF Mono', monospace`;
             starsCtx.textAlign = 'left';
             starsCtx.textBaseline = 'top';
-            const textColor = lockTarget.layerIdx === -1 ? `rgba(255, 200, 120, ${alpha * 0.8})`
-                           : lockTarget.layerIdx === -2 ? `rgba(160, 255, 180, ${alpha * 0.8})`
-                           : `rgba(100, 200, 255, ${alpha * 0.8})`;
+            const textColor = `rgba(${lc[0]}, ${lc[1]}, ${lc[2]}, ${alpha * 0.8})`;
             starsCtx.fillStyle = textColor;
             starsCtx.fillText(label, sx + bracketSize + 4 * dpr, sy - bracketSize);
         }
