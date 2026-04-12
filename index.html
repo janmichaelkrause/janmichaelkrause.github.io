@@ -19,7 +19,9 @@
             transition: background-color 0.3s, color 0.3s;
             overflow: hidden;
             height: 100dvh;
-            cursor: none;
+        }
+        @media (hover: hover) {
+            body { cursor: none; }
         }
         a {
             color: inherit;
@@ -538,9 +540,6 @@
         const VON_NEUMANN_MAX = 3; // up to 3 simultaneous probes
         let vonNeumannScreenPositions = []; // array of { x, y } for lock-on
 
-        // ── Mobile gyroscope parallax ──
-        let gyroX = 0, gyroY = 0;
-        let gyroEnabled = false;
 
         // Theme: follow OS preference, update live if it changes
         const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
@@ -616,34 +615,6 @@
             resetting = true;
             userDragX = 0; userDragY = 0;
         });
-
-        // ── Mobile gyroscope parallax ──
-        if (window.DeviceOrientationEvent) {
-            const startGyro = () => {
-                window.addEventListener('deviceorientation', e => {
-                    if (e.gamma === null) return;
-                    gyroEnabled = true;
-                    const gx = (e.gamma || 0) * DEG * 0.15;  // left/right tilt
-                    const gy = ((e.beta || 0) - 45) * DEG * 0.15; // front/back tilt (centered at 45°)
-                    // Smooth toward target
-                    gyroY += (gx - gyroY) * 0.08;
-                    gyroX += (gy - gyroX) * 0.08;
-                    userDragY = gyroY;
-                    userDragX = gyroX;
-                    rotY = gyroY;
-                    rotX = 12 * DEG + gyroX;
-                });
-            };
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                // iOS 13+ requires permission
-                document.body.addEventListener('click', function iosGyro() {
-                    DeviceOrientationEvent.requestPermission().then(r => { if (r === 'granted') startGyro(); });
-                    document.body.removeEventListener('click', iosGyro);
-                }, { once: true });
-            } else {
-                startGyro();
-            }
-        }
 
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
             animate();
@@ -1688,9 +1659,10 @@
             starsCtx.fillText(label, sx + bracketSize + 4 * dpr, sy - bracketSize);
         }
 
+        const isTouchDevice = !window.matchMedia('(hover: hover)').matches;
         function updateCursorReticle() {
             requestAnimationFrame(updateCursorReticle);
-            if (!cursorVisible) {
+            if (isTouchDevice || !cursorVisible) {
                 cursorCanvas.style.display = 'none';
                 return;
             }
