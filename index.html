@@ -12,11 +12,13 @@
             font-family: 'SF Mono', monospace;
             font-size: 0.8em;
             line-height: 2;
-            margin: 2vw 1vw;
-            padding: 10vw 3vw;
+            margin: 0;
+            padding: 0;
             background-color: #fff;
             color: #000;
             transition: background-color 0.3s, color 0.3s;
+            overflow: hidden;
+            height: 100dvh;
         }
         a {
             color: inherit;
@@ -60,7 +62,8 @@
             }
         }
         body.dark-mode {
-            background-color: rgb(2, 2, 42);
+            /* background-color: rgb(2, 2, 42); */
+            background-color: rgb(10, 10, 10);
             color: #fff;
         }
         body.dark-mode footer {
@@ -89,80 +92,355 @@
             text-decoration: underline;
             font-weight: bold;
         }
+        main {
+            max-width: 72rem;
+            margin: 0 auto;
+        }
         section {
             margin: 0 15vw;
         }
+        .hero {
+            height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 0;
+        }
+        #logo-canvas {
+            width: min(74vw, 34rem);
+            height: min(74vw, 34rem);
+            display: block;
+            cursor: grab;
+        }
+        #logo-canvas:active {
+            cursor: grabbing;
+        }
+        header, footer {
+            display: none;
+        }
+        .ui-date,
+        .ui-time {
+            position: fixed;
+            top: clamp(18px, 2.5vw, 26px);
+            font-size: clamp(0.58rem, 1.1vw, 0.76rem);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.55;
+            white-space: nowrap;
+        }
+        .ui-date {
+            left: clamp(18px, 3vw, 28px);
+        }
+        .ui-time {
+            right: clamp(18px, 3vw, 28px);
+        }
+        .ui-bottom {
+            position: fixed;
+            bottom: clamp(18px, 3vw, 32px);
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            white-space: nowrap;
+        }
+        .ui-name {
+            font-size: clamp(0.6rem, 1.4vw, 0.88rem);
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            text-indent: 0.4em;
+            opacity: 0.8;
+        }
+        .ui-info-link {
+            display: block;
+            margin-top: 0;
+            font-size: clamp(0.52rem, 1vw, 0.7rem);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            text-decoration: none;
+            opacity: 0.5;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .ui-info-link:hover {
+            opacity: 0.8;
+        }
+        .info-text {
+            position: fixed;
+            bottom: clamp(75px, 9vw, 105px);
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 28rem;
+            padding: 0 2rem;
+            font-size: clamp(0.62rem, 1.1vw, 0.8rem);
+            line-height: 1.8;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .info-text.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .info-text p {
+            margin: 0 0 1em 0;
+        }
         .theme-toggle {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            border: 1px solid currentColor;
-            border-radius: 4px;
-            background: none;
-            color: inherit;
+            bottom: clamp(18px, 3vw, 32px);
+            right: clamp(18px, 3vw, 28px);
+            font-size: clamp(0.52rem, 1vw, 0.7rem);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            opacity: 0.5;
             cursor: pointer;
-            font-family: 'SF Mono', monospace;
-            font-size: 0.8em;
+            z-index: 20;
         }
         .theme-toggle:hover {
             opacity: 0.8;
         }
+        @media (max-width: 768px) {
+            section {
+                margin: 0;
+            }
+            #logo-canvas {
+                width: min(88vw, 26rem);
+                height: min(88vw, 26rem);
+            }
+        }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" onclick="toggleTheme()">Night Mode</button>
-    <header>
-        <nav class="menu">
-            <!-- <a href="index.html">Home</a>
-            <!-- <a href="portfolio.html">Portfolio</a> -->
-            <!-- <a href="philosophy.html">Philosophy</a>
-            <!-- <a href="philosophizing.html">Philosophizing</a> -->
-            <!-- <a href="investorlogin.html">Investor Login</a> -->
-        </nav>
-    </header>
+<div class="ui-date" id="ui-date"></div>
+    <div class="ui-time" id="ui-time"></div>
+    <div class="theme-toggle" id="theme-toggle">Light/Dark</div>
+    <div class="ui-bottom">
+        <div class="ui-name">Jan Michael Krause</div>
+        <span class="ui-info-link" id="info-open">Info</span>
+        <a href="bookshelf.html" class="ui-info-link">Bookshelf</a>
+    </div>
+    <div class="info-text" id="info-text">
+        <p>CS(AI) at Stanford, and some investing.</p>
+        <p><a href="https://x.com/jmichaelkrause" target="_blank">Twitter @jmichaelkrause</a></p>
+        <p><a href="mailto:janmichaelkrause@stanford.edu">janmichaelkrause@stanford.edu</a></p>
+    </div>
     <main>
-        <section>
-            <strong>Jan Michael Krause</strong></p>
-            <p>Hi! I'm Michael. I study CS(AI) at Stanford and have a background in tech and finance.</p>
-            <p>Besides school I invest in the most exciting ventures on campus and beyond, anywhere from pre-seed to late stage.</p>
-            <p>Feel free to reach out! </p>
+        <section class="hero">
+            <canvas id="logo-canvas" aria-label="Interactive 3D black hole"></canvas>
         </section>
     </main>
-    <footer>
-        <div class="left-align footer-content">
-            <p>Jan Michael Krause<br>
-            <a href="https://x.com/jmichaelkrause">@jmichaelkrause</a><br>
-            <a href="mailto:janmichaelkrause@stanford.edu">janmichaelkrause@stanford.edu</a></p>
-        </div>
-    </footer>
-    <script>
-        function toggleTheme() {
-            const body = document.body;
-            const button = document.querySelector('.theme-toggle');
-            
-            if (body.classList.contains('light-mode')) {
-                body.classList.remove('light-mode');
-                body.classList.add('dark-mode');
-                button.textContent = 'Light Mode';
-            } else {
-                body.classList.remove('dark-mode');
-                body.classList.add('light-mode');
-                button.textContent = 'Night Mode';
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js';
+
+        // Live date and clock
+        const DAY_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const dateEl = document.getElementById('ui-date');
+        const timeEl = document.getElementById('ui-time');
+        function updateClock() {
+            const now = new Date();
+            if (dateEl) dateEl.textContent = `${DAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
+            if (timeEl) timeEl.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Info toggle
+        const infoText = document.getElementById('info-text');
+        document.getElementById('info-open').addEventListener('click', () => {
+            infoText.classList.toggle('active');
+        });
+
+        // Theme toggle
+        let manualTheme = null;
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            manualTheme = !document.body.classList.contains('dark-mode');
+            applyTheme(manualTheme);
+        });
+
+        // Three.js: 3D black hole scene
+        const canvas = document.getElementById('logo-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
+        camera.position.set(0, 0, 5.5);
+
+        function resizeRenderer() {
+            const s = canvas.offsetWidth || Math.round(window.innerWidth <= 768
+                ? Math.min(window.innerWidth * 0.88, 416)
+                : Math.min(window.innerWidth * 0.74, 544));
+            renderer.setSize(s, s, false);
+        }
+        resizeRenderer();
+        window.addEventListener('resize', resizeRenderer);
+
+        const group = new THREE.Group();
+        scene.add(group);
+
+        // ── Canvas-painted accretion disk texture ──
+        function createDiskTexture(size) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            const cx = size / 2, cy = size / 2;
+            const img = ctx.createImageData(size, size);
+            const d = img.data;
+            const ri = 0.22, ro = 0.92;
+
+            for (let py = 0; py < size; py++) {
+                for (let px = 0; px < size; px++) {
+                    const dx = px - cx, dy = py - cy;
+                    const r = Math.sqrt(dx * dx + dy * dy) / (size / 2);
+                    const angle = Math.atan2(dy, dx);
+
+                    // Spiral-wisp outer edge
+                    const spiral = angle + r * 12;
+                    const edgeNoise = 0.02 * Math.sin(spiral * 3) +
+                                      0.01 * Math.sin(spiral * 7 + 1.5);
+                    const roLocal = ro + edgeNoise;
+
+                    if (r < ri || r > roLocal) continue;
+                    const t = (r - ri) / (roLocal - ri);       // 0 inner → 1 outer
+                    let temp = Math.pow(1 - t, 0.55);          // very slow falloff — stays orange/yellow to the edge
+
+                    // Doppler beaming — subtle asymmetry
+                    temp *= 1 + 0.25 * Math.cos(angle - 0.6);
+
+                    // Turbulence — organic streaks
+                    temp *= 0.86 + 0.14 * (
+                        Math.sin(angle * 6 + r * 35) *
+                        Math.cos(angle * 4 - r * 22) +
+                        Math.sin(angle * 14 + r * 55) * 0.25
+                    );
+
+                    temp = Math.max(0, Math.min(1.5, temp));
+
+                    // Temperature → colour (boosted inner brightness)
+                    let R, G, B;
+                    if (temp > 1.1) {
+                        R = 255; G = 250; B = 240;             // overexposed white
+                    } else if (temp > 0.85) {
+                        const u = (temp - 0.85) / 0.25;
+                        R = 255; G = 220 + u * 30; B = 160 + u * 80;
+                    } else if (temp > 0.6) {
+                        const u = (temp - 0.6) / 0.25;
+                        R = 255; G = 130 + u * 90; B = 30 + u * 130;
+                    } else if (temp > 0.35) {
+                        const u = (temp - 0.35) / 0.25;
+                        R = 200 + u * 55; G = 50 + u * 80; B = 5 + u * 25;
+                    } else if (temp > 0.15) {
+                        const u = (temp - 0.15) / 0.2;
+                        R = 100 + u * 100; G = 10 + u * 40; B = u * 5;
+                    } else {
+                        const u = temp / 0.15;
+                        R = u * 100; G = u * 10; B = 0;
+                    }
+
+                    // Alpha: fully opaque, then fade out at the edge
+                    let A = 255;
+                    if (t < 0.03) A *= t / 0.03;
+                    if (t > 0.8) A *= Math.pow((1 - t) / 0.2, 3);
+
+                    const idx = (py * size + px) * 4;
+                    d[idx]     = Math.min(255, R | 0);
+                    d[idx + 1] = Math.min(255, G | 0);
+                    d[idx + 2] = Math.min(255, B | 0);
+                    d[idx + 3] = Math.min(255, A | 0);
+                }
             }
+            ctx.putImageData(img, 0, 0);
+            const tex = new THREE.CanvasTexture(c);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
         }
 
-        // Set initial theme based on system preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const body = document.body;
-        const button = document.querySelector('.theme-toggle');
-        
-        if (prefersDark) {
-            body.classList.add('dark-mode');
-            button.textContent = 'Light Mode';
+        // ── Scene geometry ──
+
+        // Event horizon — pure black sphere
+        group.add(new THREE.Mesh(
+            new THREE.SphereGeometry(0.62, 64, 64),
+            new THREE.MeshBasicMaterial({ color: 0x000000 })
+        ));
+
+        // Accretion disk — textured plane
+        const diskTex = createDiskTexture(1024);
+        const diskMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(4.4, 4.4),
+            new THREE.MeshBasicMaterial({
+                map: diskTex,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            })
+        );
+        diskMesh.rotation.x = -Math.PI / 2;
+        group.add(diskMesh);
+
+
+        group.scale.setScalar(0.55);
+
+        // Theme: follow OS preference, update live if it changes
+        const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) {
+            document.body.classList.toggle('dark-mode', dark);
+            document.body.classList.toggle('light-mode', !dark);
+        }
+        applyTheme(darkMQ.matches);
+        darkMQ.addEventListener('change', e => applyTheme(e.matches));
+
+        // Rotation state & drag interaction
+        const DEG = Math.PI / 180;
+        let rotX = 12 * DEG, rotY = 0, momX = 0, momY = 0;
+        const idleSpin = -0.28 * DEG;
+        let isDragging = false, lastX = 0, lastY = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (resetting) {
+                rotX += (12 * DEG - rotX) * 0.12;
+                rotY += idleSpin;
+                if (Math.abs(rotX - 12 * DEG) < 0.001) {
+                    rotX = 12 * DEG;
+                    resetting = false;
+                }
+            } else if (!isDragging) {
+                rotX += momX; rotY += momY;
+                momX *= 0.93;  momY *= 0.93;
+            }
+            rotY += idleSpin;
+            group.rotation.x = rotX;
+            group.rotation.y = rotY;
+            renderer.render(scene, camera);
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            isDragging = true; resetting = false;
+            lastX = e.clientX; lastY = e.clientY;
+            momX = 0; momY = 0;
+            canvas.setPointerCapture(e.pointerId); e.preventDefault();
+        });
+        window.addEventListener('pointermove', e => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastX, dy = e.clientY - lastY;
+            rotY += dx * 0.5 * DEG; rotX += dy * 0.5 * DEG;
+            momY = dx * 0.5 * DEG;  momX = dy * 0.5 * DEG;
+            lastX = e.clientX; lastY = e.clientY;
+        });
+        window.addEventListener('pointerup', () => { isDragging = false; });
+        window.addEventListener('pointercancel', () => { isDragging = false; });
+        let resetting = false;
+        canvas.addEventListener('dblclick', () => {
+            momX = 0; momY = 0;
+            resetting = true;
+        });
+
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            animate();
         } else {
-            body.classList.add('light-mode');
-            button.textContent = 'Night Mode';
+            renderer.render(scene, camera);
         }
     </script>
 </body>
