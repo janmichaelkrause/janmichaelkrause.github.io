@@ -763,11 +763,42 @@
                 starsCtx.arc(cx, cy, horizonR * 1.2, 0, Math.PI * 2, true);
                 starsCtx.clip();
 
+                // Blackbody temperature decay: ~30000K → ~8000K → ~4000K → ~2000K
+                // Starts blue-white regardless of type, cools through yellow/orange to red remnant
+                const temp = 1 - Math.pow(t, 0.5); // 1 = peak (hot), 0 = expired (cold)
+                let cr, cg, cb; // core color
+                let hr, hg, hb; // halo color
+                if (temp > 0.8) {
+                    // ~30000K+ blue-white
+                    const u = (temp - 0.8) / 0.2;
+                    cr = 200 + 55 * u; cg = 210 + 45 * u; cb = 255;
+                    hr = 150 + 50 * u; hg = 170 + 40 * u; hb = 255;
+                } else if (temp > 0.55) {
+                    // ~8000K white-yellow
+                    const u = (temp - 0.55) / 0.25;
+                    cr = 255; cg = 220 + u * (210 - 220); cb = 160 + u * 95;
+                    hr = 255; hg = 180 + u * 30; hb = 100 + u * 70;
+                } else if (temp > 0.3) {
+                    // ~4000K orange
+                    const u = (temp - 0.3) / 0.25;
+                    cr = 255; cg = 140 + u * 80; cb = 40 + u * 120;
+                    hr = 220 + u * 35; hg = 80 + u * 100; hb = 10 + u * 90;
+                } else {
+                    // ~2000K deep red remnant, blend toward random palette
+                    const u = temp / 0.3;
+                    cr = Math.round(nova.r2 * (1 - u) + 255 * u);
+                    cg = Math.round(nova.g2 * 0.3 * (1 - u) + 140 * u);
+                    cb = Math.round(nova.b2 * 0.2 * (1 - u) + 40 * u);
+                    hr = Math.round(nova.r2 * 0.8 * (1 - u) + 220 * u);
+                    hg = Math.round(nova.g2 * 0.2 * (1 - u) + 80 * u);
+                    hb = Math.round(nova.b2 * 0.1 * (1 - u) + 10 * u);
+                }
+
                 const grad = starsCtx.createRadialGradient(drawX, drawY, 0, drawX, drawY, radius * 5);
-                grad.addColorStop(0, `rgba(${nova.r1}, ${nova.g1}, ${nova.b1}, ${alpha})`);
-                grad.addColorStop(0.3, `rgba(${nova.r2}, ${nova.g2}, ${nova.b2}, ${alpha * 0.6})`);
-                grad.addColorStop(0.6, `rgba(${nova.r2}, ${nova.g2}, ${nova.b2}, ${alpha * 0.2})`);
-                grad.addColorStop(1, `rgba(${nova.r2}, ${nova.g2}, ${nova.b2}, 0)`);
+                grad.addColorStop(0, `rgba(${Math.round(cr)}, ${Math.round(cg)}, ${Math.round(cb)}, ${alpha})`);
+                grad.addColorStop(0.3, `rgba(${Math.round(hr)}, ${Math.round(hg)}, ${Math.round(hb)}, ${alpha * 0.6})`);
+                grad.addColorStop(0.6, `rgba(${Math.round(hr)}, ${Math.round(hg)}, ${Math.round(hb)}, ${alpha * 0.2})`);
+                grad.addColorStop(1, `rgba(${Math.round(hr)}, ${Math.round(hg)}, ${Math.round(hb)}, 0)`);
                 starsCtx.fillStyle = grad;
                 starsCtx.beginPath();
                 starsCtx.arc(drawX, drawY, radius * 5, 0, Math.PI * 2);
