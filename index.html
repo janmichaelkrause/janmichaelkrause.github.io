@@ -252,7 +252,7 @@
 <body>
 <div class="ui-date" id="ui-date"></div>
     <div class="ui-time" id="ui-time"></div>
-    <!-- <div class="theme-toggle" id="theme-toggle">Light/Dark</div> -->
+    <div class="theme-toggle" id="theme-toggle">Light/Dark</div>
     <div class="ui-bottom">
         <div class="ui-name">Jan Michael Krause</div>
         <span class="ui-info-link" id="info-open">Info</span>
@@ -292,12 +292,12 @@
             infoText.classList.toggle('active');
         });
 
-        // Theme toggle (commented out)
-        // let manualTheme = null;
-        // document.getElementById('theme-toggle').addEventListener('click', () => {
-        //     manualTheme = !document.body.classList.contains('dark-mode');
-        //     applyTheme(manualTheme);
-        // });
+        // Theme toggle
+        let manualTheme = null;
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            manualTheme = !document.body.classList.contains('dark-mode');
+            applyTheme(manualTheme);
+        });
 
         // Three.js: 3D black hole scene
         const canvas = document.getElementById('logo-canvas');
@@ -457,6 +457,10 @@
             { speed: 0.85, stars: [] },  // far
         ];
 
+        // ── Event state (declared early to avoid TDZ in animate) ──
+        let supernovae = [];
+        let lastNovaTime = 0;
+
         // Theme: follow OS preference, update live if it changes
         const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
         function applyTheme(dark) {
@@ -494,8 +498,12 @@
                           + 0.015 * Math.sin(now * 0.0137 + 2.7);
             diskMesh.material.color.setScalar(flicker);
 
-            // Redraw stars — celestial sphere projection tied to user drag
-            drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY);
+            // Redraw stars with events
+            const isDark = document.body.classList.contains('dark-mode');
+            const sw = starsCanvas.width, sh = starsCanvas.height;
+            drawStars(isDark, userDragX, userDragY, now);
+            maybeSpawnSupernova(now);
+            drawSupernovae(now, sw, sh, isDark, userDragX, userDragY);
 
             renderer.render(scene, camera);
         }
@@ -544,16 +552,20 @@
                     : 0.4 + Math.random() * 0.8;
                 const opacity = 0.15 + Math.random() * 0.4;
 
+                // Twinkle phase offset (unique per star)
+                const twinkleOffset = Math.random() * 1000;
+
                 // Assign to depth layer: 15% near, 35% mid, 50% far
                 const roll = Math.random();
                 const layerIdx = roll < 0.15 ? 0 : roll < 0.5 ? 1 : 2;
-                starLayers[layerIdx].stars.push({ theta, phi, size, opacity });
+                starLayers[layerIdx].stars.push({ theta, phi, size, opacity, twinkleOffset });
             }
         }
 
-        function drawStars(isDark, viewRotX = 0, viewRotY = 0) {
+        function drawStars(isDark, viewRotX = 0, viewRotY = 0, time = 0) {
             const w = starsCanvas.width, h = starsCanvas.height;
             starsCtx.clearRect(0, 0, w, h);
+            if (!isDark) return;
             const cx = w / 2, cy = h / 2;
             const fov = Math.min(w, h) * 0.55;
             const horizonR = Math.min(w, h) * 0.055;
@@ -602,6 +614,13 @@
                     }
                     alpha *= Math.min(1, z2 * 4);
 
+                    // Twinkling — subtle scintillation
+                    const twinkle = 0.7 + 0.3 * Math.sin(time * 0.002 + star.twinkleOffset)
+                                  * Math.sin(time * 0.0037 + star.twinkleOffset * 1.7);
+                    alpha *= twinkle;
+
+                    if (alpha < 0.01) continue;
+
                     if (isDark) {
                         starsCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                     } else {
@@ -614,9 +633,84 @@
             }
         }
 
+        // ── Supernovae ──
+        function maybeSpawnSupernova(time) {
+            if (time - lastNovaTime < 5000 + Math.random() * 10000) return;
+            lastNovaTime = time;
+            // Spawn on the celestial sphere, pick a random mid-layer speed
+            const theta = Math.random() * 2 * Math.PI;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const layerSpeed = starLayers[Math.floor(Math.random() * 3)].speed;
+            supernovae.push({
+                theta, phi, layerSpeed,
+                born: time,
+                duration: 4000 + Math.random() * 3000,
+                maxRadius: 5 + Math.random() * 6,
+            });
+        }
+
+        function drawSupernovae(time, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            const cx = w / 2, cy = h / 2;
+            const fov = Math.min(w, h) * 0.55;
+
+            for (let i = supernovae.length - 1; i >= 0; i--) {
+                const nova = supernovae[i];
+                const age = time - nova.born;
+                if (age > nova.duration) { supernovae.splice(i, 1); continue; }
+
+                // Project from celestial sphere — same as stars
+                const rX = viewRotX * nova.layerSpeed;
+                const rY = viewRotY * nova.layerSpeed;
+                const cosY = Math.cos(rY), sinY = Math.sin(rY);
+                const cosX = Math.cos(rX), sinX = Math.sin(rX);
+
+                const sp = Math.sin(nova.phi);
+                const x = sp * Math.cos(nova.theta);
+                const y = Math.cos(nova.phi);
+                const z = sp * Math.sin(nova.theta);
+
+                const x1 = x * cosY - z * sinY;
+                const z1 = x * sinY + z * cosY;
+                const y2 = y * cosX - z1 * sinX;
+                const z2 = y * sinX + z1 * cosX;
+
+                if (z2 < 0.4) continue;
+
+                const sx = cx + (x1 / z2) * fov;
+                const sy = cy - (y2 / z2) * fov;
+
+                if (sx < -50 || sx > w + 50 || sy < -50 || sy > h + 50) continue;
+
+                const t = age / nova.duration;
+                const brightness = t < 0.1 ? t / 0.1 : Math.pow(1 - (t - 0.1) / 0.9, 2);
+                const radius = nova.maxRadius * (0.3 + t * 0.7);
+                const alpha = brightness;
+
+                if (alpha < 0.01) continue;
+
+                const grad = starsCtx.createRadialGradient(sx, sy, 0, sx, sy, radius * 5);
+                if (isDark) {
+                    grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+                    grad.addColorStop(0.3, `rgba(200, 220, 255, ${alpha * 0.6})`);
+                    grad.addColorStop(0.6, `rgba(150, 180, 255, ${alpha * 0.2})`);
+                    grad.addColorStop(1, `rgba(100, 140, 255, 0)`);
+                } else {
+                    grad.addColorStop(0, `rgba(0, 0, 0, ${alpha})`);
+                    grad.addColorStop(0.5, `rgba(0, 0, 0, ${alpha * 0.3})`);
+                    grad.addColorStop(1, `rgba(0, 0, 0, 0)`);
+                }
+                starsCtx.fillStyle = grad;
+                starsCtx.beginPath();
+                starsCtx.arc(sx, sy, radius * 5, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+
         generateStars();
-        drawStars(darkMQ.matches, 0, 0);
-        window.addEventListener('resize', () => { generateStars(); drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY); });
+        drawStars(darkMQ.matches, 0, 0, 0);
+        window.addEventListener('resize', () => { generateStars(); drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY, performance.now()); });
 
         // ── Cursor vanishes over the event horizon ──
         canvas.addEventListener('pointermove', e => {
@@ -625,7 +719,7 @@
             const cy = rect.top + rect.height / 2;
             const dx = e.clientX - cx, dy = e.clientY - cy;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const holeRadius = rect.width * 0.07;
+            const holeRadius = rect.width * 0.115;
             if (dist < holeRadius && !isDragging) {
                 canvas.style.cursor = 'none';
             } else {
