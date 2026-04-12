@@ -710,6 +710,33 @@
         };
         let derelictScreenPos = null;
 
+        // ── Cryosleep Pod — lone traveler drifting through space ──
+        const cryoPod = {
+            theta: Math.random() * Math.PI * 2,
+            phi: Math.acos(2 * Math.random() - 1),
+            dTheta: 0.00002,
+            dPhi: 0.00001,
+            layerSpeed: 1.15,
+        };
+        let cryoPodScreenPos = null;
+
+        // ── Terraform in Progress — star slowly shifting color ──
+        let terraformStar = null;
+        let terraformScreenPos = null;
+
+        // ── Galactic Lighthouse — pulsing beacon with sweeping beam ──
+        let lighthouseStar = null;
+        let lighthouseScreenPos = null;
+
+        // ── Dyson Sphere Under Construction — irregularly flickering star ──
+        let dysonBuildStar = null;
+        let dysonBuildScreenPos = null;
+        let dysonBuildDimming = 0; // accumulates over session
+
+        // ── War Remnant — debris field of dim unmoving dots ──
+        let warRemnantStar = null;
+        let warRemnantScreenPos = null;
+
         // ── Encyclopedia Galactica — lore for special objects ──
         const GALACTICA_LORE = {
             'dyson': 'Dyson Swarm  ·  Kardashev II  ·  3.8×10²⁶ W',
@@ -723,6 +750,11 @@
             'mining': 'Asteroid Mining  ·  Autonomous  ·  Rare Earth Extraction',
             'rocket': 'Rocket Launch  ·  Sol Origin  ·  Chemical Propulsion',
             'derelict': 'Unknown  ·  No Signal  ·  4,200 yr Drift',
+            'cryoPod': 'Cryopod  ·  1 Occupant  ·  ETA Sol: 12,847 yr  ·  Vitals: Nominal',
+            'terraform': 'Proxima b  ·  Terraforming  ·  34.7% Complete',
+            'lighthouse': 'Navigation Beacon  ·  Galactic Meridian  ·  Cycle: 1.33s',
+            'dysonBuild': 'KIC 8462852  ·  Anomalous Dimming  ·  Under Investigation',
+            'warRemnant': 'Debris Field  ·  Post-Conflict  ·  340 yr old  ·  No Survivors',
         };
 
 
@@ -794,6 +826,11 @@
             drawAsteroidMining(now, sw, sh, isDark, userDragX, userDragY);
             updateRocketLaunch(now, sw, sh, isDark, userDragX, userDragY);
             drawDerelictShip(now, sw, sh, isDark, userDragX, userDragY);
+            drawCryoPod(now, sw, sh, isDark, userDragX, userDragY);
+            drawTerraform(now, sw, sh, isDark, userDragX, userDragY);
+            drawLighthouse(now, sw, sh, isDark, userDragX, userDragY);
+            drawDysonBuild(now, sw, sh, isDark, userDragX, userDragY);
+            drawWarRemnant(now, sw, sh, isDark, userDragX, userDragY);
 
             renderer.render(scene, camera);
         }
@@ -2138,6 +2175,238 @@
             }
         }
 
+        // ── Cryosleep Pod — lone occupant drifting through deep space ──
+        function drawCryoPod(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            cryoPod.theta += cryoPod.dTheta;
+            cryoPod.phi += cryoPod.dPhi;
+            if (cryoPod.phi < 0.3) cryoPod.dPhi = Math.abs(cryoPod.dPhi);
+            if (cryoPod.phi > Math.PI - 0.3) cryoPod.dPhi = -Math.abs(cryoPod.dPhi);
+
+            const p = projectStar(cryoPod, cryoPod.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { cryoPodScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            cryoPodScreenPos = { x: p.x, y: p.y };
+
+            // Faint blue-white pod
+            const pulse = 0.5 + 0.15 * Math.sin(now * 0.001);
+            starsCtx.fillStyle = `rgba(160, 200, 255, ${pulse})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.2 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Cryo glow — cold blue aura
+            starsCtx.fillStyle = `rgba(100, 160, 255, ${pulse * 0.15})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 4 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Heartbeat blink — brief bright flash every 3s
+            const heartbeat = now % 3000;
+            if (heartbeat < 80) {
+                const hbAlpha = (1 - heartbeat / 80) * 0.7;
+                starsCtx.fillStyle = `rgba(180, 220, 255, ${hbAlpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, 2.5 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            } else if (heartbeat > 200 && heartbeat < 280) {
+                const hbAlpha = (1 - (heartbeat - 200) / 80) * 0.4;
+                starsCtx.fillStyle = `rgba(180, 220, 255, ${hbAlpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, 2 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── Terraform in Progress — star shifting color red→blue→green ──
+        function drawTerraform(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !terraformStar) return;
+            const star = starLayers[terraformStar.layerIdx].stars[terraformStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[terraformStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { terraformScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            terraformScreenPos = { x: p.x, y: p.y };
+
+            // Color cycle: red → orange → blue → cyan → green (over ~3 minutes)
+            const cycle = (now * 0.0001) % 1; // full cycle ~100s
+            let r, g, b;
+            if (cycle < 0.25) {
+                const t = cycle / 0.25;
+                r = 220 - t * 100; g = 80 + t * 40; b = 60 + t * 140;
+            } else if (cycle < 0.5) {
+                const t = (cycle - 0.25) / 0.25;
+                r = 120 - t * 80; g = 120 + t * 60; b = 200 + t * 40;
+            } else if (cycle < 0.75) {
+                const t = (cycle - 0.5) / 0.25;
+                r = 40 + t * 20; g = 180 + t * 60; b = 240 - t * 120;
+            } else {
+                const t = (cycle - 0.75) / 0.25;
+                r = 60 + t * 160; g = 240 - t * 80; b = 120 - t * 60;
+            }
+
+            // Main star
+            starsCtx.fillStyle = `rgba(${r|0}, ${g|0}, ${b|0}, 0.8)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 2.0 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Atmospheric haze
+            starsCtx.fillStyle = `rgba(${r|0}, ${g|0}, ${b|0}, 0.1)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 5 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Tiny orbiting construction satellites
+            for (let i = 0; i < 3; i++) {
+                const sa = now * 0.002 + (i / 3) * Math.PI * 2;
+                const sr = 6 * dpr;
+                starsCtx.fillStyle = `rgba(255, 255, 200, 0.35)`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x + Math.cos(sa) * sr, p.y + Math.sin(sa) * sr * 0.4, 0.4 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── Galactic Lighthouse — beacon with sweeping beam ──
+        function drawLighthouse(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !lighthouseStar) return;
+            const star = starLayers[lighthouseStar.layerIdx].stars[lighthouseStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[lighthouseStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { lighthouseScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            lighthouseScreenPos = { x: p.x, y: p.y };
+
+            // Central beacon — bright pulse synced with beam
+            const beamAngle = now * 0.0047; // ~1.33s cycle
+            const beamPulse = Math.pow(Math.max(0, Math.cos(beamAngle)), 8);
+            const coreBright = 0.5 + beamPulse * 0.5;
+
+            starsCtx.fillStyle = `rgba(255, 255, 240, ${coreBright})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, (1.5 + beamPulse * 0.8) * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Sweeping beam — two opposite beams rotating
+            const beamLen = 20 * dpr;
+            for (let side = 0; side < 2; side++) {
+                const angle = beamAngle + side * Math.PI;
+                const bx = Math.cos(angle) * beamLen;
+                const by = Math.sin(angle) * beamLen;
+                const grad = starsCtx.createLinearGradient(p.x, p.y, p.x + bx, p.y + by);
+                grad.addColorStop(0, `rgba(255, 255, 220, ${0.4 * coreBright})`);
+                grad.addColorStop(0.4, `rgba(255, 255, 200, ${0.15 * coreBright})`);
+                grad.addColorStop(1, `rgba(255, 255, 200, 0)`);
+                starsCtx.strokeStyle = grad;
+                starsCtx.lineWidth = (1.5 - side * 0.3) * dpr;
+                starsCtx.beginPath();
+                starsCtx.moveTo(p.x, p.y);
+                starsCtx.lineTo(p.x + bx, p.y + by);
+                starsCtx.stroke();
+            }
+
+            // Pulse ring on beat
+            if (beamPulse > 0.3) {
+                const ringR = (3 + (1 - beamPulse) * 8) * dpr;
+                starsCtx.strokeStyle = `rgba(255, 255, 220, ${beamPulse * 0.15})`;
+                starsCtx.lineWidth = 0.5 * dpr;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
+                starsCtx.stroke();
+            }
+        }
+
+        // ── Dyson Sphere Under Construction — irregularly flickering, gradually dimming ──
+        function drawDysonBuild(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !dysonBuildStar) return;
+            const star = starLayers[dysonBuildStar.layerIdx].stars[dysonBuildStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[dysonBuildStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { dysonBuildScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            dysonBuildScreenPos = { x: p.x, y: p.y };
+
+            // Gradual dimming over the session
+            dysonBuildDimming = Math.min(0.5, dysonBuildDimming + 0.000001);
+
+            // Irregular flickering — Tabby's Star style dips
+            const flicker1 = Math.sin(now * 0.0017) * Math.sin(now * 0.0031 + 1.2);
+            const flicker2 = Math.sin(now * 0.0007 + 2.5) > 0.7 ? 0.3 : 0; // sudden dips
+            const flicker3 = Math.sin(now * 0.013) > 0.95 ? 0.4 : 0; // brief deep dips
+            const brightness = Math.max(0.15, (0.85 - dysonBuildDimming) - flicker1 * 0.15 - flicker2 - flicker3);
+
+            // Star — yellowish, variable brightness
+            starsCtx.fillStyle = `rgba(255, 240, 200, ${brightness})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 2.0 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Faint construction arcs — partial rings being built
+            const arcCount = 3;
+            for (let i = 0; i < arcCount; i++) {
+                const arcAngle = now * 0.0003 + (i / arcCount) * Math.PI * 2;
+                const arcR = (5 + i * 1.5) * dpr;
+                const arcLen = 0.4 + Math.sin(now * 0.001 + i) * 0.2;
+                starsCtx.strokeStyle = `rgba(200, 180, 140, ${0.15 * brightness})`;
+                starsCtx.lineWidth = 0.5 * dpr;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, arcR, arcAngle, arcAngle + arcLen);
+                starsCtx.stroke();
+            }
+
+            // Occasional construction flash
+            const flashCycle = now % 4500;
+            if (flashCycle < 100) {
+                const flashAlpha = (1 - flashCycle / 100) * 0.5;
+                const flashAngle = Math.floor(now / 4500) * 1.7;
+                const flashDist = 5 * dpr;
+                starsCtx.fillStyle = `rgba(255, 220, 140, ${flashAlpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x + Math.cos(flashAngle) * flashDist, p.y + Math.sin(flashAngle) * flashDist, 1 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── War Remnant — cluster of dim debris dots ──
+        function drawWarRemnant(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !warRemnantStar) return;
+            const star = starLayers[warRemnantStar.layerIdx].stars[warRemnantStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[warRemnantStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { warRemnantScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            warRemnantScreenPos = { x: p.x, y: p.y };
+
+            // Scattered debris — 12 dim dots in a loose cluster
+            const debrisCount = 12;
+            for (let i = 0; i < debrisCount; i++) {
+                // Fixed positions (seeded by index) with very slow tumble
+                const seed1 = Math.sin(i * 127.1 + 311.7);
+                const seed2 = Math.cos(i * 269.5 + 183.3);
+                const spread = 10 * dpr;
+                const dx = seed1 * spread + Math.sin(now * 0.00015 + i) * 1.5 * dpr;
+                const dy = seed2 * spread * 0.6 + Math.cos(now * 0.00012 + i * 1.3) * 1 * dpr;
+
+                // Varying dim colors — grays, dull reds, dark browns
+                const shade = 80 + Math.abs(seed1) * 60;
+                const redTint = i % 3 === 0 ? 30 : 0;
+                const alpha = 0.2 + Math.abs(seed2) * 0.25;
+
+                starsCtx.fillStyle = `rgba(${shade + redTint|0}, ${shade * 0.85|0}, ${shade * 0.8|0}, ${alpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x + dx, p.y + dy, (0.4 + Math.abs(seed1) * 0.5) * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+
+            // Faint residual radiation glow at center
+            const radGlow = 0.06 + 0.03 * Math.sin(now * 0.0008);
+            starsCtx.fillStyle = `rgba(180, 100, 80, ${radGlow})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 6 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+        }
+
         generateStars();
         // Assign one star as the Pale Blue Dot (Sol)
         paleBlueDotStar = { layerIdx: 0, starIdx: 42 }; // near layer, star #42
@@ -2166,6 +2435,18 @@
 
             asteroidMiningStar = { layerIdx: 0, starIdx: 115 };
             starLayers[0].stars[115].size = 1.6; starLayers[0].stars[115].opacity = 0.6;
+
+            terraformStar = { layerIdx: 0, starIdx: 130 };
+            starLayers[0].stars[130].size = 2.0; starLayers[0].stars[130].opacity = 0.7;
+
+            lighthouseStar = { layerIdx: 0, starIdx: 150 };
+            starLayers[0].stars[150].size = 1.5; starLayers[0].stars[150].opacity = 0.7;
+
+            dysonBuildStar = { layerIdx: 0, starIdx: 170 };
+            starLayers[0].stars[170].size = 2.0; starLayers[0].stars[170].opacity = 0.8;
+
+            warRemnantStar = { layerIdx: 0, starIdx: 190 };
+            starLayers[0].stars[190].size = 1.0; starLayers[0].stars[190].opacity = 0.3;
         }
 
         drawStars(darkMQ.matches, 0, 0, 0);
@@ -2327,6 +2608,11 @@
                 { pos: asteroidMiningScreenPos, layer: -12 },
                 { pos: rocketScreenPos, layer: -13 },
                 { pos: derelictScreenPos, layer: -14 },
+                { pos: cryoPodScreenPos, layer: -15 },
+                { pos: terraformScreenPos, layer: -16 },
+                { pos: lighthouseScreenPos, layer: -17 },
+                { pos: dysonBuildScreenPos, layer: -18 },
+                { pos: warRemnantScreenPos, layer: -19 },
             ];
             for (const check of sciFiChecks) {
                 if (check.pos) {
@@ -2374,6 +2660,8 @@
                     '-7': shkadovScreenPos, '-8': bracewellScreenPos, '-9': setiScreenPos,
                     '-10': spaceElevatorScreenPos, '-11': genShipScreenPos, '-12': asteroidMiningScreenPos,
                     '-13': rocketScreenPos, '-14': derelictScreenPos,
+                    '-15': cryoPodScreenPos, '-16': terraformScreenPos, '-17': lighthouseScreenPos,
+                    '-18': dysonBuildScreenPos, '-19': warRemnantScreenPos,
                 };
                 const pos = posMap[String(lockTarget.layerIdx)];
                 if (!pos) { lockActive = false; lockTarget = null; return; }
@@ -2417,6 +2705,8 @@
                 '-8': [200, 220, 255], '-9': [100, 255, 140],
                 '-10': [180, 200, 220], '-11': [200, 190, 180], '-12': [200, 180, 120],
                 '-13': [255, 200, 80], '-14': [150, 150, 160],
+                '-15': [160, 200, 255], '-16': [100, 200, 140], '-17': [255, 255, 220],
+                '-18': [255, 240, 200], '-19': [180, 100, 80],
             };
             // Also map regular star indices to special colors
             const starColorMap = [
@@ -2426,6 +2716,10 @@
                 { ref: setiStar, color: [100, 255, 140] },
                 { ref: spaceElevatorStar, color: [180, 200, 220] },
                 { ref: asteroidMiningStar, color: [200, 180, 120] },
+                { ref: terraformStar, color: [100, 200, 140] },
+                { ref: lighthouseStar, color: [255, 255, 220] },
+                { ref: dysonBuildStar, color: [255, 240, 200] },
+                { ref: warRemnantStar, color: [180, 100, 80] },
             ];
             let lc = sciFiColors[String(lockTarget.layerIdx)];
             if (!lc && lockTarget.layerIdx >= 0) {
@@ -2464,7 +2758,7 @@
 
             // Generate label based on object type
             let label;
-            const loreMap = { '-3': 'dyson', '-4': 'ringworld', '-5': 'stellarEngine', '-7': 'shkadov', '-8': 'bracewell', '-9': 'seti', '-10': 'elevator', '-11': 'genShip', '-12': 'mining', '-13': 'rocket', '-14': 'derelict' };
+            const loreMap = { '-3': 'dyson', '-4': 'ringworld', '-5': 'stellarEngine', '-7': 'shkadov', '-8': 'bracewell', '-9': 'seti', '-10': 'elevator', '-11': 'genShip', '-12': 'mining', '-13': 'rocket', '-14': 'derelict', '-15': 'cryoPod', '-16': 'terraform', '-17': 'lighthouse', '-18': 'dysonBuild', '-19': 'warRemnant' };
             const loreKey = loreMap[String(lockTarget.layerIdx)];
             if (loreKey && GALACTICA_LORE[loreKey]) {
                 label = GALACTICA_LORE[loreKey];
@@ -2482,6 +2776,10 @@
                     { ref: setiStar, key: 'seti' },
                     { ref: spaceElevatorStar, key: 'elevator' },
                     { ref: asteroidMiningStar, key: 'mining' },
+                    { ref: terraformStar, key: 'terraform' },
+                    { ref: lighthouseStar, key: 'lighthouse' },
+                    { ref: dysonBuildStar, key: 'dysonBuild' },
+                    { ref: warRemnantStar, key: 'warRemnant' },
                 ];
                 const specialMatch = specialStars.find(s => s.ref && s.ref.layerIdx === lockTarget.layerIdx && s.ref.starIdx === lockTarget.starIdx);
                 if (isPBD) {
