@@ -755,7 +755,76 @@
             'lighthouse': 'Navigation Beacon  ·  Galactic Meridian  ·  Cycle: 1.33s',
             'dysonBuild': 'KIC 8462852  ·  Anomalous Dimming  ·  Under Investigation',
             'warRemnant': 'Debris Field  ·  Post-Conflict  ·  340 yr old  ·  No Survivors',
+            'highway': 'Trade Route  ·  4.3 ly  ·  12 Vessels In Transit',
+            'phantom': 'Unknown  ·  No Registry  ·  Ghost Fleet',
+            'comet': 'Comet  ·  Long-Period  ·  Oort Cloud Origin',
+            'quasar': 'Quasar Ignition  ·  10⁴⁰ W  ·  Relativistic Jet',
+            'pulsar': 'Pulsar  ·  Neutron Star  ·  30 rev/s  ·  X-ray Emitter',
+            'tidalDisrupt': 'Tidal Disruption  ·  Stellar Capture  ·  In Progress',
+            'mercury': 'Mercury  ·  0.39 AU  ·  Terrestrial',
+            'venus': 'Venus  ·  0.72 AU  ·  Terrestrial',
+            'earth': 'Earth  ·  1.00 AU  ·  Home',
+            'mars': 'Mars  ·  1.52 AU  ·  Terrestrial',
+            'jupiter': 'Jupiter  ·  5.20 AU  ·  Gas Giant',
+            'saturn': 'Saturn  ·  9.54 AU  ·  Gas Giant  ·  Ringed',
+            'uranus': 'Uranus  ·  19.2 AU  ·  Ice Giant',
+            'neptune': 'Neptune  ·  30.1 AU  ·  Ice Giant',
         };
+
+        // ── Interstellar Highway — dotted line between two stars ──
+        let highwayStar1 = null, highwayStar2 = null;
+        let highwayScreenPos = null;
+
+        // ── Phantom Fleet — brief appearing formation ──
+        let phantomFleet = null;
+        let phantomNextSpawn = 50000 + Math.random() * 60000;
+        let phantomScreenPos = null;
+
+        // ── Solar Flare — dramatic star brightening ──
+        let solarFlares = [];
+        let nextFlareTime = 20000 + Math.random() * 30000;
+
+        // ── Comet — bright dot with long curved tail ──
+        let comet = null;
+        let cometNextSpawn = 25000 + Math.random() * 35000;
+        let cometScreenPos = null;
+
+        // ── Pulsar Beam — sweeping light cone ──
+        let pulsarStar = null;
+        let pulsarScreenPos = null;
+
+        // ── Nebula Birth — expanding clouds from some supernovae ──
+        let nebulaBirths = [];
+
+        // ── Star Being Eaten — tidal disruption event ──
+        let tidalDisrupt = null;
+        let tidalNextTime = 60000 + Math.random() * 60000;
+        let tidalScreenPos = null;
+
+        // ── Binary Star Merger ──
+        let starMerger = null;
+        let mergerNextTime = 70000 + Math.random() * 50000;
+
+        // ── Light Echo — expanding rings after supernova ──
+        let lightEchoes = [];
+
+        // ── Quasar Ignition — distant star flares incredibly bright ──
+        let quasar = null;
+        let quasarNextTime = 80000 + Math.random() * 80000;
+        let quasarScreenPos = null;
+
+        // ── Solar System — planets orbiting Sol ──
+        const solarSystem = [
+            { name: 'mercury', orbitR: 0.008, speed: 0.0047, size: 0.4, r: 180, g: 170, b: 160 },
+            { name: 'venus',   orbitR: 0.014, speed: 0.0035, size: 0.5, r: 230, g: 210, b: 160 },
+            { name: 'earth',   orbitR: 0.020, speed: 0.0030, size: 0.55, r: 70, g: 130, b: 255 },
+            { name: 'mars',    orbitR: 0.028, speed: 0.0024, size: 0.45, r: 200, g: 120, b: 80 },
+            { name: 'jupiter', orbitR: 0.042, speed: 0.0013, size: 0.8, r: 210, g: 180, b: 140 },
+            { name: 'saturn',  orbitR: 0.058, speed: 0.0010, size: 0.7, r: 220, g: 200, b: 150, ring: true },
+            { name: 'uranus',  orbitR: 0.072, speed: 0.0007, size: 0.55, r: 170, g: 220, b: 230 },
+            { name: 'neptune', orbitR: 0.085, speed: 0.0005, size: 0.5, r: 80, g: 120, b: 255 },
+        ];
+        let planetScreenPositions = {}; // { name: {x, y} }
 
 
         // Theme: follow OS preference, update live if it changes
@@ -831,6 +900,17 @@
             drawLighthouse(now, sw, sh, isDark, userDragX, userDragY);
             drawDysonBuild(now, sw, sh, isDark, userDragX, userDragY);
             drawWarRemnant(now, sw, sh, isDark, userDragX, userDragY);
+            drawInterstellarHighway(now, sw, sh, isDark, userDragX, userDragY);
+            updatePhantomFleet(now, sw, sh, isDark, userDragX, userDragY);
+            updateSolarFlares(now, sw, sh, isDark, userDragX, userDragY);
+            updateComet(now, sw, sh, isDark, userDragX, userDragY);
+            drawPulsarBeam(now, sw, sh, isDark, userDragX, userDragY);
+            drawNebulaBirths(now, sw, sh, isDark, userDragX, userDragY);
+            updateTidalDisruption(now, sw, sh, isDark, userDragX, userDragY);
+            updateStarMerger(now, sw, sh, isDark, userDragX, userDragY);
+            drawLightEchoes(now, sw, sh, isDark, userDragX, userDragY);
+            updateQuasar(now, sw, sh, isDark, userDragX, userDragY);
+            drawSolarSystem(now, sw, sh, isDark, userDragX, userDragY);
 
             renderer.render(scene, camera);
         }
@@ -1037,6 +1117,13 @@
                 maxRadius: (8 + Math.random() * 10) * window.devicePixelRatio,
                 r1, g1, b1, r2, g2, b2,
             });
+            // 40% chance: spawn a nebula birth + light echo
+            if (Math.random() < 0.4) {
+                nebulaBirths.push({ theta, phi, layerSpeed, born: time, duration: 35000 + Math.random() * 20000, r: r2, g: g2, b: b2 });
+            }
+            if (Math.random() < 0.5) {
+                lightEchoes.push({ theta, phi, layerSpeed, born: time, duration: 25000 + Math.random() * 15000 });
+            }
                 return;
             }
         }
@@ -2407,6 +2494,475 @@
             starsCtx.fill();
         }
 
+        // ── Interstellar Highway — dotted line with moving vessels ──
+        function drawInterstellarHighway(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !highwayStar1 || !highwayStar2) return;
+            const s1 = starLayers[highwayStar1.layerIdx].stars[highwayStar1.starIdx];
+            const s2 = starLayers[highwayStar2.layerIdx].stars[highwayStar2.starIdx];
+            if (!s1 || !s2 || s1.dead || s2.dead) return;
+            const p1 = projectStar(s1, starLayers[highwayStar1.layerIdx].speed, viewRotX, viewRotY);
+            const p2 = projectStar(s2, starLayers[highwayStar2.layerIdx].speed, viewRotX, viewRotY);
+            if (!p1 || !p2) { highwayScreenPos = null; return; }
+            if (isOccludedByHole(p1.x, p1.y) && isOccludedByHole(p2.x, p2.y)) { highwayScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            highwayScreenPos = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+            // Dotted line
+            const dx = p2.x - p1.x, dy = p2.y - p1.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const dots = Math.floor(dist / (6 * dpr));
+            for (let i = 0; i <= dots; i++) {
+                const t = i / dots;
+                const x = p1.x + dx * t, y = p1.y + dy * t;
+                if (isOccludedByHole(x, y)) continue;
+                starsCtx.fillStyle = `rgba(200, 200, 220, 0.15)`;
+                starsCtx.beginPath();
+                starsCtx.arc(x, y, 0.4 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+            // Moving vessels (12 ships)
+            for (let i = 0; i < 12; i++) {
+                const t = ((now * 0.00003 + i / 12) % 1);
+                const x = p1.x + dx * t, y = p1.y + dy * t;
+                if (isOccludedByHole(x, y)) continue;
+                starsCtx.fillStyle = `rgba(220, 220, 255, 0.5)`;
+                starsCtx.beginPath();
+                starsCtx.arc(x, y, 0.6 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── Phantom Fleet — brief appearing/disappearing formation ──
+        function updatePhantomFleet(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            if (!phantomFleet && now > phantomNextSpawn) {
+                const anchor = pickRandomVisibleStar(viewRotX, viewRotY);
+                if (anchor) {
+                    phantomFleet = { theta: anchor.star.theta, phi: anchor.star.phi, layerSpeed: starLayers[anchor.layerIdx].speed,
+                        born: now, duration: 6000 + Math.random() * 4000, ships: 5 };
+                }
+            }
+            if (!phantomFleet) { phantomScreenPos = null; return; }
+            const age = now - phantomFleet.born;
+            if (age > phantomFleet.duration) { phantomFleet = null; phantomScreenPos = null; phantomNextSpawn = now + 50000 + Math.random() * 60000; return; }
+            const dpr = window.devicePixelRatio;
+            const fadeIn = Math.min(1, age / 1500);
+            const fadeOut = Math.min(1, (phantomFleet.duration - age) / 1500);
+            const alpha = fadeIn * fadeOut * 0.5;
+            const p = projectStar(phantomFleet, phantomFleet.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { phantomScreenPos = null; return; }
+            phantomScreenPos = { x: p.x, y: p.y };
+            for (let i = 0; i < phantomFleet.ships; i++) {
+                const fx = p.x + (i - 2) * 5 * dpr + Math.sin(now * 0.002 + i) * 2 * dpr;
+                const fy = p.y + Math.abs(i - 2) * 3 * dpr;
+                starsCtx.fillStyle = `rgba(180, 200, 255, ${alpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(fx, fy, 0.8 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+                // Ghostly glow
+                starsCtx.fillStyle = `rgba(150, 180, 255, ${alpha * 0.2})`;
+                starsCtx.beginPath();
+                starsCtx.arc(fx, fy, 2.5 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── Solar Flare — star dramatically brightens with shockwave ring ──
+        function updateSolarFlares(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            if (now > nextFlareTime) {
+                const star = pickRandomVisibleStar(viewRotX, viewRotY);
+                if (star) {
+                    solarFlares.push({ theta: star.star.theta, phi: star.star.phi, layerSpeed: starLayers[star.layerIdx].speed,
+                        born: now, duration: 4000 + Math.random() * 2000 });
+                }
+                nextFlareTime = now + 20000 + Math.random() * 30000;
+            }
+            const dpr = window.devicePixelRatio;
+            for (let i = solarFlares.length - 1; i >= 0; i--) {
+                const f = solarFlares[i];
+                const age = now - f.born;
+                if (age > f.duration) { solarFlares.splice(i, 1); continue; }
+                const p = projectStar(f, f.layerSpeed, viewRotX, viewRotY);
+                if (!p || isOccludedByHole(p.x, p.y)) continue;
+                const t = age / f.duration;
+                const brightness = t < 0.15 ? t / 0.15 : Math.pow(1 - (t - 0.15) / 0.85, 2);
+                // Bright core
+                starsCtx.fillStyle = `rgba(255, 250, 220, ${brightness * 0.9})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, (2 + brightness * 4) * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+                // Shockwave ring
+                const ringR = (5 + t * 25) * dpr;
+                const ringAlpha = brightness * 0.3 * (1 - t);
+                starsCtx.strokeStyle = `rgba(255, 240, 200, ${ringAlpha})`;
+                starsCtx.lineWidth = (1 + (1 - t) * 1.5) * dpr;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
+                starsCtx.stroke();
+            }
+        }
+
+        // ── Comet — bright dot with long curved tail ──
+        function updateComet(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            if (!comet && now > cometNextSpawn) {
+                const startAngle = Math.random() * Math.PI * 2;
+                comet = { theta: startAngle, phi: 0.5 + Math.random() * 2, dTheta: 0.0003 * (Math.random() > 0.5 ? 1 : -1),
+                    dPhi: 0.0001 * (Math.random() > 0.5 ? 1 : -1), layerSpeed: 1.15, born: now, duration: 30000 + Math.random() * 15000, trail: [] };
+            }
+            if (!comet) { cometScreenPos = null; return; }
+            const age = now - comet.born;
+            if (age > comet.duration) { comet = null; cometScreenPos = null; cometNextSpawn = now + 40000 + Math.random() * 40000; return; }
+            comet.theta += comet.dTheta;
+            comet.phi += comet.dPhi;
+            if (comet.phi < 0.3 || comet.phi > Math.PI - 0.3) comet.dPhi *= -1;
+            const dpr = window.devicePixelRatio;
+            const p = projectStar(comet, comet.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { cometScreenPos = null; return; }
+            cometScreenPos = { x: p.x, y: p.y };
+            // Store trail
+            comet.trail.push({ theta: comet.theta, phi: comet.phi, time: now });
+            if (comet.trail.length > 40) comet.trail.shift();
+            let alpha = 0.9;
+            const t = age / comet.duration;
+            if (t < 0.05) alpha *= t / 0.05;
+            if (t > 0.9) alpha *= (1 - t) / 0.1;
+            // Draw tail
+            for (let i = comet.trail.length - 2; i >= 0; i--) {
+                const tp = projectStar(comet.trail[i], comet.layerSpeed, viewRotX, viewRotY);
+                if (!tp || isOccludedByHole(tp.x, tp.y)) continue;
+                const fade = (i / comet.trail.length);
+                starsCtx.fillStyle = `rgba(200, 220, 255, ${alpha * fade * 0.3})`;
+                starsCtx.beginPath();
+                starsCtx.arc(tp.x, tp.y, (0.8 + fade * 0.5) * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+            // Bright head
+            starsCtx.fillStyle = `rgba(255, 255, 240, ${alpha})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.8 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+            // Coma glow
+            starsCtx.fillStyle = `rgba(200, 230, 255, ${alpha * 0.25})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 4 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+        }
+
+        // ── Pulsar Beam — star with sweeping cone of light ──
+        function drawPulsarBeam(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !pulsarStar) return;
+            const star = starLayers[pulsarStar.layerIdx].stars[pulsarStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[pulsarStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { pulsarScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            pulsarScreenPos = { x: p.x, y: p.y };
+            const beamAngle = now * 0.006; // fast spin
+            const beamLen = 30 * dpr;
+            const coneWidth = 0.25;
+            // Two opposite beams
+            for (let side = 0; side < 2; side++) {
+                const a = beamAngle + side * Math.PI;
+                const bx = Math.cos(a) * beamLen, by = Math.sin(a) * beamLen;
+                // Cone shape via triangle
+                const lx = Math.cos(a + coneWidth) * beamLen, ly = Math.sin(a + coneWidth) * beamLen;
+                const rx = Math.cos(a - coneWidth) * beamLen, ry = Math.sin(a - coneWidth) * beamLen;
+                const grad = starsCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, beamLen);
+                grad.addColorStop(0, `rgba(200, 220, 255, 0.25)`);
+                grad.addColorStop(0.5, `rgba(180, 200, 255, 0.08)`);
+                grad.addColorStop(1, `rgba(180, 200, 255, 0)`);
+                starsCtx.fillStyle = grad;
+                starsCtx.beginPath();
+                starsCtx.moveTo(p.x, p.y);
+                starsCtx.lineTo(p.x + lx, p.y + ly);
+                starsCtx.lineTo(p.x + rx, p.y + ry);
+                starsCtx.closePath();
+                starsCtx.fill();
+            }
+            // Core pulse
+            const pulse = 0.6 + 0.4 * Math.abs(Math.sin(beamAngle));
+            starsCtx.fillStyle = `rgba(200, 220, 255, ${pulse})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.5 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+        }
+
+        // ── Nebula Birth — expanding colored cloud from supernova ──
+        function drawNebulaBirths(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            const dpr = window.devicePixelRatio;
+            for (let i = nebulaBirths.length - 1; i >= 0; i--) {
+                const nb = nebulaBirths[i];
+                const age = now - nb.born;
+                if (age > nb.duration) { nebulaBirths.splice(i, 1); continue; }
+                const p = projectStar(nb, nb.layerSpeed, viewRotX, viewRotY);
+                if (!p || isOccludedByHole(p.x, p.y)) continue;
+                const t = age / nb.duration;
+                const radius = (5 + t * 30) * dpr;
+                const alpha = (1 - t) * 0.12;
+                const grad = starsCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
+                grad.addColorStop(0, `rgba(${nb.r}, ${nb.g}, ${nb.b}, ${alpha})`);
+                grad.addColorStop(0.4, `rgba(${nb.r}, ${nb.g}, ${nb.b}, ${alpha * 0.5})`);
+                grad.addColorStop(1, `rgba(${nb.r}, ${nb.g}, ${nb.b}, 0)`);
+                starsCtx.fillStyle = grad;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                starsCtx.fill();
+                // Wispy tendrils
+                for (let j = 0; j < 4; j++) {
+                    const ta = j * Math.PI / 2 + t * 0.5;
+                    const tx = p.x + Math.cos(ta) * radius * 0.8;
+                    const ty = p.y + Math.sin(ta) * radius * 0.8;
+                    starsCtx.fillStyle = `rgba(${nb.r}, ${nb.g}, ${nb.b}, ${alpha * 0.4})`;
+                    starsCtx.beginPath();
+                    starsCtx.arc(tx, ty, radius * 0.3, 0, Math.PI * 2);
+                    starsCtx.fill();
+                }
+            }
+        }
+
+        // ── Tidal Disruption — star spiraling into black hole ──
+        function updateTidalDisruption(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            if (!tidalDisrupt && now > tidalNextTime) {
+                // Pick a star that's somewhat near the center
+                const cx = w / 2, cy = h / 2;
+                for (let attempt = 0; attempt < 30; attempt++) {
+                    const li = 0; // near layer
+                    const layer = starLayers[li];
+                    const si = Math.floor(Math.random() * layer.stars.length);
+                    const star = layer.stars[si];
+                    if (star.dead || star.paleBlueDot) continue;
+                    const p = projectStar(star, layer.speed, viewRotX, viewRotY);
+                    if (!p) continue;
+                    const dist = Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2);
+                    const hR = getHorizonRadius();
+                    if (dist > hR * 3 && dist < hR * 8) {
+                        tidalDisrupt = { theta: star.theta, phi: star.phi, origTheta: star.theta, origPhi: star.phi,
+                            layerSpeed: layer.speed, born: now, duration: 15000 + Math.random() * 10000, starIdx: si };
+                        break;
+                    }
+                }
+            }
+            if (!tidalDisrupt) { tidalScreenPos = null; return; }
+            const age = now - tidalDisrupt.born;
+            if (age > tidalDisrupt.duration) {
+                starLayers[0].stars[tidalDisrupt.starIdx].dead = true;
+                tidalDisrupt = null; tidalScreenPos = null; tidalNextTime = now + 60000 + Math.random() * 60000; return;
+            }
+            const dpr = window.devicePixelRatio;
+            const t = age / tidalDisrupt.duration;
+            // Spiral inward — angle increases, radius decreases
+            const spiralAngle = t * Math.PI * 6;
+            const spiralR = (1 - t * t) * 0.15; // quadratic collapse
+            const cx2 = w / 2, cy2 = h / 2;
+            // Calculate center direction in theta/phi space
+            const centerTheta = tidalDisrupt.origTheta;
+            const centerPhi = tidalDisrupt.origPhi;
+            const theta = centerTheta + Math.cos(spiralAngle) * spiralR;
+            const phi = centerPhi + Math.sin(spiralAngle) * spiralR;
+            const p = projectStar({ theta, phi }, tidalDisrupt.layerSpeed, viewRotX, viewRotY);
+            if (!p) { tidalScreenPos = null; return; }
+            tidalScreenPos = { x: p.x, y: p.y };
+            // Color shifts toward red as it approaches
+            const redness = t;
+            const r = 255, g = Math.round(240 * (1 - redness * 0.7)), b = Math.round(200 * (1 - redness * 0.9));
+            let alpha = 0.8 * (1 - t * 0.5);
+            // Stretching
+            const stretch = 1 + t * 2;
+            starsCtx.save();
+            starsCtx.translate(p.x, p.y);
+            starsCtx.rotate(spiralAngle);
+            starsCtx.scale(1, stretch);
+            starsCtx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            starsCtx.beginPath();
+            starsCtx.arc(0, 0, (1.5 - t * 0.5) * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+            starsCtx.restore();
+            // Debris trail
+            for (let i = 1; i <= 5; i++) {
+                const tt = Math.max(0, t - i * 0.03);
+                const sa = tt * Math.PI * 6;
+                const sr = (1 - tt * tt) * 0.15;
+                const tTheta = centerTheta + Math.cos(sa) * sr;
+                const tPhi = centerPhi + Math.sin(sa) * sr;
+                const tp = projectStar({ theta: tTheta, phi: tPhi }, tidalDisrupt.layerSpeed, viewRotX, viewRotY);
+                if (tp) {
+                    starsCtx.fillStyle = `rgba(255, ${150 + i * 20}, ${50 + i * 20}, ${alpha * (1 - i / 5) * 0.4})`;
+                    starsCtx.beginPath();
+                    starsCtx.arc(tp.x, tp.y, 0.6 * dpr, 0, Math.PI * 2);
+                    starsCtx.fill();
+                }
+            }
+        }
+
+        // ── Binary Star Merger — two stars spiral together and merge ──
+        function updateStarMerger(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            if (!starMerger && now > mergerNextTime) {
+                const s = pickRandomVisibleStar(viewRotX, viewRotY);
+                if (s) {
+                    starMerger = { theta: s.star.theta, phi: s.star.phi, layerSpeed: starLayers[s.layerIdx].speed,
+                        born: now, duration: 18000 + Math.random() * 7000, merged: false, mergeTime: 0 };
+                }
+            }
+            if (!starMerger) return;
+            const age = now - starMerger.born;
+            if (age > starMerger.duration) { starMerger = null; mergerNextTime = now + 70000 + Math.random() * 50000; return; }
+            const dpr = window.devicePixelRatio;
+            const p = projectStar(starMerger, starMerger.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) return;
+            const t = age / starMerger.duration;
+            const mergePoint = 0.7;
+            if (t < mergePoint) {
+                // Two stars spiraling closer
+                const sep = (1 - t / mergePoint) * 8 * dpr;
+                const angle = now * 0.004;
+                const ax = p.x + Math.cos(angle) * sep, ay = p.y + Math.sin(angle) * sep;
+                const bx = p.x - Math.cos(angle) * sep, by = p.y - Math.sin(angle) * sep;
+                const alpha = 0.7;
+                starsCtx.fillStyle = `rgba(255, 240, 220, ${alpha})`;
+                starsCtx.beginPath(); starsCtx.arc(ax, ay, 1.3 * dpr, 0, Math.PI * 2); starsCtx.fill();
+                starsCtx.fillStyle = `rgba(200, 220, 255, ${alpha})`;
+                starsCtx.beginPath(); starsCtx.arc(bx, by, 1.1 * dpr, 0, Math.PI * 2); starsCtx.fill();
+                // Mass transfer stream
+                starsCtx.strokeStyle = `rgba(255, 230, 200, 0.15)`;
+                starsCtx.lineWidth = 0.5 * dpr;
+                starsCtx.beginPath(); starsCtx.moveTo(ax, ay); starsCtx.lineTo(bx, by); starsCtx.stroke();
+            } else {
+                // Post-merge flash and bright remnant
+                const postT = (t - mergePoint) / (1 - mergePoint);
+                const flash = postT < 0.2 ? (1 - postT / 0.2) : 0;
+                const remnantSize = 2 + flash * 6;
+                starsCtx.fillStyle = `rgba(255, 255, 240, ${0.5 + flash * 0.5})`;
+                starsCtx.beginPath();
+                starsCtx.arc(p.x, p.y, remnantSize * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+                if (flash > 0.1) {
+                    starsCtx.fillStyle = `rgba(255, 255, 255, ${flash * 0.3})`;
+                    starsCtx.beginPath();
+                    starsCtx.arc(p.x, p.y, (remnantSize + 5) * dpr, 0, Math.PI * 2);
+                    starsCtx.fill();
+                }
+            }
+        }
+
+        // ── Light Echo — expanding rings after supernova ──
+        function drawLightEchoes(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            const dpr = window.devicePixelRatio;
+            for (let i = lightEchoes.length - 1; i >= 0; i--) {
+                const le = lightEchoes[i];
+                const age = now - le.born;
+                if (age > le.duration) { lightEchoes.splice(i, 1); continue; }
+                const p = projectStar(le, le.layerSpeed, viewRotX, viewRotY);
+                if (!p || isOccludedByHole(p.x, p.y)) continue;
+                const t = age / le.duration;
+                // Multiple expanding rings
+                for (let r = 0; r < 3; r++) {
+                    const ringT = Math.max(0, t - r * 0.15);
+                    if (ringT <= 0) continue;
+                    const radius = ringT * 35 * dpr;
+                    const alpha = (1 - ringT) * 0.15 * (1 - r * 0.3);
+                    starsCtx.strokeStyle = `rgba(220, 230, 255, ${alpha})`;
+                    starsCtx.lineWidth = (1.5 - r * 0.3) * dpr;
+                    starsCtx.beginPath();
+                    starsCtx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                    starsCtx.stroke();
+                }
+            }
+        }
+
+        // ── Quasar Ignition — distant star flares incredibly bright ──
+        function updateQuasar(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            if (!quasar && now > quasarNextTime) {
+                const s = pickRandomVisibleStar(viewRotX, viewRotY);
+                if (s) {
+                    quasar = { theta: s.star.theta, phi: s.star.phi, layerSpeed: starLayers[s.layerIdx].speed,
+                        born: now, duration: 8000 + Math.random() * 5000 };
+                }
+            }
+            if (!quasar) { quasarScreenPos = null; return; }
+            const age = now - quasar.born;
+            if (age > quasar.duration) { quasar = null; quasarScreenPos = null; quasarNextTime = now + 80000 + Math.random() * 80000; return; }
+            const dpr = window.devicePixelRatio;
+            const p = projectStar(quasar, quasar.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { quasarScreenPos = null; return; }
+            quasarScreenPos = { x: p.x, y: p.y };
+            const t = age / quasar.duration;
+            // Bright flare then steady glow
+            let brightness;
+            if (t < 0.1) brightness = t / 0.1;
+            else if (t < 0.3) brightness = 1;
+            else brightness = Math.pow(1 - (t - 0.3) / 0.7, 1.5);
+            // Incredibly bright core
+            starsCtx.fillStyle = `rgba(255, 255, 255, ${brightness * 0.95})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, (2 + brightness * 3) * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+            // Wide glow
+            starsCtx.fillStyle = `rgba(200, 220, 255, ${brightness * 0.2})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, (8 + brightness * 10) * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+            // Jets
+            const jetLen = (15 + brightness * 15) * dpr;
+            const jetAngle = 0.3; // fixed orientation
+            for (let s = 0; s < 2; s++) {
+                const a = jetAngle + s * Math.PI;
+                const grad = starsCtx.createLinearGradient(p.x, p.y, p.x + Math.cos(a) * jetLen, p.y + Math.sin(a) * jetLen);
+                grad.addColorStop(0, `rgba(180, 200, 255, ${brightness * 0.5})`);
+                grad.addColorStop(1, `rgba(180, 200, 255, 0)`);
+                starsCtx.strokeStyle = grad;
+                starsCtx.lineWidth = (1 + brightness) * dpr;
+                starsCtx.beginPath();
+                starsCtx.moveTo(p.x, p.y);
+                starsCtx.lineTo(p.x + Math.cos(a) * jetLen, p.y + Math.sin(a) * jetLen);
+                starsCtx.stroke();
+            }
+        }
+
+        // ── Solar System — planets orbiting Sol ──
+        function drawSolarSystem(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !paleBlueDotStar) return;
+            const sol = starLayers[paleBlueDotStar.layerIdx].stars[paleBlueDotStar.starIdx];
+            if (!sol) return;
+            const p = projectStar(sol, starLayers[paleBlueDotStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { planetScreenPositions = {}; return; }
+            const dpr = window.devicePixelRatio;
+            const fov = Math.min(w, h) * 0.55;
+            planetScreenPositions = {};
+            for (const planet of solarSystem) {
+                const orbitAngle = now * planet.speed;
+                const orbitR = planet.orbitR * fov;
+                const px = p.x + Math.cos(orbitAngle) * orbitR;
+                const py = p.y + Math.sin(orbitAngle) * orbitR * 0.35; // tilt
+                if (isOccludedByHole(px, py)) continue;
+                planetScreenPositions[planet.name] = { x: px, y: py };
+                // Planet dot
+                starsCtx.fillStyle = `rgba(${planet.r}, ${planet.g}, ${planet.b}, 0.8)`;
+                starsCtx.beginPath();
+                starsCtx.arc(px, py, planet.size * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+                // Saturn's ring
+                if (planet.ring) {
+                    starsCtx.strokeStyle = `rgba(${planet.r}, ${planet.g}, ${planet.b}, 0.4)`;
+                    starsCtx.lineWidth = 0.4 * dpr;
+                    starsCtx.beginPath();
+                    starsCtx.ellipse(px, py, planet.size * 2 * dpr, planet.size * 0.6 * dpr, 0.3, 0, Math.PI * 2);
+                    starsCtx.stroke();
+                }
+                // Faint orbit path
+                starsCtx.strokeStyle = `rgba(100, 130, 200, 0.04)`;
+                starsCtx.lineWidth = 0.3 * dpr;
+                starsCtx.beginPath();
+                starsCtx.ellipse(p.x, p.y, orbitR, orbitR * 0.35, 0, 0, Math.PI * 2);
+                starsCtx.stroke();
+            }
+        }
+
         generateStars();
         // Assign one star as the Pale Blue Dot (Sol)
         paleBlueDotStar = { layerIdx: 0, starIdx: 42 }; // near layer, star #42
@@ -2447,6 +3003,12 @@
 
             warRemnantStar = { layerIdx: 0, starIdx: 190 };
             starLayers[0].stars[190].size = 1.0; starLayers[0].stars[190].opacity = 0.3;
+
+            highwayStar1 = { layerIdx: 0, starIdx: 35 };
+            highwayStar2 = { layerIdx: 0, starIdx: 55 };
+
+            pulsarStar = { layerIdx: 0, starIdx: 210 };
+            starLayers[0].stars[210].size = 1.5; starLayers[0].stars[210].opacity = 0.7;
         }
 
         drawStars(darkMQ.matches, 0, 0, 0);
@@ -2613,7 +3175,22 @@
                 { pos: lighthouseScreenPos, layer: -17 },
                 { pos: dysonBuildScreenPos, layer: -18 },
                 { pos: warRemnantScreenPos, layer: -19 },
+                { pos: highwayScreenPos, layer: -20 },
+
+                { pos: phantomScreenPos, layer: -22 },
+                { pos: cometScreenPos, layer: -23 },
+                { pos: quasarScreenPos, layer: -24 },
+                { pos: tidalScreenPos, layer: -25 },
+                { pos: pulsarScreenPos, layer: -26 },
             ];
+            // Also check planets
+            for (const [pName, pPos] of Object.entries(planetScreenPositions)) {
+                const d = Math.sqrt((pPos.x - px) ** 2 + (pPos.y - py) ** 2);
+                if (d < bestDist) {
+                    bestDist = d; bestSX = pPos.x; bestSY = pPos.y;
+                    bestLayer = -100; bestIdx = solarSystem.findIndex(p => p.name === pName);
+                }
+            }
             for (const check of sciFiChecks) {
                 if (check.pos) {
                     const d = Math.sqrt((check.pos.x - px) ** 2 + (check.pos.y - py) ** 2);
@@ -2653,6 +3230,13 @@
                     if (d < closestD) { closestD = d; closestVN = vp; }
                 }
                 sx = closestVN.x; sy = closestVN.y;
+            } else if (lockTarget.layerIdx === -100) {
+                // Planet
+                const planet = solarSystem[lockTarget.starIdx];
+                if (!planet) { lockActive = false; lockTarget = null; return; }
+                const pPos = planetScreenPositions[planet.name];
+                if (!pPos) { lockActive = false; lockTarget = null; return; }
+                sx = pPos.x; sy = pPos.y;
             } else if (lockTarget.layerIdx <= -3) {
                 // Sci-fi megastructure objects
                 const posMap = {
@@ -2662,6 +3246,9 @@
                     '-13': rocketScreenPos, '-14': derelictScreenPos,
                     '-15': cryoPodScreenPos, '-16': terraformScreenPos, '-17': lighthouseScreenPos,
                     '-18': dysonBuildScreenPos, '-19': warRemnantScreenPos,
+                    '-20': highwayScreenPos, '-22': phantomScreenPos,
+                    '-23': cometScreenPos, '-24': quasarScreenPos, '-25': tidalScreenPos,
+                    '-26': pulsarScreenPos,
                 };
                 const pos = posMap[String(lockTarget.layerIdx)];
                 if (!pos) { lockActive = false; lockTarget = null; return; }
@@ -2707,6 +3294,9 @@
                 '-13': [255, 200, 80], '-14': [150, 150, 160],
                 '-15': [160, 200, 255], '-16': [100, 200, 140], '-17': [255, 255, 220],
                 '-18': [255, 240, 200], '-19': [180, 100, 80],
+                '-20': [200, 200, 220], '-22': [180, 200, 255],
+                '-23': [200, 230, 255], '-24': [255, 255, 255], '-25': [255, 180, 120],
+                '-26': [200, 220, 255], '-100': [100, 180, 255],
             };
             // Also map regular star indices to special colors
             const starColorMap = [
@@ -2722,6 +3312,10 @@
                 { ref: warRemnantStar, color: [180, 100, 80] },
             ];
             let lc = sciFiColors[String(lockTarget.layerIdx)];
+            if (lockTarget.layerIdx === -100 && lockTarget.starIdx >= 0 && lockTarget.starIdx < solarSystem.length) {
+                const pl = solarSystem[lockTarget.starIdx];
+                lc = [pl.r, pl.g, pl.b];
+            }
             if (!lc && lockTarget.layerIdx >= 0) {
                 const cm = starColorMap.find(s => s.ref && s.ref.layerIdx === lockTarget.layerIdx && s.ref.starIdx === lockTarget.starIdx);
                 lc = cm ? cm.color : [100, 200, 255];
@@ -2758,9 +3352,14 @@
 
             // Generate label based on object type
             let label;
-            const loreMap = { '-3': 'dyson', '-4': 'ringworld', '-5': 'stellarEngine', '-7': 'shkadov', '-8': 'bracewell', '-9': 'seti', '-10': 'elevator', '-11': 'genShip', '-12': 'mining', '-13': 'rocket', '-14': 'derelict', '-15': 'cryoPod', '-16': 'terraform', '-17': 'lighthouse', '-18': 'dysonBuild', '-19': 'warRemnant' };
+            const loreMap = { '-3': 'dyson', '-4': 'ringworld', '-5': 'stellarEngine', '-7': 'shkadov', '-8': 'bracewell', '-9': 'seti', '-10': 'elevator', '-11': 'genShip', '-12': 'mining', '-13': 'rocket', '-14': 'derelict', '-15': 'cryoPod', '-16': 'terraform', '-17': 'lighthouse', '-18': 'dysonBuild', '-19': 'warRemnant', '-20': 'highway', '-22': 'phantom', '-23': 'comet', '-24': 'quasar', '-25': 'tidalDisrupt', '-26': 'pulsar' };
+            // Planet labels
+            if (lockTarget.layerIdx === -100) {
+                const planet = solarSystem[lockTarget.starIdx];
+                if (planet) label = GALACTICA_LORE[planet.name];
+            }
             const loreKey = loreMap[String(lockTarget.layerIdx)];
-            if (loreKey && GALACTICA_LORE[loreKey]) {
+            if (!label && loreKey && GALACTICA_LORE[loreKey]) {
                 label = GALACTICA_LORE[loreKey];
             } else if (lockTarget.layerIdx === -1) {
                 label = 'Exodus Fleet  ·  Human  ·  In Transit';
