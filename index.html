@@ -117,21 +117,24 @@
         header, footer {
             display: none;
         }
-        .ui-date,
-        .ui-time {
+        .ui-top-bar {
             position: fixed;
             top: clamp(18px, 2.5vw, 26px);
+            left: clamp(18px, 3vw, 28px);
+            right: clamp(18px, 3vw, 28px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             font-size: clamp(0.58rem, 1.1vw, 0.76rem);
+            line-height: 1;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             opacity: 0.55;
             white-space: nowrap;
+            z-index: 20;
         }
-        .ui-date {
-            left: clamp(18px, 3vw, 28px);
-        }
-        .ui-time {
-            right: clamp(18px, 3vw, 28px);
+        .ui-date, .ui-time {
+            line-height: 1;
         }
         .ui-bottom {
             position: fixed;
@@ -145,7 +148,7 @@
             font-size: clamp(0.6rem, 1.4vw, 0.88rem);
             letter-spacing: 0.4em;
             text-transform: uppercase;
-            text-indent: 0.4em;
+            padding-left: 0.4em;
             opacity: 0.8;
         }
         .ui-info-link {
@@ -183,21 +186,35 @@
         .info-text p {
             margin: 0 0 1em 0;
         }
-        .ui-info-link, .theme-toggle {
+        .ui-info-link {
             cursor: pointer;
         }
         .theme-toggle {
-            position: fixed;
-            bottom: clamp(18px, 3vw, 32px);
-            right: clamp(18px, 3vw, 28px);
-            font-size: clamp(0.52rem, 1vw, 0.7rem);
-            letter-spacing: 0.3em;
-            text-transform: uppercase;
-            opacity: 0.5;
-            z-index: 20;
+            width: 24px;
+            height: 12px;
+            border: 1px solid currentColor;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            flex-shrink: 0;
+            box-sizing: border-box;
         }
         .theme-toggle:hover {
-            opacity: 0.8;
+            opacity: 1;
+        }
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            top: 1.5px;
+            left: 1.5px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            transition: transform 0.2s ease;
+        }
+        body.dark-mode .theme-toggle::after {
+            transform: translateX(12px);
         }
 
         /* ── Star field ── */
@@ -250,12 +267,13 @@
     </style>
 </head>
 <body>
-<div class="ui-date" id="ui-date"></div>
-    <div class="ui-time" id="ui-time"></div>
-    <div class="theme-toggle" id="theme-toggle">Light/Dark</div>
+<div class="ui-top-bar">
+        <div class="ui-date" id="ui-date"></div>
+        <div class="theme-toggle" id="theme-toggle"></div>
+    </div>
     <div class="ui-bottom">
-        <div class="ui-name">JAN MICHAEL KRAUSE</div>
-        <span class="ui-info-link" id="info-open">Info</span>
+        <div class="ui-name">JMK</div>
+        <!-- <span class="ui-info-link" id="info-open">Info</span> -->
         <!-- <a href="bookshelf.html" class="ui-info-link">Bookshelf</a> -->
     </div>
     <div class="info-text" id="info-text">
@@ -273,14 +291,24 @@
     <script type="module">
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js';
 
-        // Live date and clock
-        const DAY_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        // Kardashev scale — baseline 0.7302 as of 2026.0, growing ~0.000000003 per year
         const dateEl = document.getElementById('ui-date');
         const timeEl = document.getElementById('ui-time');
+        const K_BASE = 0.7314; // IEA 2024: ~650 EJ/yr → 2.06×10¹³W → K=(log₁₀(P)−6)/10
+        const K_RATE = 3e-9; // per year
+        const K_EPOCH = 2024.0;
+        function updateKardashev() {
+            const now = new Date();
+            const year = now.getFullYear() + (now.getMonth() / 12) + (now.getDate() / 365);
+            const k = K_BASE + K_RATE * (year - K_EPOCH);
+            if (dateEl) dateEl.textContent = k.toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
+        }
+        updateKardashev();
+        setInterval(updateKardashev, 1000);
+
+        // Live clock
         function updateClock() {
             const now = new Date();
-            if (dateEl) dateEl.textContent = `${DAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
             if (timeEl) timeEl.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
         }
         updateClock();
@@ -289,14 +317,16 @@
         // Info toggle
         const infoText = document.getElementById('info-text');
         const infoOpen = document.getElementById('info-open');
-        infoOpen.addEventListener('click', () => {
-            infoText.classList.toggle('active');
-        });
-        document.addEventListener('click', e => {
-            if (!infoText.classList.contains('active')) return;
-            if (infoText.contains(e.target) || infoOpen.contains(e.target)) return;
-            infoText.classList.remove('active');
-        });
+        if (infoOpen) {
+            infoOpen.addEventListener('click', () => {
+                infoText.classList.toggle('active');
+            });
+            document.addEventListener('click', e => {
+                if (!infoText.classList.contains('active')) return;
+                if (infoText.contains(e.target) || infoOpen.contains(e.target)) return;
+                infoText.classList.remove('active');
+            });
+        }
 
         // Theme toggle
         let manualTheme = null;
@@ -3099,6 +3129,10 @@
             cursorY = e.clientY;
             cursorVisible = true;
         });
+        document.addEventListener('mouseleave', () => {
+            cursorVisible = false;
+            cursorCanvas.style.display = 'none';
+        });
 
         // Find nearest visible star to cursor (in CSS pixels)
         function findNearestStar() {
@@ -3406,7 +3440,7 @@
         const isTouchDevice = !window.matchMedia('(hover: hover)').matches;
         function updateCursorReticle() {
             requestAnimationFrame(updateCursorReticle);
-            if (isTouchDevice) {
+            if (isTouchDevice || !cursorVisible) {
                 cursorCanvas.style.display = 'none';
                 return;
             }
