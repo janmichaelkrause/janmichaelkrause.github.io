@@ -36,21 +36,21 @@
             background-color: rgb(255, 255, 255);
             color: #010101;
         }
-        .ui-date,
-        .ui-time {
+        .ui-top-bar {
             position: fixed;
             top: clamp(18px, 2.5vw, 26px);
+            left: clamp(18px, 3vw, 28px);
+            right: clamp(18px, 3vw, 28px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             font-size: clamp(0.58rem, 1.1vw, 0.76rem);
+            line-height: 1;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             opacity: 0.55;
             white-space: nowrap;
-        }
-        .ui-date {
-            left: clamp(18px, 3vw, 28px);
-        }
-        .ui-time {
-            right: clamp(18px, 3vw, 28px);
+            z-index: 20;
         }
         .ui-bottom {
             position: fixed;
@@ -65,7 +65,7 @@
             font-size: clamp(0.6rem, 1.4vw, 0.88rem);
             letter-spacing: 0.4em;
             text-transform: uppercase;
-            text-indent: 0.4em;
+            padding-left: 0.4em;
             opacity: 0.8;
         }
         .ui-link {
@@ -75,7 +75,7 @@
             letter-spacing: 0.3em;
             text-transform: uppercase;
             text-decoration: none;
-            text-indent: 0.3em;
+            padding-left: 0.3em;
             opacity: 0.5;
             cursor: pointer;
             transition: opacity 0.2s;
@@ -84,18 +84,31 @@
             opacity: 0.8;
         }
         .theme-toggle {
-            position: fixed;
-            bottom: clamp(18px, 3vw, 32px);
-            right: clamp(18px, 3vw, 28px);
-            font-size: clamp(0.52rem, 1vw, 0.7rem);
-            letter-spacing: 0.3em;
-            text-transform: uppercase;
-            opacity: 0.5;
+            width: 24px;
+            height: 14px;
+            border: 1px solid currentColor;
+            border-radius: 14px;
             cursor: pointer;
-            z-index: 20;
+            position: relative;
+            flex-shrink: 0;
+            box-sizing: border-box;
         }
         .theme-toggle:hover {
-            opacity: 0.8;
+            opacity: 1;
+        }
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            transition: transform 0.2s ease;
+        }
+        body.dark-mode .theme-toggle::after {
+            transform: translateX(10px);
         }
         .bookshelf {
             max-width: 36rem;
@@ -124,72 +137,323 @@
         .bookshelf li {
             margin-bottom: 0.5em;
         }
+        .bookshelf .author-group {
+            margin-bottom: 1.5em;
+        }
+        .bookshelf .author-group .author {
+            font-size: clamp(0.7rem, 1.3vw, 0.9rem);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 0.4em;
+        }
+        .bookshelf .author-group li {
+            padding-left: 0.8em;
+            margin-bottom: 0.3em;
+        }
     </style>
 </head>
 <body>
-    <div class="ui-date" id="ui-date"></div>
-    <div class="ui-time" id="ui-time"></div>
-    <div class="theme-toggle" id="theme-toggle">Light/Dark</div>
+    <div class="ui-top-bar">
+        <div class="ui-date" id="ui-date"></div>
+        <div class="theme-toggle" id="theme-toggle"></div>
+    </div>
     <div class="ui-bottom">
-        <div class="ui-name">Jan Michael Krause</div>
+        <div class="ui-name">JMK</div>
         <a href="/" class="ui-link">Home</a>
-        <span class="ui-link" style="visibility: hidden;">Bookshelf</span>
     </div>
     <main class="bookshelf">
         <h1>Bookshelf</h1>
-        <p class="blurb">Please <a href="mailto:janmichaelkrause@stanford.edu">email me</a> book recommendations. The books below are recent acquisitions</p>
+        <p class="blurb">Below are some of the not-controversial books I have flying around</p>
         <ul>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
-            <li>AUTHOR: TITLE</li>
+            <!-- Multiple books by same author: use author-group -->
+            <li class="author-group">
+                <div class="author">Friedrich Nietzsche</div>
+                <ul>
+                    <li>Beyond Good and Evil</li>
+                    <li>Jenseits von Gut und Böse</li>
+                    <li>Also Sprach Zarathustra</li>
+                    <li>Der Antichrist</li>
+                    <li>Der Wille zur Macht</li>
+                    <li>Zur Genealogie der Moral: Eine Streitschrift</li>
+                    <li>Menschliches, Allzumenschliches: Ein Buch Für Freie Geister</li>
+                </ul>
+            </li>
+            <li class="author-group">
+                <div class="author">Henry Kissinger</div>
+                <ul>
+                    <li>The Meaning of History: Reflections on Spengler, Toynbee, and Kant</li>
+                    <li>Leadership: Six Studies in World Strategy</li>
+                    <li>A World Restored: Metternich, Castlereagh and the Problems of Peace</li>
+                    <li>Nuclear Weapons & Foreign Policy</li>
+                    <li>Diplomacy</li>
+                    <li>World Order</li>
+                    <li>On China</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Oswald Spengler</div>
+                <ul>
+                    <li>Der Untergang des Abendlandes</li>
+                    <li>Man and Technics: A Contribution to a Philosophy of Life</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Ray Kurzweil</div>
+                <ul>
+                    <li>The Singularity is Near</li>
+                    <li>The Singularity is Nearer</li>
+                    <li>How to Create a Mind</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Donatella Meadows</div>
+                <ul>
+                    <li>The Limits to Growth</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Amaury de Riencourt</div>
+                <ul>
+                    <li>The Coming Caesars</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Leo Strauss</div>
+                <ul>
+                    <li>Persecution and the Art of Writing</li>
+                    <li>Natural Right and History</li>
+                    <li>Thoughts on Machiavelli</li>
+                    <li>The Concept of the Political: Expanded Edition</li>
+                    <li>What is Political Philosophy? And Other Studies</li>
+                    <li>Leo Strauss on Nietzsche's "Thus Spoke Zarathustra"</li>
+                    <li>The City and Man</li>
+                    <li>On Tyranny</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">James Burnham</div>
+                <ul>
+                    <li>The Machiavellians: Defenders of Freedom</li>
+                    <li>Suicide of the West: An Essay on the Meaning and Destiny of Liberalism</li>
+                    <li>Struggle for the World</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">Israel Kirzner</div>
+                <ul>
+                    <li>Competition and Entrepreneurship</li>
+                    <li>Perception, Opportunity, and Profit</li>
+                    <li>Discovery and the Capitalist Process</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">Seth Klarman</div>
+                <ul>
+                    <li>Margin of Safety</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">Joel Mokyr</div>
+                <ul>
+                    <li>A Culture of Growth: The Origins of the Modern Economy</li>
+                    <li>Two Paths to Prosperity</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">Norbert Wiener</div>
+                <ul>
+                    <li>God and Golem, Inc.</li>
+                    <li>The Human Use Of Human Beings</li>
+                    <li>Cybernetics</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Alfred Thayer Mahan</div>
+                <ul>
+                    <li>The Influence of Sea Power Upon History, 1660-1783</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Wang Huning</div>
+                <ul>
+                    <li>America against America</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Carl von Clausewitz</div>
+                <ul>
+                    <li>Vom Kriege</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Henry George</div>
+                <ul>
+                    <li>Progress and Poverty</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Friedrich Hayek</div>
+                <ul>
+                    <li>The Constitution of Liberty</li>
+                    <li>The Fatal Conceit: The Errors of Socialism</li>
+                    <li>The Road to Serfdom</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Robert Nozick</div>
+                <ul>
+                    <li>Anarchy, State, and Utopia</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Joseph Schumpeter</div>
+                <ul>
+                    <li>Capitalism, Socialism, and Democracy</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Samuel T Francis</div>
+                <ul>
+                    <li>Leviathan and Its Enemies</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Carroll Quigley</div>
+                <ul>
+                    <li>Tragedy & Hope: A History of the World in Our Time</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Theodor W. Adorno</div>
+                <ul>
+                    <li>Ästhetische Theorie</li>
+                    <li>Dialectic of Enlightenment (Cultural Memory in the Present)</li>
+                    <li>The Jargon of Authenticity</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Samuel P. Huntington</div>
+                <ul>
+                    <li>The Clash of Civilizations and the Remaking of World Order</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Alvin Toffler</div>
+                <ul>
+                    <li>Future Shock</li>
+                    <li>War and Anti-War</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Julius Evola</div>
+                <ul>
+                    <li>Revolt Against the Modern World</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">John Gray</div>
+                <ul>
+                    <li>Heresies</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">Arthur C. Clarke</div>
+                <ul>
+                    <li>Profiles of the Future</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">CCRU</div>
+                <ul>
+                    <li>1997-2003</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">Malaclypse the Younger</div>
+                <ul>
+                    <li>Principia Discordia</li>
+                </ul>
+            </li>
+
+
+            <li class="author-group">
+                <div class="author">Peter Turchin</div>
+                <ul>
+                    <li>End Times</li>
+                    <li>The Great Holocene Transformation</li>
+                </ul>
+            </li>
+
+            <li class="author-group">
+                <div class="author">Erik Ritter von Kuehnelt-Leddihn</div>
+                <ul>
+                    <li>Liberty or Equality: The Challenge of Our Times</li>
+                </ul>
+            </li>
+
+
+
+            <!-- <li class="author-group">
+                <div class="author">TEMPLATE</div>
+                <ul>
+                    <li>TITLE</li>
+                    <li>TITLE</li>
+                </ul>
+            </li>-->
+
+
         </ul>
     </main>
     <script>
-        // Live date and clock
-        const DAY_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        // Kardashev scale
         const dateEl = document.getElementById('ui-date');
-        const timeEl = document.getElementById('ui-time');
-        function updateClock() {
+        const K_BASE = 0.7314;
+        const K_RATE = 3e-9;
+        const K_EPOCH = 2024.0;
+        function updateKardashev() {
             const now = new Date();
-            if (dateEl) dateEl.textContent = `${DAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
-            if (timeEl) timeEl.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            const year = now.getFullYear() + (now.getMonth() / 12) + (now.getDate() / 365);
+            const k = K_BASE + K_RATE * (year - K_EPOCH);
+            if (dateEl) dateEl.textContent = k.toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
         }
-        updateClock();
-        setInterval(updateClock, 1000);
+        updateKardashev();
+        setInterval(updateKardashev, 1000);
 
         // Theme: follow OS preference
         const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
