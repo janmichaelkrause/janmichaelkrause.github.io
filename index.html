@@ -655,8 +655,10 @@
         let lockHoverStar = null;    // which star we're timing
         let lockActive = false;      // fully locked on
         let lockFadeIn = 0;          // 0→1 animation progress
+        let lockCursorX = 0, lockCursorY = 0; // mouse pos when lock engaged
         const LOCK_TIME = 1000;      // 1 second to lock
         const LOCK_RADIUS = 25;      // pixel proximity to trigger lock
+        const LOCK_BREAK_DIST = 4;   // px the mouse must move to break lock
         const STAR_CLASSES = ['O2V','B1III','A3V','F5IV','G2V','K4III','M1V','M8V','A0Ia','B3II','F8V','K7V','G0IV','O9V'];
         const STAR_NAMES = ['Aethon','Velar','Krios','Nythis','Ondra','Pyxar','Solwen','Thuris','Xelion','Yrith','Zephon','Calyx','Draven','Elyon','Ferox'];
 
@@ -768,6 +770,24 @@
         let warRemnantStar = null;
         let warRemnantScreenPos = null;
 
+        // ── Matrioshka Brain — nested Dyson shells radiating compute heat ──
+        let matrioshkaStar = null;
+        let matrioshkaScreenPos = null;
+
+        // ── O'Neill Cylinder — rotating habitat drifting through space ──
+        const oneillCylinder = {
+            theta: Math.random() * Math.PI * 2,
+            phi: Math.acos(2 * Math.random() - 1),
+            dTheta: 0.00004 * (Math.random() > 0.5 ? 1 : -1),
+            dPhi: 0.00002 * (Math.random() > 0.5 ? 1 : -1),
+            layerSpeed: 1.15,
+        };
+        let oneillScreenPos = null;
+
+        // ── Alderson Disk Fragment — partial arc around a host star ──
+        let aldersonStar = null;
+        let aldersonScreenPos = null;
+
         // ── Encyclopedia Galactica — lore for special objects ──
         const GALACTICA_LORE = {
             'dyson': 'Dyson Swarm  ·  Kardashev II  ·  3.8×10²⁶ W',
@@ -791,6 +811,9 @@
             'comet': 'Comet  ·  Long-Period  ·  Oort Cloud Origin',
             'quasar': 'Quasar Ignition  ·  10⁴⁰ W  ·  Relativistic Jet',
             'pulsar': 'Pulsar  ·  Neutron Star  ·  30 rev/s  ·  X-ray Emitter',
+            'matrioshka': 'Matrioshka Brain  ·  Kardashev II.5  ·  Nested Compute Shells',
+            'oneill': "O'Neill Cylinder  ·  Rotating Habitat  ·  Pop. 14,000",
+            'alderson': 'Alderson Disk  ·  Fragment  ·  Radius 1 AU  ·  Structural Failure',
             'tidalDisrupt': 'Tidal Disruption  ·  Stellar Capture  ·  In Progress',
             'mercury': 'Mercury  ·  0.39 AU  ·  Terrestrial',
             'venus': 'Venus  ·  0.72 AU  ·  Terrestrial',
@@ -919,6 +942,9 @@
             drawRingworld(now, sw, sh, isDark, userDragX, userDragY);
             drawStellarEngine(now, sw, sh, isDark, userDragX, userDragY);
             drawShkadovShell(now, sw, sh, isDark, userDragX, userDragY);
+            drawMatrioshkaBrain(now, sw, sh, isDark, userDragX, userDragY);
+            drawONeillCylinder(now, sw, sh, isDark, userDragX, userDragY);
+            drawAldersonDisk(now, sw, sh, isDark, userDragX, userDragY);
             updateBracewellProbe(now, sw, sh, isDark, userDragX, userDragY);
             drawSetiHit(now, sw, sh, isDark, userDragX, userDragY);
             drawSpaceElevator(now, sw, sh, isDark, userDragX, userDragY);
@@ -1077,7 +1103,7 @@
 
                     if (isDark) {
                         if (star.paleBlueDot) {
-                            starsCtx.fillStyle = `rgba(70, 130, 255, ${Math.min(1, alpha * 2)})`;
+                            starsCtx.fillStyle = `rgba(255, 240, 210, ${Math.min(1, alpha * 2)})`;
                         } else {
                             starsCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
                         }
@@ -1916,6 +1942,157 @@
             starsCtx.beginPath();
             starsCtx.arc(p.x, p.y, 5 * dpr, shellAngle - 0.8, shellAngle + 0.8);
             starsCtx.stroke();
+        }
+
+        // ── Matrioshka Brain — nested concentric shells radiating waste heat ──
+        function drawMatrioshkaBrain(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !matrioshkaStar) return;
+            const star = starLayers[matrioshkaStar.layerIdx].stars[matrioshkaStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[matrioshkaStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { matrioshkaScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            matrioshkaScreenPos = { x: p.x, y: p.y };
+
+            // Host star occluded to a deep red ember — most light consumed by inner shell
+            const pulse = 0.5 + 0.25 * Math.sin(now * 0.0009);
+            starsCtx.fillStyle = `rgba(255, 90, 60, ${0.5 * pulse})`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.3 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Three nested shells, each dimmer and cooler than the last (inner=hottest)
+            const shells = [
+                { r: 4.5, color: '255, 150, 90',  a: 0.28, speed: 0.00045 },
+                { r: 8.0, color: '220, 110, 130', a: 0.20, speed: 0.00030 },
+                { r: 12.0, color: '160, 90, 180',  a: 0.14, speed: 0.00020 },
+            ];
+            for (let i = 0; i < shells.length; i++) {
+                const s = shells[i];
+                const breathe = 1 + 0.04 * Math.sin(now * s.speed + i * 1.7);
+                const r = s.r * dpr * breathe;
+                starsCtx.strokeStyle = `rgba(${s.color}, ${s.a})`;
+                starsCtx.lineWidth = 0.6 * dpr;
+                starsCtx.beginPath();
+                starsCtx.ellipse(p.x, p.y, r, r * 0.9, 0, 0, Math.PI * 2);
+                starsCtx.stroke();
+            }
+
+            // Faint scattered compute nodes on the outer shell
+            const nodeCount = 8;
+            for (let i = 0; i < nodeCount; i++) {
+                const a = now * 0.00012 + (i / nodeCount) * Math.PI * 2;
+                const rr = 12.0 * dpr;
+                const nx = p.x + Math.cos(a) * rr;
+                const ny = p.y + Math.sin(a) * rr * 0.9;
+                const alpha = 0.15 + 0.15 * Math.sin(now * 0.002 + i * 0.9);
+                starsCtx.fillStyle = `rgba(180, 120, 200, ${alpha})`;
+                starsCtx.beginPath();
+                starsCtx.arc(nx, ny, 0.5 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+        }
+
+        // ── O'Neill Cylinder — rotating habitat drifting through space ──
+        function drawONeillCylinder(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark) return;
+            oneillCylinder.theta += oneillCylinder.dTheta;
+            oneillCylinder.phi += oneillCylinder.dPhi;
+            if (oneillCylinder.phi < 0.3) oneillCylinder.dPhi = Math.abs(oneillCylinder.dPhi);
+            if (oneillCylinder.phi > Math.PI - 0.3) oneillCylinder.dPhi = -Math.abs(oneillCylinder.dPhi);
+
+            const p = projectStar(oneillCylinder, oneillCylinder.layerSpeed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { oneillScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            oneillScreenPos = { x: p.x, y: p.y };
+
+            // Elongated cylinder — fixed orientation in space
+            const len = 6.5 * dpr;
+            const wid = 1.6 * dpr;
+            const orient = 0.4; // radians, fixed tilt
+
+            starsCtx.save();
+            starsCtx.translate(p.x, p.y);
+            starsCtx.rotate(orient);
+
+            // Hull body
+            starsCtx.fillStyle = `rgba(200, 210, 220, 0.55)`;
+            starsCtx.beginPath();
+            starsCtx.ellipse(0, 0, len, wid, 0, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Rotating stripe highlight — simulates sunlight catching the rotating hull
+            const spin = (now * 0.004) % (Math.PI * 2);
+            const stripe = Math.abs(Math.sin(spin)); // 0..1..0
+            starsCtx.fillStyle = `rgba(255, 240, 200, ${0.35 * stripe + 0.15})`;
+            starsCtx.beginPath();
+            starsCtx.ellipse(0, (wid * 0.55) * Math.cos(spin), len * 0.95, wid * 0.25, 0, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // End caps
+            starsCtx.fillStyle = `rgba(160, 170, 190, 0.7)`;
+            starsCtx.beginPath();
+            starsCtx.ellipse(-len, 0, wid * 0.35, wid, 0, 0, Math.PI * 2);
+            starsCtx.fill();
+            starsCtx.beginPath();
+            starsCtx.ellipse(len, 0, wid * 0.35, wid, 0, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            starsCtx.restore();
+        }
+
+        // ── Alderson Disk Fragment — partial arc around a host star ──
+        function drawAldersonDisk(now, w, h, isDark, viewRotX, viewRotY) {
+            if (!isDark || !aldersonStar) return;
+            const star = starLayers[aldersonStar.layerIdx].stars[aldersonStar.starIdx];
+            if (!star || star.dead) return;
+            const p = projectStar(star, starLayers[aldersonStar.layerIdx].speed, viewRotX, viewRotY);
+            if (!p || isOccludedByHole(p.x, p.y)) { aldersonScreenPos = null; return; }
+            const dpr = window.devicePixelRatio;
+            aldersonScreenPos = { x: p.x, y: p.y };
+
+            // Host star — pale, diminished by the disk
+            starsCtx.fillStyle = `rgba(255, 235, 190, 0.75)`;
+            starsCtx.beginPath();
+            starsCtx.arc(p.x, p.y, 1.6 * dpr, 0, Math.PI * 2);
+            starsCtx.fill();
+
+            // Partial disk — a broken arc extending to one side (fragment remains)
+            const diskR = 13 * dpr;
+            const tilt = 0.25;
+            const cos = Math.cos(tilt), sin = Math.sin(tilt);
+
+            // Main fragment arc (roughly one-third of the disk)
+            starsCtx.save();
+            starsCtx.translate(p.x, p.y);
+            starsCtx.rotate(tilt);
+            starsCtx.strokeStyle = `rgba(210, 180, 150, 0.42)`;
+            starsCtx.lineWidth = 1.4 * dpr;
+            starsCtx.beginPath();
+            starsCtx.ellipse(0, 0, diskR, diskR * 0.18, 0, -0.4, 1.6);
+            starsCtx.stroke();
+
+            // Inner edge — slightly brighter, structural highlight
+            starsCtx.strokeStyle = `rgba(240, 210, 170, 0.22)`;
+            starsCtx.lineWidth = 2.2 * dpr;
+            starsCtx.beginPath();
+            starsCtx.ellipse(0, 0, diskR * 0.85, diskR * 0.15, 0, -0.3, 1.5);
+            starsCtx.stroke();
+
+            // Debris trail where the disk broke — dim drifting dots
+            for (let i = 0; i < 5; i++) {
+                const t = i / 5;
+                const ang = 1.8 + t * 1.2;
+                const drift = (now * 0.00015 + i * 0.7) % 1;
+                const rr = diskR * (1 + drift * 0.15);
+                const dx = Math.cos(ang) * rr;
+                const dy = Math.sin(ang) * rr * 0.18;
+                starsCtx.fillStyle = `rgba(200, 170, 140, ${0.25 * (1 - drift)})`;
+                starsCtx.beginPath();
+                starsCtx.arc(dx, dy, 0.5 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
+            }
+            starsCtx.restore();
         }
 
         // ── Bracewell Probe — drifts slowly through the star field ──
@@ -3040,6 +3217,12 @@
 
             pulsarStar = { layerIdx: 0, starIdx: 210 };
             starLayers[0].stars[210].size = 1.5; starLayers[0].stars[210].opacity = 0.7;
+
+            matrioshkaStar = { layerIdx: 0, starIdx: 230 };
+            starLayers[0].stars[230].size = 1.3; starLayers[0].stars[230].opacity = 0.4;
+
+            aldersonStar = { layerIdx: 0, starIdx: 250 };
+            starLayers[0].stars[250].size = 1.6; starLayers[0].stars[250].opacity = 0.6;
         }
 
         drawStars(darkMQ.matches, 0, 0, 0);
@@ -3126,8 +3309,17 @@
         let cursorX = -100, cursorY = -100, cursorVisible = false;
 
         document.addEventListener('pointermove', e => {
-            cursorX = e.clientX;
-            cursorY = e.clientY;
+            const nx = e.clientX, ny = e.clientY;
+            if (lockActive) {
+                const dx = nx - lockCursorX, dy = ny - lockCursorY;
+                if (dx * dx + dy * dy > LOCK_BREAK_DIST * LOCK_BREAK_DIST) {
+                    lockActive = false;
+                    lockTarget = null;
+                    lockHoverStar = null;
+                }
+            }
+            cursorX = nx;
+            cursorY = ny;
             cursorVisible = true;
         });
         document.addEventListener('mouseleave', () => {
@@ -3197,7 +3389,10 @@
                 { pos: dysonScreenPos, layer: -3 },
                 { pos: ringworldScreenPos, layer: -4 },
                 { pos: stellarEngineScreenPos, layer: -5 },
+                { pos: matrioshkaScreenPos, layer: -6 },
                 { pos: shkadovScreenPos, layer: -7 },
+                { pos: oneillScreenPos, layer: -21 },
+                { pos: aldersonScreenPos, layer: -27 },
                 { pos: bracewellScreenPos, layer: -8 },
                 { pos: setiScreenPos, layer: -9 },
                 { pos: spaceElevatorScreenPos, layer: -10 },
@@ -3276,14 +3471,15 @@
                 // Sci-fi megastructure objects
                 const posMap = {
                     '-3': dysonScreenPos, '-4': ringworldScreenPos, '-5': stellarEngineScreenPos,
+                    '-6': matrioshkaScreenPos,
                     '-7': shkadovScreenPos, '-8': bracewellScreenPos, '-9': setiScreenPos,
                     '-10': spaceElevatorScreenPos, '-11': genShipScreenPos, '-12': asteroidMiningScreenPos,
                     '-13': rocketScreenPos, '-14': derelictScreenPos,
                     '-15': cryoPodScreenPos, '-16': terraformScreenPos, '-17': lighthouseScreenPos,
                     '-18': dysonBuildScreenPos, '-19': warRemnantScreenPos,
-                    '-20': highwayScreenPos, '-22': phantomScreenPos,
+                    '-20': highwayScreenPos, '-21': oneillScreenPos, '-22': phantomScreenPos,
                     '-23': cometScreenPos, '-24': quasarScreenPos, '-25': tidalScreenPos,
-                    '-26': pulsarScreenPos,
+                    '-26': pulsarScreenPos, '-27': aldersonScreenPos,
                 };
                 const pos = posMap[String(lockTarget.layerIdx)];
                 if (!pos) { lockActive = false; lockTarget = null; return; }
@@ -3323,15 +3519,16 @@
             const bracketLen = 4 * dpr;
             const sciFiColors = {
                 '-1': [255, 200, 120], '-2': [160, 255, 180], '-3': [255, 200, 100],
-                '-4': [180, 220, 255], '-5': [255, 180, 100], '-7': [255, 240, 180],
+                '-4': [180, 220, 255], '-5': [255, 180, 100],
+                '-6': [220, 130, 180], '-7': [255, 240, 180],
                 '-8': [200, 220, 255], '-9': [100, 255, 140],
                 '-10': [180, 200, 220], '-11': [200, 190, 180], '-12': [200, 180, 120],
                 '-13': [255, 200, 80], '-14': [150, 150, 160],
                 '-15': [160, 200, 255], '-16': [100, 200, 140], '-17': [255, 255, 220],
                 '-18': [255, 240, 200], '-19': [180, 100, 80],
-                '-20': [200, 200, 220], '-22': [180, 200, 255],
+                '-20': [200, 200, 220], '-21': [220, 230, 240], '-22': [180, 200, 255],
                 '-23': [200, 230, 255], '-24': [255, 255, 255], '-25': [255, 180, 120],
-                '-26': [200, 220, 255], '-100': [100, 180, 255],
+                '-26': [200, 220, 255], '-27': [230, 200, 160], '-100': [100, 180, 255],
             };
             // Also map regular star indices to special colors
             const starColorMap = [
@@ -3345,6 +3542,8 @@
                 { ref: lighthouseStar, color: [255, 255, 220] },
                 { ref: dysonBuildStar, color: [255, 240, 200] },
                 { ref: warRemnantStar, color: [180, 100, 80] },
+                { ref: matrioshkaStar, color: [220, 130, 180] },
+                { ref: aldersonStar, color: [230, 200, 160] },
             ];
             let lc = sciFiColors[String(lockTarget.layerIdx)];
             if (lockTarget.layerIdx === -100 && lockTarget.starIdx >= 0 && lockTarget.starIdx < solarSystem.length) {
@@ -3387,7 +3586,7 @@
 
             // Generate label based on object type
             let label;
-            const loreMap = { '-3': 'dyson', '-4': 'ringworld', '-5': 'stellarEngine', '-7': 'shkadov', '-8': 'bracewell', '-9': 'seti', '-10': 'elevator', '-11': 'genShip', '-12': 'mining', '-13': 'rocket', '-14': 'derelict', '-15': 'cryoPod', '-16': 'terraform', '-17': 'lighthouse', '-18': 'dysonBuild', '-19': 'warRemnant', '-20': 'highway', '-22': 'phantom', '-23': 'comet', '-24': 'quasar', '-25': 'tidalDisrupt', '-26': 'pulsar' };
+            const loreMap = { '-3': 'dyson', '-4': 'ringworld', '-5': 'stellarEngine', '-6': 'matrioshka', '-7': 'shkadov', '-8': 'bracewell', '-9': 'seti', '-10': 'elevator', '-11': 'genShip', '-12': 'mining', '-13': 'rocket', '-14': 'derelict', '-15': 'cryoPod', '-16': 'terraform', '-17': 'lighthouse', '-18': 'dysonBuild', '-19': 'warRemnant', '-20': 'highway', '-21': 'oneill', '-22': 'phantom', '-23': 'comet', '-24': 'quasar', '-25': 'tidalDisrupt', '-26': 'pulsar', '-27': 'alderson' };
             // Planet labels
             if (lockTarget.layerIdx === -100) {
                 const planet = solarSystem[lockTarget.starIdx];
@@ -3414,6 +3613,8 @@
                     { ref: lighthouseStar, key: 'lighthouse' },
                     { ref: dysonBuildStar, key: 'dysonBuild' },
                     { ref: warRemnantStar, key: 'warRemnant' },
+                    { ref: matrioshkaStar, key: 'matrioshka' },
+                    { ref: aldersonStar, key: 'alderson' },
                 ];
                 const specialMatch = specialStars.find(s => s.ref && s.ref.layerIdx === lockTarget.layerIdx && s.ref.starIdx === lockTarget.starIdx);
                 if (isPBD) {
@@ -3458,32 +3659,34 @@
             const now = performance.now();
 
             // Lock-on detection (only in dark mode, outside spaghetti zone)
-            if (isDark && dist >= spaghettiZone) {
+            // While locked, skip rescans — lock stays until mouse movement breaks it
+            if (lockActive && lockTarget) {
+                // maintain lock
+            } else if (isDark && dist >= spaghettiZone) {
                 const nearest = findNearestStar();
                 if (nearest) {
                     const starKey = nearest.layerIdx + ',' + nearest.starIdx;
                     if (lockHoverStar === starKey) {
                         // Same star — check if time exceeded
                         const elapsed = now - lockHoverStart;
-                        if (elapsed >= LOCK_TIME && !lockActive) {
+                        if (elapsed >= LOCK_TIME) {
                             lockActive = true;
                             lockTarget = nearest;
                             lockFadeIn = 0;
+                            lockCursorX = cursorX;
+                            lockCursorY = cursorY;
                         }
                     } else {
                         // New star — reset timer
                         lockHoverStar = starKey;
                         lockHoverStart = now;
-                        if (lockActive) { lockActive = false; lockTarget = null; }
                     }
                 } else {
                     // No star nearby
                     lockHoverStar = null;
-                    if (lockActive) { lockActive = false; lockTarget = null; }
                 }
             } else {
                 lockHoverStar = null;
-                if (lockActive) { lockActive = false; lockTarget = null; }
             }
 
             // Calculate lock progress for reticle animation
