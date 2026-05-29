@@ -117,25 +117,6 @@
         header, footer {
             display: none;
         }
-        .ui-top-bar {
-            position: fixed;
-            top: clamp(18px, 2.5vw, 26px);
-            left: clamp(18px, 3vw, 28px);
-            right: clamp(18px, 3vw, 28px);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: clamp(0.58rem, 1.1vw, 0.76rem);
-            line-height: 1;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            opacity: 0.55;
-            white-space: nowrap;
-            z-index: 20;
-        }
-        .ui-date, .ui-time {
-            line-height: 1;
-        }
         .ui-bottom {
             position: fixed;
             bottom: clamp(18px, 3vw, 32px);
@@ -190,34 +171,6 @@
         .ui-info-link {
             cursor: pointer;
         }
-        .theme-toggle {
-            width: 24px;
-            height: 14px;
-            border: 1px solid currentColor;
-            border-radius: 14px;
-            cursor: pointer;
-            position: relative;
-            flex-shrink: 0;
-            box-sizing: border-box;
-        }
-        .theme-toggle:hover {
-            opacity: 1;
-        }
-        .theme-toggle::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            transition: transform 0.2s ease;
-        }
-        body.dark-mode .theme-toggle::after {
-            transform: translateX(10px);
-        }
-
         /* ── Star field ── */
         .stars {
             position: fixed;
@@ -267,11 +220,7 @@
         }
     </style>
 </head>
-<body>
-<div class="ui-top-bar">
-        <div class="ui-date" id="ui-date"></div>
-        <div class="theme-toggle" id="theme-toggle"></div>
-    </div>
+<body class="dark-mode">
     <div class="ui-bottom">
         <div class="ui-name">JMK</div>
         <!-- <span class="ui-info-link" id="info-open">Info</span> -->
@@ -292,104 +241,14 @@
     <script type="module">
         import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js';
 
-        // Kardashev scale — baseline 0.7302 as of 2026.0, growing ~0.000000003 per year
-        const dateEl = document.getElementById('ui-date');
-        const timeEl = document.getElementById('ui-time');
-        const K_BASE = 0.7314; // IEA 2024: ~650 EJ/yr → 2.06×10¹³W → K=(log₁₀(P)−6)/10
-        const K_RATE = 3e-9; // per year
-        const K_EPOCH = 2024.0;
-        function updateKardashev() {
-            const now = new Date();
-            const year = now.getFullYear() + (now.getMonth() / 12) + (now.getDate() / 365);
-            const k = K_BASE + K_RATE * (year - K_EPOCH);
-            if (dateEl) dateEl.textContent = k.toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
-        }
-        updateKardashev();
-        setInterval(updateKardashev, 1000);
-
-        // Live clock
-        function updateClock() {
-            const now = new Date();
-            if (timeEl) timeEl.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-        }
-        updateClock();
-        setInterval(updateClock, 1000);
-
-        // Info toggle
-        const infoText = document.getElementById('info-text');
-        const infoOpen = document.getElementById('info-open');
-        if (infoOpen) {
-            infoOpen.addEventListener('click', () => {
-                infoText.classList.toggle('active');
-            });
-            document.addEventListener('click', e => {
-                if (!infoText.classList.contains('active')) return;
-                if (infoText.contains(e.target) || infoOpen.contains(e.target)) return;
-                infoText.classList.remove('active');
-            });
-        }
-
-        // Theme toggle
-        let manualTheme = null;
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-            manualTheme = !document.body.classList.contains('dark-mode');
-            idleFadeStarted = false;
-            idleFadeCommitted = false;
-            setThemeTransition(0.3);
-            applyTheme(manualTheme);
-        });
-
-        // ── Idle cursor → permanent fade to dark mode ──
-        let idleTimer = null;
-        let idleFadeStarted = false;
-        let idleFadeCommitted = false;
-        const IDLE_TIMEOUT = 10000;
-        const IDLE_FADE_DURATION = 18; // seconds
-        const IDLE_COMMIT_TIME = IDLE_FADE_DURATION * 0.5 * 1000; // halfway = committed
-
-        function setThemeTransition(seconds) {
-            document.body.style.transition = `background-color ${seconds}s, color ${seconds}s`;
-        }
-
-        function startIdleTimer() {
-            clearTimeout(idleTimer);
-            // If fade already committed, do nothing
-            if (idleFadeCommitted) return;
-            // If fading but not yet committed, revert
-            if (idleFadeStarted) {
-                idleFadeStarted = false;
-                setThemeTransition(2);
-                applyTheme(manualTheme !== null ? manualTheme : darkMQ.matches);
-            }
-            idleTimer = setTimeout(() => {
-                if (idleFadeCommitted) return;
-                if (!document.body.classList.contains('dark-mode')) {
-                    idleFadeStarted = true;
-                    setThemeTransition(IDLE_FADE_DURATION);
-                    applyTheme(true);
-                    // After halfway, commit permanently
-                    setTimeout(() => {
-                        if (idleFadeStarted) {
-                            idleFadeCommitted = true;
-                            manualTheme = true;
-                        }
-                    }, IDLE_COMMIT_TIME);
-                }
-            }, IDLE_TIMEOUT);
-        }
-
-        document.addEventListener('pointermove', () => startIdleTimer());
-        document.addEventListener('pointerdown', () => startIdleTimer());
-        document.addEventListener('keydown', () => startIdleTimer());
-        startIdleTimer();
-
         // Three.js: 3D black hole scene
         const canvas = document.getElementById('logo-canvas');
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(1); // ray-marched black hole — keep the buffer light
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         const scene = new THREE.Scene();
+        let lensTE = 0; // Einstein radius (px) for background lensing; refreshed each frame by drawStars
         const frustum = 1.5;
         const camera = new THREE.OrthographicCamera(-frustum, frustum, frustum, -frustum, 0.1, 50);
         camera.position.set(0, 0, 20);
@@ -398,198 +257,135 @@
             const s = canvas.offsetWidth || Math.round(window.innerWidth <= 768
                 ? Math.min(window.innerWidth * 0.88, 416)
                 : Math.min(window.innerWidth * 0.74, 544));
-            renderer.setSize(s, s, false);
+            const buf = Math.min(s, 480); // cap internal buffer; CSS upscales the smooth disk
+            renderer.setSize(buf, buf, false);
         }
         resizeRenderer();
         window.addEventListener('resize', resizeRenderer);
 
-        const group = new THREE.Group();
-        scene.add(group);
+        // ── Black hole — gravitational-lensing ray-marcher ──
+        // Screen-filling quad. The fragment shader integrates photon geodesics
+        // around a Schwarzschild hole (Rs = 1): the accretion disk is lensed so
+        // its far side wraps over and under the shadow, and a photon ring forms.
+        const bhUniforms = {
+            uTime:    { value: 0 },
+            uYaw:     { value: 0 },
+            uPitch:   { value: 12 * Math.PI / 180 },
+            uFlicker: { value: 1 },
+        };
+        const bhMaterial = new THREE.ShaderMaterial({
+            uniforms: bhUniforms,
+            transparent: true,
+            depthWrite: false,
+            depthTest: false,
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = position.xy;
+                    gl_Position = vec4(position.xy, 0.0, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec2 vUv;
+                uniform float uTime;
+                uniform float uYaw;
+                uniform float uPitch;
+                uniform float uFlicker;
 
-        // ── Canvas-painted accretion disk texture ──
-        function createDiskTexture(size) {
-            const c = document.createElement('canvas');
-            c.width = c.height = size;
-            const ctx = c.getContext('2d');
-            const cx = size / 2, cy = size / 2;
-            const img = ctx.createImageData(size, size);
-            const d = img.data;
-            const riBase = 0.22, ro = 0.92;
+                const int   STEPS    = 200;
+                const float DISK_IN  = 3.0;
+                const float DISK_OUT = 8.0;
 
-            for (let py = 0; py < size; py++) {
-                for (let px = 0; px < size; px++) {
-                    const dx = px - cx, dy = py - cy;
-                    const r = Math.sqrt(dx * dx + dy * dy) / (size / 2);
-                    const angle = Math.atan2(dy, dx);
+                float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+                float vnoise(vec2 p){
+                    vec2 i = floor(p), f = fract(p);
+                    float a = hash(i), b = hash(i + vec2(1.0, 0.0)), c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+                }
+                float fbm(vec2 p){ float v = 0.0, a = 0.5; for(int i = 0; i < 4; i++){ v += a * vnoise(p); p *= 2.03; a *= 0.5; } return v; }
 
-                    // Gravitational lensing — inner edge bends toward the sphere
-                    // Light from behind the hole bends around it, creating a tighter
-                    // inner edge where the disk wraps closest to the shadow
-                    const lensing = 0.07 * Math.cos(angle * 2 + 0.5);
-                    const ri = riBase - lensing;
+                mat3 rotXm(float a){ float c = cos(a), s = sin(a); return mat3(1.0, 0.0, 0.0,  0.0, c, s,  0.0, -s, c); }
+                mat3 rotYm(float a){ float c = cos(a), s = sin(a); return mat3(c, 0.0, -s,  0.0, 1.0, 0.0,  s, 0.0, c); }
 
-                    // Spiral-wisp outer edge
-                    const spiral = angle + r * 12;
-                    const edgeNoise = 0.02 * Math.sin(spiral * 3) +
-                                      0.01 * Math.sin(spiral * 7 + 1.5);
-                    const roLocal = ro + edgeNoise;
+                void diskSample(float r, float ang, float vdop, inout vec3 col, inout float transmit){
+                    if(r < DISK_IN || r > DISK_OUT) return;
+                    float t = (r - DISK_IN) / (DISK_OUT - DISK_IN);
+                    float temp = pow(1.0 - t, 0.85);
+                    float spin = uTime * (2.4 / pow(r, 1.5));
+                    float a2 = ang - spin;                                   // differential rotation
+                    vec2 nc = vec2(cos(a2), sin(a2)) * (3.0 + r * 0.4) + vec2(r * 0.9, 0.0); // seamless around the ring
+                    float n = fbm(nc);
+                    float dens = pow(0.35 + 0.65 * n, 1.4);
+                    dens *= smoothstep(0.0, 0.10, t) * smoothstep(0.0, 0.30, 1.0 - t);
+                    float beam = pow(clamp(1.0 + vdop, 0.0, 2.2), 2.6);
+                    float bright = temp * temp * dens * beam * uFlicker * 1.25;
+                    vec3 cool = vec3(0.85, 0.16, 0.02);
+                    vec3 mid  = vec3(1.00, 0.46, 0.10);
+                    vec3 hot  = vec3(1.00, 0.82, 0.50);
+                    vec3 c = mix(cool, mid, smoothstep(0.0, 0.40, temp));
+                    c = mix(c, hot, smoothstep(0.55, 1.00, temp));
+                    c += vec3(-0.05, 0.02, 0.22) * clamp(vdop, 0.0, 1.0) * 0.6;
+                    c += vec3(0.20, -0.04, -0.06) * clamp(-vdop, 0.0, 1.0);
+                    float a = clamp(bright, 0.0, 1.0);
+                    col += transmit * c * bright;
+                    transmit *= (1.0 - a * 0.8);
+                }
 
-                    if (r < ri || r > roLocal) continue;
-                    const t = (r - ri) / (roLocal - ri);       // 0 inner → 1 outer
-                    let temp = Math.pow(1 - t, 0.55);          // very slow falloff — stays orange/yellow to the edge
+                void main(){
+                    vec2 uv = vUv;
+                    float D = 18.0;
+                    float fov = 0.48;
+                    // Fixed camera down -Z; rotate the world by yaw then pitch (same as the
+                    // star field). Using rotation matrices means no pole singularity, so the
+                    // hole keeps tracking the background all the way around.
+                    mat3 Rinv = rotYm(-uYaw) * rotXm(-uPitch);
+                    vec3 pos = Rinv * vec3(0.0, 0.0, D);
+                    vec3 dir = Rinv * normalize(vec3(uv.x * fov, uv.y * fov, -1.0));
 
-                    // Doppler beaming — subtle asymmetry
-                    const doppler = Math.cos(angle - 0.6);
-                    temp *= 1 + 0.25 * doppler;
+                    vec3 hvec = cross(pos, dir);
+                    float h2 = dot(hvec, hvec);
 
-                    // Turbulence — organic streaks
-                    temp *= 0.86 + 0.14 * (
-                        Math.sin(angle * 6 + r * 35) *
-                        Math.cos(angle * 4 - r * 22) +
-                        Math.sin(angle * 14 + r * 55) * 0.25
-                    );
+                    vec3 col = vec3(0.0);
+                    float transmit = 1.0;
+                    bool horizon = false;
 
-                    temp = Math.max(0, Math.min(1.5, temp));
-
-                    // Temperature → colour (boosted inner brightness)
-                    let R, G, B;
-                    if (temp > 1.1) {
-                        R = 255; G = 250; B = 240;             // overexposed white
-                    } else if (temp > 0.85) {
-                        const u = (temp - 0.85) / 0.25;
-                        R = 255; G = 220 + u * 30; B = 160 + u * 80;
-                    } else if (temp > 0.6) {
-                        const u = (temp - 0.6) / 0.25;
-                        R = 255; G = 130 + u * 90; B = 30 + u * 130;
-                    } else if (temp > 0.35) {
-                        const u = (temp - 0.35) / 0.25;
-                        R = 200 + u * 55; G = 50 + u * 80; B = 5 + u * 25;
-                    } else if (temp > 0.15) {
-                        const u = (temp - 0.15) / 0.2;
-                        R = 100 + u * 100; G = 10 + u * 40; B = u * 5;
-                    } else {
-                        const u = temp / 0.15;
-                        R = u * 100; G = u * 10; B = 0;
+                    for(int i = 0; i < STEPS; i++){
+                        float r2 = dot(pos, pos);
+                        float r = sqrt(r2);
+                        if(r < 1.0){ horizon = true; break; }
+                        if(r > 12.0 && dot(pos, dir) > 0.0) break;
+                        float dt = clamp(0.022 * r, 0.02, 0.45);
+                        vec3 acc = -1.5 * h2 * pos / pow(r2, 2.5);
+                        vec3 npos = pos + dir * dt;
+                        if(pos.y * npos.y < 0.0){
+                            float f = pos.y / (pos.y - npos.y);
+                            vec3 cpz = mix(pos, npos, f);
+                            float cr = length(cpz.xz);
+                            float ang = atan(cpz.z, cpz.x);
+                            vec3 vel = normalize(vec3(-cpz.z, 0.0, cpz.x)) / sqrt(max(cr, 1.5));
+                            float vdop = dot(vel, -dir) * 3.2;
+                            diskSample(cr, ang, vdop, col, transmit);
+                        }
+                        dir += acc * dt;
+                        pos = npos;
+                        if(transmit < 0.02) break;
                     }
 
-                    // Doppler colour shift — blueshift approaching, redshift receding
-                    const shift = doppler * 0.3 * (1 - t);
-                    if (shift > 0) {
-                        // Approaching: push toward blue/white
-                        B = Math.min(255, B + shift * 600);
-                        G = Math.min(255, G + shift * 200);
-                    } else {
-                        // Receding: push toward deeper red
-                        R = Math.min(255, R - shift * 300);
-                        G = Math.max(0, G + shift * 200);
-                        B = Math.max(0, B + shift * 100);
-                    }
-
-                    // Alpha: fully opaque, then fade out at the edge
-                    let A = 255;
-                    if (t < 0.03) A *= t / 0.03;
-                    if (t > 0.75) A *= Math.pow((1 - t) / 0.25, 5);
-
-                    const idx = (py * size + px) * 4;
-                    d[idx]     = Math.min(255, R | 0);
-                    d[idx + 1] = Math.min(255, G | 0);
-                    d[idx + 2] = Math.min(255, B | 0);
-                    d[idx + 3] = Math.min(255, A | 0);
+                    // Background stars are drawn (and lensed) by the 2D field behind this canvas,
+                    // so escaped rays are simply transparent here — no separate overlaid star layer.
+                    float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+                    col *= 1.0 / (1.0 + luma * 0.55);              // hue-preserving compress
+                    float gray = dot(col, vec3(0.299, 0.587, 0.114));
+                    col = max(mix(vec3(gray), col, 1.3), 0.0);     // lift saturation
+                    float alpha = horizon ? 1.0 : clamp(1.0 - transmit, 0.0, 1.0);
+                    gl_FragColor = vec4(col, alpha);
                 }
-            }
-            ctx.putImageData(img, 0, 0);
-            const tex = new THREE.CanvasTexture(c);
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.generateMipmaps = false;
-            tex.minFilter = THREE.LinearFilter;
-            tex.magFilter = THREE.LinearFilter;
-            tex.center.set(0.5, 0.5); // rotate around center
-            return tex;
-        }
-
-        // ── Scene geometry ──
-
-        // Event horizon — pure black sphere
-        group.add(new THREE.Mesh(
-            new THREE.SphereGeometry(0.62, 64, 64),
-            new THREE.MeshBasicMaterial({ color: 0x000000 })
-        ));
-
-        // Accretion disk
-        const diskTex = createDiskTexture(1024);
-        const diskMesh = new THREE.Mesh(
-            new THREE.CircleGeometry(2.2, 128),
-            new THREE.MeshBasicMaterial({
-                map: diskTex,
-                transparent: true,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            })
-        );
-        diskMesh.rotation.x = -Math.PI / 2;
-        group.add(diskMesh);
-
-        // Spiral flow overlay — rotates faster to give depth to the accretion flow
-        function createFlowTexture(size) {
-            const c = document.createElement('canvas');
-            c.width = c.height = size;
-            const ctx = c.getContext('2d');
-            const cx = size / 2, cy = size / 2;
-            const img = ctx.createImageData(size, size);
-            const d = img.data;
-            const ri = 0.20, ro = 0.88;
-
-            for (let py = 0; py < size; py++) {
-                for (let px = 0; px < size; px++) {
-                    const dx = px - cx, dy = py - cy;
-                    const r = Math.sqrt(dx * dx + dy * dy) / (size / 2);
-                    if (r < ri || r > ro) continue;
-                    const angle = Math.atan2(dy, dx);
-                    const t = (r - ri) / (ro - ri);
-
-                    // Tight spiral arms
-                    const spiral = angle + r * 18;
-                    const arm = Math.pow(Math.max(0, Math.sin(spiral * 2)), 3);
-                    // Clumps
-                    const clump = 0.5 + 0.5 * Math.sin(angle * 8 + r * 40)
-                                * Math.cos(angle * 5 - r * 25);
-
-                    let brightness = arm * clump * (1 - t) * 0.6;
-                    if (t < 0.05) brightness *= t / 0.05;
-                    if (t > 0.8) brightness *= (1 - t) / 0.2;
-
-                    const R = 255, G = Math.round(160 + brightness * 60), B = Math.round(80 + brightness * 40);
-                    const A = Math.min(255, brightness * 255);
-
-                    const idx = (py * size + px) * 4;
-                    d[idx] = R; d[idx+1] = G; d[idx+2] = B; d[idx+3] = A | 0;
-                }
-            }
-            ctx.putImageData(img, 0, 0);
-            const tex = new THREE.CanvasTexture(c);
-            tex.colorSpace = THREE.SRGBColorSpace;
-            tex.generateMipmaps = false;
-            tex.minFilter = THREE.LinearFilter;
-            tex.center.set(0.5, 0.5);
-            return tex;
-        }
-
-        const flowTex = createFlowTexture(1024);
-        const flowMesh = new THREE.Mesh(
-            new THREE.CircleGeometry(2.2, 128),
-            new THREE.MeshBasicMaterial({
-                map: flowTex,
-                transparent: true,
-                side: THREE.DoubleSide,
-                depthWrite: false,
-                opacity: 0.35,
-            })
-        );
-        flowMesh.rotation.x = -Math.PI / 2;
-        flowMesh.position.y = 0.001; // slight offset to avoid z-fighting
-        group.add(flowMesh);
-
-        group.scale.setScalar(0.55);
+            `,
+        });
+        const bhQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bhMaterial);
+        bhQuad.frustumCulled = false;
+        scene.add(bhQuad);
 
         // ── Star field (declare early so applyTheme can call drawStars) ──
         const starsCanvas = document.getElementById('stars-canvas');
@@ -881,21 +677,18 @@
         let planetScreenPositions = {}; // { name: {x, y} }
 
 
-        // Theme: follow OS preference, update live if it changes
-        const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+        // Black void — always dark. No toggle, no OS-following.
         function applyTheme(dark) {
             document.body.classList.toggle('dark-mode', dark);
             document.body.classList.toggle('light-mode', !dark);
             if (typeof drawStars === 'function') drawStars(dark);
         }
-        applyTheme(darkMQ.matches);
-        darkMQ.addEventListener('change', e => applyTheme(e.matches));
+        applyTheme(true);
 
         // Rotation state & drag interaction
         const DEG = Math.PI / 180;
         let rotX = 12 * DEG, rotY = 0;
-        let userDragY = 0, userDragX = 0;  // user drag only, no idle spin
-        const idleSpin = -0.28 * DEG;
+        let userDragY = 0, userDragX = 0;  // user drag only — no autonomous motion
         let isDragging = false, resetting = false, lastX = 0, lastY = 0;
 
         function animate() {
@@ -907,21 +700,17 @@
                     resetting = false;
                 }
             }
-            rotY += idleSpin;
-            group.rotation.x = rotX;
-            group.rotation.y = rotY;
 
-            // Disk flickering — subtle turbulent brightness variation
+            // Drive the lensing shader — tilt, disk-flow time, and a subtle brightness flicker.
+            // No idle camera spin: the view (and its lensing) only moves when the user drags.
             const now = performance.now();
             const flicker = 0.96 + 0.04 * Math.sin(now * 0.003)
                           + 0.025 * Math.sin(now * 0.0071 + 1.3)
                           + 0.015 * Math.sin(now * 0.0137 + 2.7);
-            diskMesh.material.color.setScalar(flicker);
-
-            // Accretion disk rotation — material spiraling inward
-            // Rotate texture (not mesh) so Doppler beaming stays camera-fixed
-            diskTex.rotation += 0.0008;
-            flowTex.rotation += 0.0014; // faster spiral overlay
+            bhUniforms.uYaw.value = rotY;
+            bhUniforms.uPitch.value = rotX;
+            bhUniforms.uTime.value = now * 0.001;
+            bhUniforms.uFlicker.value = flicker;
 
 
             // Redraw stars with events
@@ -998,7 +787,7 @@
                 const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
                 const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-                const holeR = rect.width * 0.62 * 0.55 / (frustum * 2);
+                const holeR = rect.width * 0.18; // apparent shadow radius of the lensed hole
                 if (dist < holeR) {
                     resetting = true;
                     userDragX = 0; userDragY = 0;
@@ -1040,6 +829,22 @@
             }
         }
 
+        // ── Gravitational lens (point mass), shared by the star field AND the structures ──
+        // Displaces a screen point outward to its primary-image radius. lensTE (Einstein radius
+        // in px) is refreshed each frame by drawStars, which runs before the structures draw.
+        // (lensTE is declared near the top so an early animate() call can't hit a TDZ.)
+        function lensXY(sx, sy) {
+            const cx = starsCanvas.width / 2, cy = starsCanvas.height / 2;
+            const dx = sx - cx, dy = sy - cy;
+            const b = Math.sqrt(dx * dx + dy * dy);
+            if (b < 1e-3 || lensTE <= 0) return { x: sx, y: sy, mag: 1 };
+            const theta = 0.5 * (b + Math.sqrt(b * b + 4 * lensTE * lensTE));
+            const s = theta / b;
+            const u = b / lensTE;
+            const mag = 0.5 + (u * u + 2) / (2 * u * Math.sqrt(u * u + 4));
+            return { x: cx + dx * s, y: cy + dy * s, mag };
+        }
+
         function drawStars(isDark, viewRotX = 0, viewRotY = 0, time = 0) {
             const w = starsCanvas.width, h = starsCanvas.height;
             starsCtx.clearRect(0, 0, w, h);
@@ -1047,8 +852,8 @@
             const cx = w / 2, cy = h / 2;
             const fov = Math.min(w, h) * 0.55;
             const canvasR = canvas.getBoundingClientRect();
-            const horizonR = (canvasR.width * window.devicePixelRatio) * 0.62 * 0.55 / (frustum * 2);
-            const lensR = horizonR * 3.2;
+            const horizonR = (canvasR.width * window.devicePixelRatio) * 0.17;
+            lensTE = horizonR * 0.92; // Einstein radius (≈ shadow edge), shared with the structures
 
             for (const layer of starLayers) {
                 const rotX = viewRotX * layer.speed;
@@ -1075,23 +880,11 @@
 
                     if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) continue;
 
-                    // Gravitational lensing
-                    const dx = sx - cx, dy = sy - cy;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist > lensR * 0.5 && dist < lensR * 3) {
-                        const strength = (lensR * lensR) / (dist * dist);
-                        const clamped = Math.min(strength, 8);
-                        sx += (dx / dist) * clamped * 0.6;
-                        sy += (dy / dist) * clamped * 0.6;
-                    }
+                    // Lens the actual background star with the shared point-mass displacement.
+                    const L = lensXY(sx, sy);
+                    sx = L.x; sy = L.y;
 
-                    const finalDist = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
-                    if (finalDist < horizonR) continue;
-
-                    let alpha = star.opacity;
-                    if (finalDist < horizonR * 2.5) {
-                        alpha *= (finalDist - horizonR) / (horizonR * 1.5);
-                    }
+                    let alpha = star.opacity * Math.min(2.2, L.mag);       // brighten toward the Einstein ring
                     alpha *= Math.min(1, z2 * 4);
 
                     // Twinkling — subtle scintillation
@@ -1238,19 +1031,14 @@
 
                 if (alpha < 0.01) continue;
 
-                // Gravitational lensing — bend supernova position away from center
-                let drawX = sx, drawY = sy;
-                if (distBH > 1 && distBH < lensR * 3) {
-                    const strength = (lensR * lensR) / (distBH * distBH);
-                    const clamped = Math.min(strength, 8);
-                    drawX += (dxBH / distBH) * clamped * 0.6;
-                    drawY += (dyBH / distBH) * clamped * 0.6;
-                }
+                // Gravitational lensing — bend the supernova with the same lens as the stars
+                const Lsn = lensXY(sx, sy);
+                let drawX = Lsn.x, drawY = Lsn.y;
 
                 // Clip around the event horizon — don't paint over the black hole
                 // Use the actual on-screen black hole radius (matches the Three.js sphere)
                 const canvasRect = canvas.getBoundingClientRect();
-                const bhScreenR = (canvasRect.width * window.devicePixelRatio) * 0.62 * 0.55 / (frustum * 2) * 1.05;
+                const bhScreenR = (canvasRect.width * window.devicePixelRatio) * 0.17 * 1.05;
                 starsCtx.save();
                 starsCtx.beginPath();
                 starsCtx.rect(0, 0, w, h);
@@ -1326,8 +1114,8 @@
 
             if (z2 < 0.3) return;
 
-            const sx = cx + (x1 / z2) * fov;
-            const sy = cy - (y2 / z2) * fov;
+            const _g = lensXY(cx + (x1 / z2) * fov, cy - (y2 / z2) * fov);
+            const sx = _g.x, sy = _g.y;
             if (sx < -60 || sx > w + 60 || sy < -60 || sy > h + 60) return;
             if (isOccludedByHole(sx, sy)) return;
 
@@ -1403,8 +1191,8 @@
 
                 if (z2 < 0.2) continue;
 
-                const sx = cx + (x1 / z2) * fov;
-                const sy = cy - (y2 / z2) * fov;
+                const _n = lensXY(cx + (x1 / z2) * fov, cy - (y2 / z2) * fov);
+                const sx = _n.x, sy = _n.y;
                 if (sx < -100 || sx > w + 100 || sy < -100 || sy > h + 100) continue;
                 if (isOccludedByHole(sx, sy)) continue;
 
@@ -1499,8 +1287,8 @@
 
             if (z2 < 0.4) return;
 
-            const screenCX = cx + (x1 / z2) * fov;
-            const screenCY = cy - (y2 / z2) * fov;
+            const _b = lensXY(cx + (x1 / z2) * fov, cy - (y2 / z2) * fov);
+            const screenCX = _b.x, screenCY = _b.y;
             if (screenCX < -30 || screenCX > w + 30 || screenCY < -30 || screenCY > h + 30) return;
             if (isOccludedByHole(screenCX, screenCY)) return;
 
@@ -1536,7 +1324,7 @@
         // ── Shared: black hole occlusion check ──
         function getHorizonRadius() {
             const canvasR = canvas.getBoundingClientRect();
-            return (canvasR.width * window.devicePixelRatio) * 0.62 * 0.55 / (frustum * 2);
+            return (canvasR.width * window.devicePixelRatio) * 0.17;
         }
         function isOccludedByHole(sx, sy) {
             const w = starsCanvas.width, h = starsCanvas.height;
@@ -1560,7 +1348,10 @@
             const y2 = y * cosX - z1 * sinX;
             const z2 = y * sinX + z1 * cosX;
             if (z2 < 0.3) return null;
-            return { x: cx + (x1 / z2) * fov, y: cy - (y2 / z2) * fov, z2 };
+            // Bend the structure's anchor with the same lens as the star field, so it tracks
+            // the surrounding stars instead of sliding independently near the hole.
+            const L = lensXY(cx + (x1 / z2) * fov, cy - (y2 / z2) * fov);
+            return { x: L.x, y: L.y, z2 };
         }
 
         function pickRandomVisibleStar(viewRotX, viewRotY) {
@@ -1633,8 +1424,8 @@
                 const y2 = y * cosX - z1 * sinX;
                 const z2 = y * sinX + z1 * cosX;
                 if (z2 < 0.3) continue;
-                const sx = cx + (x1 / z2) * fov;
-                const sy = cy - (y2 / z2) * fov;
+                const _e = lensXY(cx + (x1 / z2) * fov, cy - (y2 / z2) * fov);
+                const sx = _e.x, sy = _e.y;
                 if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) continue;
                 if (isOccludedByHole(sx, sy)) continue;
 
@@ -3225,7 +3016,7 @@
             starLayers[0].stars[250].size = 1.6; starLayers[0].stars[250].opacity = 0.6;
         }
 
-        drawStars(darkMQ.matches, 0, 0, 0);
+        drawStars(true, 0, 0, 0);
         window.addEventListener('resize', () => { generateStars(); drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY, performance.now()); });
 
         // ── Sci-fi reticle cursor with spaghettification ──
@@ -3335,7 +3126,7 @@
             const cx = w / 2, cy = h / 2;
             const fov = Math.min(w, h) * 0.55;
             const canvasR = canvas.getBoundingClientRect();
-            const hR = (canvasR.width * dpr) * 0.62 * 0.55 / (frustum * 2);
+            const hR = (canvasR.width * dpr) * 0.17;
 
             let bestDist = Infinity, bestSX = 0, bestSY = 0, bestLayer = -1, bestIdx = -1;
 
@@ -3357,8 +3148,8 @@
                     const y2 = y * cosX - z1 * sinX;
                     const z2 = y * sinX + z1 * cosX;
                     if (z2 < 0.4) continue;
-                    const sx = cx + (x1 / z2) * fov;
-                    const sy = cy - (y2 / z2) * fov;
+                    const _h = lensXY(cx + (x1 / z2) * fov, cy - (y2 / z2) * fov);
+                    const sx = _h.x, sy = _h.y;
                     const distC = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
                     if (distC < hR) continue;
                     const d = Math.sqrt((sx - px) ** 2 + (sy - py) ** 2);
@@ -3504,6 +3295,7 @@
                 if (z2 < 0.4) return;
                 sx = (w / 2) + (x1 / z2) * (Math.min(w, h) * 0.55);
                 sy = (h / 2) - (y2 / z2) * (Math.min(w, h) * 0.55);
+                const _lp = lensXY(sx, sy); sx = _lp.x; sy = _lp.y;
             }
 
             // Update lock target screen position
