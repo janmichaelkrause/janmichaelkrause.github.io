@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jan Michael Krause</title>
     <meta name="description" content="JMK">
+    <link rel="canonical" href="https://janmichaelkrause.com/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Jan Michael Krause">
+    <meta property="og:url" content="https://janmichaelkrause.com/">
+    <meta property="og:image" content="https://janmichaelkrause.com/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Jan Michael Krause">
+    <meta name="twitter:image" content="https://janmichaelkrause.com/og.png">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='ui-monospace,SFMono-Regular,monospace' font-size='22' font-weight='500' letter-spacing='1' fill='%23eee'%3EJMK%3C/text%3E%3C/svg%3E">
     <style>
         @import url('https://fonts.cdnfonts.com/css/sf-mono');
@@ -184,31 +194,6 @@
             height: 100%;
         }
 
-        /* ── Dark mode glow behind the black hole ── */
-        .hero-glow {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: min(90vw, 44rem);
-            height: min(90vw, 44rem);
-            border-radius: 50%;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.6s ease;
-            background: radial-gradient(
-                circle,
-                rgba(255, 140, 50, 0.08) 0%,
-                rgba(255, 100, 30, 0.04) 30%,
-                rgba(255, 60, 10, 0.015) 55%,
-                transparent 75%
-            );
-            z-index: 0;
-        }
-        body.dark-mode .hero-glow {
-            opacity: 1;
-        }
-
         @media (max-width: 768px) {
             section {
                 margin: 0;
@@ -232,7 +217,6 @@
         <p><a href="mailto:jmkrause@cs.stanford.edu">jmkrause@cs.stanford.edu</a></p>
     </div> -->
     <div class="stars"><canvas id="stars-canvas"></canvas></div>
-    <div class="hero-glow"></div>
     <main>
         <section class="hero">
             <canvas id="logo-canvas" aria-label="Interactive 3D black hole"></canvas>
@@ -257,7 +241,9 @@
             const s = canvas.offsetWidth || Math.round(window.innerWidth <= 768
                 ? Math.min(window.innerWidth * 0.88, 416)
                 : Math.min(window.innerWidth * 0.74, 544));
-            const buf = Math.min(s, 480); // cap internal buffer; CSS upscales the smooth disk
+            // Retina-aware buffer: the photon ring is the sharpest feature on the page,
+            // so give it real pixels — capped to keep the ray-march affordable.
+            const buf = Math.min(Math.round(s * Math.min(window.devicePixelRatio || 1, 1.5)), 640);
             renderer.setSize(buf, buf, false);
         }
         resizeRenderer();
@@ -308,25 +294,34 @@
                 mat3 rotXm(float a){ float c = cos(a), s = sin(a); return mat3(1.0, 0.0, 0.0,  0.0, c, s,  0.0, -s, c); }
                 mat3 rotYm(float a){ float c = cos(a), s = sin(a); return mat3(c, 0.0, -s,  0.0, 1.0, 0.0,  s, 0.0, c); }
 
-                void diskSample(float r, float ang, float vdop, inout vec3 col, inout float transmit){
+                // Normalized blackbody ramp: 0 → deep red, ~1 → white-gold, >1 → blue-white
+                vec3 bbColor(float T){
+                    vec3 c = mix(vec3(0.45, 0.03, 0.00), vec3(0.85, 0.16, 0.02), smoothstep(0.00, 0.25, T));
+                    c = mix(c, vec3(1.00, 0.46, 0.10), smoothstep(0.20, 0.55, T));
+                    c = mix(c, vec3(1.00, 0.82, 0.55), smoothstep(0.50, 0.90, T));
+                    c = mix(c, vec3(0.92, 0.96, 1.10), smoothstep(0.90, 1.30, T));
+                    return c;
+                }
+
+                void diskSample(float r, float ang, float g, inout vec3 col, inout float transmit){
                     if(r < DISK_IN || r > DISK_OUT) return;
                     float t = (r - DISK_IN) / (DISK_OUT - DISK_IN);
-                    float temp = pow(1.0 - t, 0.85);
+                    // Novikov–Thorne thin disk: T(r) ∝ [r⁻³(1 − √(r_in/r))]^¼ — zero torque
+                    // (and zero T) at the ISCO, peak at r = 49/12 ≈ 4.08, ~r^(−3/4) tail.
+                    // 476.6 normalizes the peak to T = 1.
+                    float Temit = pow(max((1.0 - sqrt(DISK_IN / r)) / (r * r * r), 0.0) * 476.6, 0.25);
                     float spin = uTime * (2.4 / pow(r, 1.5));
                     float a2 = ang - spin;                                   // differential rotation
                     vec2 nc = vec2(cos(a2), sin(a2)) * (3.0 + r * 0.4) + vec2(r * 0.9, 0.0); // seamless around the ring
                     float n = fbm(nc);
                     float dens = pow(0.35 + 0.65 * n, 1.4);
-                    dens *= smoothstep(0.0, 0.10, t) * smoothstep(0.0, 0.30, 1.0 - t);
-                    float beam = pow(clamp(1.0 + vdop, 0.0, 2.2), 2.6);
-                    float bright = temp * temp * dens * beam * uFlicker * 1.25;
-                    vec3 cool = vec3(0.85, 0.16, 0.02);
-                    vec3 mid  = vec3(1.00, 0.46, 0.10);
-                    vec3 hot  = vec3(1.00, 0.82, 0.50);
-                    vec3 c = mix(cool, mid, smoothstep(0.0, 0.40, temp));
-                    c = mix(c, hot, smoothstep(0.55, 1.00, temp));
-                    c += vec3(-0.05, 0.02, 0.22) * clamp(vdop, 0.0, 1.0) * 0.6;
-                    c += vec3(0.20, -0.04, -0.06) * clamp(-vdop, 0.0, 1.0);
+                    dens *= smoothstep(0.0, 0.30, 1.0 - t);                  // soft outer rim
+                    // Observed temperature is the Doppler+gravity-shifted one; bolometric
+                    // flux transforms as g⁴, so brightness goes as T_obs⁴ = (g·T_emit)⁴.
+                    float Tobs = Temit * g;
+                    float T2 = Tobs * Tobs;
+                    float bright = T2 * T2 * dens * uFlicker * 3.0;
+                    vec3 c = bbColor(Tobs);
                     float a = clamp(bright, 0.0, 1.0);
                     col += transmit * c * bright;
                     transmit *= (1.0 - a * 0.8);
@@ -362,10 +357,18 @@
                             float f = pos.y / (pos.y - npos.y);
                             vec3 cpz = mix(pos, npos, f);
                             float cr = length(cpz.xz);
-                            float ang = atan(cpz.z, cpz.x);
-                            vec3 vel = normalize(vec3(-cpz.z, 0.0, cpz.x)) / sqrt(max(cr, 1.5));
-                            float vdop = dot(vel, -dir) * 3.2;
-                            diskSample(cr, ang, vdop, col, transmit);
+                            if(cr >= DISK_IN && cr <= DISK_OUT){
+                                // Exact Schwarzschild circular orbit: local speed β = 1/√(2(r−1))
+                                // (Rs = 1) — c/2 at the ISCO. Total shift to infinity factors as
+                                // g = √(1−Rs/r) · √(1−β²)/(1−β·μ): gravitational × SR Doppler;
+                                // the Doppler-free part reduces to the textbook √(1−3M/r).
+                                float beta = inversesqrt(2.0 * (cr - 1.0));
+                                vec3 vhat = normalize(vec3(-cpz.z, 0.0, cpz.x));
+                                float mu = dot(vhat, -normalize(dir));       // cos angle, emitter velocity → escaping photon
+                                float g = sqrt(max(1.0 - 1.0 / cr, 0.0)) * sqrt(1.0 - beta * beta) / (1.0 - beta * mu);
+                                float ang = atan(cpz.z, cpz.x);
+                                diskSample(cr, ang, g, col, transmit);
+                            }
                         }
                         dir += acc * dt;
                         pos = npos;
@@ -399,7 +402,36 @@
         // ── Event state (declared early to avoid TDZ in animate) ──
         let supernovae = [];
         let lastNovaTime = 0;
-        let nextNovaWait = 3000 + Math.random() * 12000;
+        let nextNovaWait = 20000 + Math.random() * 60000;
+
+        // ── Spectral classes — blackbody color + matching class label ──
+        // Roughly the naked-eye mix: most stars white/gold/orange, a few hot blue.
+        const SPECTRAL_BUCKETS = [
+            { p: 0.08, rgb: [157, 180, 255], cls: ['O2V', 'O9V', 'B1III', 'B3II'] },
+            { p: 0.22, rgb: [202, 216, 255], cls: ['A3V', 'A0Ia'] },
+            { p: 0.40, rgb: [251, 248, 255], cls: ['F5IV', 'F8V'] },
+            { p: 0.62, rgb: [255, 244, 232], cls: ['G2V', 'G0IV'] },
+            { p: 0.86, rgb: [255, 215, 174], cls: ['K4III', 'K7V'] },
+            { p: 1.01, rgb: [255, 183, 124], cls: ['M1V', 'M8V'] },
+        ];
+        function pickStarColor(big) {
+            let roll = Math.random();
+            if (big) roll = Math.min(roll, Math.random()); // bright stars skew toward the hot end
+            const b = SPECTRAL_BUCKETS.find(s => roll < s.p);
+            return { rgb: b.rgb, cls: b.cls[Math.floor(Math.random() * b.cls.length)] };
+        }
+
+        // ── Milky Way band — a random great circle, fixed for the session ──
+        const milkyWay = (() => {
+            const t = Math.random() * 2 * Math.PI, p = Math.acos(2 * Math.random() - 1);
+            const n = [Math.sin(p) * Math.cos(t), Math.cos(p), Math.sin(p) * Math.sin(t)];
+            const a = Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+            let u = [n[1] * a[2] - n[2] * a[1], n[2] * a[0] - n[0] * a[2], n[0] * a[1] - n[1] * a[0]];
+            const ul = Math.hypot(u[0], u[1], u[2]);
+            u = u.map(c => c / ul);
+            const v = [n[1] * u[2] - n[2] * u[1], n[2] * u[0] - n[0] * u[2], n[0] * u[1] - n[1] * u[0]];
+            return { n, u, v };
+        })();
 
         // ── Distant galaxy (on celestial sphere) ──
         const galaxy = {
@@ -426,10 +458,6 @@
                 layerSpeed: 0.85,
             });
         }
-
-        // ── Hawking radiation particles ──
-        let hawkingParticles = [];
-        let lastHawkingSpawn = 0;
 
         // ── Binary star system (on celestial sphere) ──
         const binaryStar = {
@@ -464,13 +492,13 @@
 
         // ── Exodus fleet (tiny dots moving star-to-star) ──
         let exodusFleet = null;
-        let exodusSpawnTime = 15000 + Math.random() * 30000; // first fleet 15-45s in
+        let exodusSpawnTime = 90000 + Math.random() * 210000; // first fleet 1.5-5min in
         let exodusScreenPos = null; // { x, y } in canvas pixels for lock-on
 
         // ── Von Neumann probes (hops star-to-star) ──
         let vonNeumannProbes = [];
-        let vonNeumannNextSpawn = 20000 + Math.random() * 20000; // first probe 20-40s in
-        const VON_NEUMANN_MAX = 3; // up to 3 simultaneous probes
+        let vonNeumannNextSpawn = 120000 + Math.random() * 240000; // first probe 2-6min in
+        const VON_NEUMANN_MAX = 2; // up to 2 simultaneous probes
         let vonNeumannScreenPositions = []; // array of { x, y } for lock-on
 
         // ── Dyson Swarm — orbiting dots around a host star ──
@@ -516,7 +544,7 @@
 
         // ── Generation Ship — large slow vessel on a centuries-long journey ──
         let genShip = null;
-        let genShipSpawnTime = 25000 + Math.random() * 35000;
+        let genShipSpawnTime = 180000 + Math.random() * 300000; // once per session
         let genShipScreenPos = null;
 
         // ── Asteroid Mining — cluster of dots with occasional flashes ──
@@ -525,7 +553,7 @@
 
         // ── Rocket Launch — accelerates away from Sol ──
         let rocketLaunch = null;
-        let rocketNextLaunch = 40000 + Math.random() * 30000;
+        let rocketNextLaunch = 150000 + Math.random() * 240000;
         let rocketScreenPos = null;
 
         // ── Derelict Ship — dim tumbling dot drifting through space ──
@@ -627,16 +655,17 @@
 
         // ── Phantom Fleet — brief appearing formation ──
         let phantomFleet = null;
-        let phantomNextSpawn = 50000 + Math.random() * 60000;
+        // Most sessions never see the phantom fleet; when they do, it appears once.
+        let phantomNextSpawn = Math.random() < 0.35 ? 150000 + Math.random() * 360000 : Infinity;
         let phantomScreenPos = null;
 
         // ── Solar Flare — dramatic star brightening ──
         let solarFlares = [];
-        let nextFlareTime = 20000 + Math.random() * 30000;
+        let nextFlareTime = 90000 + Math.random() * 150000;
 
         // ── Comet — bright dot with long curved tail ──
         let comet = null;
-        let cometNextSpawn = 25000 + Math.random() * 35000;
+        let cometNextSpawn = 120000 + Math.random() * 240000;
         let cometScreenPos = null;
 
         // ── Pulsar Beam — sweeping light cone ──
@@ -648,19 +677,20 @@
 
         // ── Star Being Eaten — tidal disruption event ──
         let tidalDisrupt = null;
-        let tidalNextTime = 60000 + Math.random() * 60000;
+        let tidalNextTime = 240000 + Math.random() * 360000;
         let tidalScreenPos = null;
 
         // ── Binary Star Merger ──
         let starMerger = null;
-        let mergerNextTime = 70000 + Math.random() * 50000;
+        let mergerNextTime = 300000 + Math.random() * 360000;
 
         // ── Light Echo — expanding rings after supernova ──
         let lightEchoes = [];
 
         // ── Quasar Ignition — distant star flares incredibly bright ──
         let quasar = null;
-        let quasarNextTime = 80000 + Math.random() * 80000;
+        // Rare: ~30% of sessions, once — the visitor who sees one saw something real.
+        let quasarNextTime = Math.random() < 0.3 ? 240000 + Math.random() * 480000 : Infinity;
         let quasarScreenPos = null;
 
         // ── Solar System — planets orbiting Sol ──
@@ -691,10 +721,16 @@
         let userDragY = 0, userDragX = 0;  // user drag only — no autonomous motion
         let isDragging = false, resetting = false, lastX = 0, lastY = 0;
 
+        let lastFrameT = performance.now();
+        let dtF = 1; // frame time in 60 Hz units — scales per-frame motion so 120 Hz ≠ 2× speed
+
         function animate() {
             requestAnimationFrame(animate);
+            const now = performance.now();
+            dtF = Math.min((now - lastFrameT) / (1000 / 60), 4); // clamp tab-switch gaps
+            lastFrameT = now;
             if (resetting) {
-                rotX += (12 * DEG - rotX) * 0.12;
+                rotX += (12 * DEG - rotX) * (1 - Math.pow(0.88, dtF));
                 if (Math.abs(rotX - 12 * DEG) < 0.001) {
                     rotX = 12 * DEG;
                     resetting = false;
@@ -703,7 +739,6 @@
 
             // Drive the lensing shader — tilt, disk-flow time, and a subtle brightness flicker.
             // No idle camera spin: the view (and its lensing) only moves when the user drags.
-            const now = performance.now();
             const flicker = 0.96 + 0.04 * Math.sin(now * 0.003)
                           + 0.025 * Math.sin(now * 0.0071 + 1.3)
                           + 0.015 * Math.sin(now * 0.0137 + 2.7);
@@ -721,7 +756,6 @@
             drawSupernovae(now, sw, sh, isDark, userDragX, userDragY);
             drawGalaxy(now, sw, sh, isDark, userDragX, userDragY);
             drawNebulae(now, sw, sh, isDark, userDragX, userDragY);
-            updateHawkingRadiation(now, sw, sh, isDark);
             drawBinarySystem(now, sw, sh, isDark, userDragX, userDragY);
 
             drawLockOnLabel(now, sw, sh, isDark);
@@ -787,7 +821,7 @@
                 const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
                 const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-                const holeR = rect.width * 0.18; // apparent shadow radius of the lensed hole
+                const holeR = rect.width * 0.16; // true shadow ≈ 0.152 + a little touch padding
                 if (dist < holeR) {
                     resetting = true;
                     userDragX = 0; userDragY = 0;
@@ -814,7 +848,8 @@
                 const theta = Math.random() * 2 * Math.PI;
                 const phi = Math.acos(2 * Math.random() - 1);
 
-                const size = Math.random() < 0.05
+                const big = Math.random() < 0.05;
+                const size = big
                     ? 1.5 + Math.random() * 1.0
                     : 0.4 + Math.random() * 0.8;
                 const opacity = 0.15 + Math.random() * 0.4;
@@ -822,10 +857,34 @@
                 // Twinkle phase offset (unique per star)
                 const twinkleOffset = Math.random() * 1000;
 
+                const spec = pickStarColor(big);
+
                 // Assign to depth layer: 15% near, 35% mid, 50% far
                 const roll = Math.random();
                 const layerIdx = roll < 0.15 ? 0 : roll < 0.5 ? 1 : 2;
-                starLayers[layerIdx].stars.push({ theta, phi, size, opacity, twinkleOffset });
+                starLayers[layerIdx].stars.push({ theta, phi, size, opacity, twinkleOffset,
+                    rgb: spec.rgb, cls: spec.cls });
+            }
+
+            // ── Milky Way band: faint dense stars with Gaussian latitude (σ ≈ 7°)
+            // about the session's great circle; all on the far layer.
+            for (let i = 0; i < 2600; i++) {
+                const lon = Math.random() * 2 * Math.PI;
+                const lat = (Math.random() + Math.random() + Math.random() - 1.5) * 0.245;
+                const cl = Math.cos(lat), sl = Math.sin(lat);
+                const co = Math.cos(lon), si = Math.sin(lon);
+                const dx = cl * (co * milkyWay.u[0] + si * milkyWay.v[0]) + sl * milkyWay.n[0];
+                const dy = cl * (co * milkyWay.u[1] + si * milkyWay.v[1]) + sl * milkyWay.n[1];
+                const dz = cl * (co * milkyWay.u[2] + si * milkyWay.v[2]) + sl * milkyWay.n[2];
+                const spec = pickStarColor(false);
+                starLayers[2].stars.push({
+                    theta: Math.atan2(dz, dx),
+                    phi: Math.acos(Math.max(-1, Math.min(1, dy))),
+                    size: 0.3 + Math.random() * 0.5,
+                    opacity: 0.06 + Math.random() * 0.18,
+                    twinkleOffset: Math.random() * 1000,
+                    rgb: spec.rgb, cls: spec.cls,
+                });
             }
         }
 
@@ -907,11 +966,12 @@
 
                     if (alpha < 0.01) continue;
 
+                    const [cR, cG, cB] = star.rgb || [255, 255, 255];
                     if (isDark) {
                         if (star.paleBlueDot) {
                             starsCtx.fillStyle = `rgba(255, 240, 210, ${Math.min(1, alpha * 2)})`;
                         } else {
-                            starsCtx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                            starsCtx.fillStyle = `rgba(${cR}, ${cG}, ${cB}, ${alpha})`;
                         }
                     } else {
                         starsCtx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.25})`;
@@ -926,7 +986,7 @@
                     if (isDark && L.mag2 !== undefined) {
                         const alpha2 = star.opacity * Math.min(2.2, L.mag2) * Math.min(1, z2 * 4) * twinkle;
                         if (alpha2 >= 0.01) {
-                            starsCtx.fillStyle = `rgba(255, 255, 255, ${alpha2})`;
+                            starsCtx.fillStyle = `rgba(${cR}, ${cG}, ${cB}, ${alpha2})`;
                             starsCtx.beginPath();
                             starsCtx.arc(L.x2, L.y2, star.size, 0, Math.PI * 2);
                             starsCtx.fill();
@@ -985,7 +1045,7 @@
                 r1 = 220; g1 = 255; b1 = 255; r2 = 60; g2 = 200; b2 = 220;
             }
             donor.dead = true;
-                nextNovaWait = 3000 + Math.random() * 12000; // pick next wait
+                nextNovaWait = 45000 + Math.random() * 120000; // pick next wait
             supernovae.push({
                 theta, phi, layerSpeed,
                 born: time,
@@ -1062,9 +1122,7 @@
                 let drawX = Lsn.x, drawY = Lsn.y;
 
                 // Clip around the event horizon — don't paint over the black hole
-                // Use the actual on-screen black hole radius (matches the Three.js sphere)
-                const canvasRect = canvas.getBoundingClientRect();
-                const bhScreenR = (canvasRect.width * window.devicePixelRatio) * 0.17 * 1.05;
+                const bhScreenR = getHorizonRadius() * 1.05;
                 starsCtx.save();
                 starsCtx.beginPath();
                 starsCtx.rect(0, 0, w, h);
@@ -1145,7 +1203,7 @@
             if (sx < -60 || sx > w + 60 || sy < -60 || sy > h + 60) return;
             if (isOccludedByHole(sx, sy)) return;
 
-            galaxy.rotation += 0.0003;
+            galaxy.rotation += 0.0003 * dtF;
             const dpr = window.devicePixelRatio;
             const size = galaxy.size * dpr;
 
@@ -1195,8 +1253,8 @@
 
             for (const neb of nebulae) {
                 // Slow drift
-                neb.theta += neb.driftTheta;
-                neb.phi += neb.driftPhi;
+                neb.theta += neb.driftTheta * dtF;
+                neb.phi += neb.driftPhi * dtF;
                 // Bounce phi to stay in range
                 if (neb.phi < 0.1 || neb.phi > Math.PI - 0.1) neb.driftPhi *= -1;
 
@@ -1237,56 +1295,6 @@
             }
         }
 
-        // ── Hawking radiation ──
-        function updateHawkingRadiation(time, w, h, isDark) {
-            if (!isDark) return;
-            const cx = w / 2, cy = h / 2;
-            // Hawking pairs separate at the event horizon — spawn just outside the
-            // rendered shadow so the escaping partner is actually visible.
-            const bhRadius = getHorizonRadius();
-            const dpr = window.devicePixelRatio;
-
-            // Spawn new particles
-            if (time - lastHawkingSpawn > 200 + Math.random() * 300) {
-                lastHawkingSpawn = time;
-                const angle = Math.random() * Math.PI * 2;
-                const spawnR = bhRadius * (1.02 + Math.random() * 0.12);
-                hawkingParticles.push({
-                    x: cx + Math.cos(angle) * spawnR,
-                    y: cy + Math.sin(angle) * spawnR,
-                    vx: Math.cos(angle) * (0.3 + Math.random() * 0.5) * dpr,
-                    vy: Math.sin(angle) * (0.3 + Math.random() * 0.5) * dpr,
-                    born: time,
-                    life: 800 + Math.random() * 1200,
-                    size: (0.3 + Math.random() * 0.5) * dpr,
-                });
-            }
-
-            // Draw and update
-            for (let i = hawkingParticles.length - 1; i >= 0; i--) {
-                const p = hawkingParticles[i];
-                const age = time - p.born;
-                if (age > p.life) { hawkingParticles.splice(i, 1); continue; }
-
-                p.x += p.vx;
-                p.y += p.vy;
-                // Slight curve away
-                p.vx *= 0.995;
-                p.vy *= 0.995;
-
-                const t = age / p.life;
-                const alpha = t < 0.1 ? t / 0.1 : (1 - (t - 0.1) / 0.9);
-
-                starsCtx.fillStyle = `rgba(200, 220, 255, ${alpha * 0.35})`;
-                starsCtx.beginPath();
-                starsCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                starsCtx.fill();
-            }
-
-            // Cap particle count
-            if (hawkingParticles.length > 60) hawkingParticles.splice(0, hawkingParticles.length - 60);
-        }
-
         // ── Binary star system ──
         function drawBinarySystem(time, w, h, isDark, viewRotX, viewRotY) {
             if (!isDark) return;
@@ -1294,7 +1302,7 @@
             const fov = Math.min(w, h) * 0.55;
             const dpr = window.devicePixelRatio;
 
-            binaryStar.orbitAngle += 0.002;
+            binaryStar.orbitAngle += 0.002 * dtF;
 
             // Project center of mass
             const rX = viewRotX * binaryStar.layerSpeed;
@@ -1350,8 +1358,10 @@
 
         // ── Shared: black hole occlusion check ──
         function getHorizonRadius() {
+            // True rendered shadow: b_crit = (3√3/2)Rs from D = 18Rs → sinθ = 2.598/18,
+            // through the shader projection (tan θ / fov 0.48) → 0.152 of canvas width.
             const canvasR = canvas.getBoundingClientRect();
-            return (canvasR.width * window.devicePixelRatio) * 0.17;
+            return (canvasR.width * window.devicePixelRatio) * 0.152;
         }
         function isOccludedByHole(sx, sy) {
             const w = starsCanvas.width, h = starsCanvas.height;
@@ -1423,7 +1433,7 @@
             const age = now - fleet.born;
             if (age > fleet.duration) {
                 exodusFleet = null; exodusScreenPos = null;
-                exodusSpawnTime = now + 30000 + Math.random() * 60000; // next fleet in 30-90s
+                exodusSpawnTime = now + 240000 + Math.random() * 360000; // next fleet in 4-10min
                 return;
             }
 
@@ -1507,7 +1517,7 @@
                         needTarget: true,
                     });
                 }
-                vonNeumannNextSpawn = now + 15000 + Math.random() * 25000;
+                vonNeumannNextSpawn = now + 180000 + Math.random() * 300000;
             }
 
             const dpr = window.devicePixelRatio;
@@ -1687,8 +1697,8 @@
         function drawStellarEngine(now, w, h, isDark, viewRotX, viewRotY) {
             if (!isDark) return;
             // Update position
-            stellarEngine.theta += stellarEngine.dTheta;
-            stellarEngine.phi += stellarEngine.dPhi;
+            stellarEngine.theta += stellarEngine.dTheta * dtF;
+            stellarEngine.phi += stellarEngine.dPhi * dtF;
             // Wrap
             if (stellarEngine.phi < 0.2) stellarEngine.dPhi = Math.abs(stellarEngine.dPhi);
             if (stellarEngine.phi > Math.PI - 0.2) stellarEngine.dPhi = -Math.abs(stellarEngine.dPhi);
@@ -1814,8 +1824,8 @@
         // ── O'Neill Cylinder — rotating habitat drifting through space ──
         function drawONeillCylinder(now, w, h, isDark, viewRotX, viewRotY) {
             if (!isDark) return;
-            oneillCylinder.theta += oneillCylinder.dTheta;
-            oneillCylinder.phi += oneillCylinder.dPhi;
+            oneillCylinder.theta += oneillCylinder.dTheta * dtF;
+            oneillCylinder.phi += oneillCylinder.dPhi * dtF;
             if (oneillCylinder.phi < 0.3) oneillCylinder.dPhi = Math.abs(oneillCylinder.dPhi);
             if (oneillCylinder.phi > Math.PI - 0.3) oneillCylinder.dPhi = -Math.abs(oneillCylinder.dPhi);
 
@@ -1917,8 +1927,8 @@
         function updateBracewellProbe(now, w, h, isDark, viewRotX, viewRotY) {
             if (!isDark) return;
             // Slow drift
-            bracewellProbe.theta += bracewellProbe.dTheta;
-            bracewellProbe.phi += bracewellProbe.dPhi;
+            bracewellProbe.theta += bracewellProbe.dTheta * dtF;
+            bracewellProbe.phi += bracewellProbe.dPhi * dtF;
             if (bracewellProbe.phi < 0.3) bracewellProbe.dPhi = Math.abs(bracewellProbe.dPhi);
             if (bracewellProbe.phi > Math.PI - 0.3) bracewellProbe.dPhi = -Math.abs(bracewellProbe.dPhi);
 
@@ -2055,7 +2065,7 @@
             const age = now - genShip.born;
             if (age > genShip.duration) {
                 genShip = null; genShipScreenPos = null;
-                genShipSpawnTime = now + 60000 + Math.random() * 90000;
+                genShipSpawnTime = Infinity; // a centuries-long journey happens once per visit
                 return;
             }
 
@@ -2201,7 +2211,7 @@
             const age = now - rocketLaunch.born;
             if (age > rocketLaunch.duration) {
                 rocketLaunch = null; rocketScreenPos = null;
-                rocketNextLaunch = now + 50000 + Math.random() * 40000;
+                rocketNextLaunch = now + 300000 + Math.random() * 420000;
                 return;
             }
 
@@ -2257,8 +2267,8 @@
         function drawDerelictShip(now, w, h, isDark, viewRotX, viewRotY) {
             if (!isDark) return;
             // Slow drift
-            derelictShip.theta += derelictShip.dTheta;
-            derelictShip.phi += derelictShip.dPhi;
+            derelictShip.theta += derelictShip.dTheta * dtF;
+            derelictShip.phi += derelictShip.dPhi * dtF;
             if (derelictShip.phi < 0.3) derelictShip.dPhi = Math.abs(derelictShip.dPhi);
             if (derelictShip.phi > Math.PI - 0.3) derelictShip.dPhi = -Math.abs(derelictShip.dPhi);
 
@@ -2291,8 +2301,8 @@
         // ── Cryosleep Pod — lone occupant drifting through deep space ──
         function drawCryoPod(now, w, h, isDark, viewRotX, viewRotY) {
             if (!isDark) return;
-            cryoPod.theta += cryoPod.dTheta;
-            cryoPod.phi += cryoPod.dPhi;
+            cryoPod.theta += cryoPod.dTheta * dtF;
+            cryoPod.phi += cryoPod.dPhi * dtF;
             if (cryoPod.phi < 0.3) cryoPod.dPhi = Math.abs(cryoPod.dPhi);
             if (cryoPod.phi > Math.PI - 0.3) cryoPod.dPhi = -Math.abs(cryoPod.dPhi);
 
@@ -2569,7 +2579,7 @@
             }
             if (!phantomFleet) { phantomScreenPos = null; return; }
             const age = now - phantomFleet.born;
-            if (age > phantomFleet.duration) { phantomFleet = null; phantomScreenPos = null; phantomNextSpawn = now + 50000 + Math.random() * 60000; return; }
+            if (age > phantomFleet.duration) { phantomFleet = null; phantomScreenPos = null; phantomNextSpawn = Infinity; return; }
             const dpr = window.devicePixelRatio;
             const fadeIn = Math.min(1, age / 1500);
             const fadeOut = Math.min(1, (phantomFleet.duration - age) / 1500);
@@ -2601,7 +2611,7 @@
                     solarFlares.push({ theta: star.star.theta, phi: star.star.phi, layerSpeed: starLayers[star.layerIdx].speed,
                         born: now, duration: 4000 + Math.random() * 2000 });
                 }
-                nextFlareTime = now + 20000 + Math.random() * 30000;
+                nextFlareTime = now + 120000 + Math.random() * 240000;
             }
             const dpr = window.devicePixelRatio;
             for (let i = solarFlares.length - 1; i >= 0; i--) {
@@ -2638,9 +2648,9 @@
             }
             if (!comet) { cometScreenPos = null; return; }
             const age = now - comet.born;
-            if (age > comet.duration) { comet = null; cometScreenPos = null; cometNextSpawn = now + 40000 + Math.random() * 40000; return; }
-            comet.theta += comet.dTheta;
-            comet.phi += comet.dPhi;
+            if (age > comet.duration) { comet = null; cometScreenPos = null; cometNextSpawn = now + 300000 + Math.random() * 360000; return; }
+            comet.theta += comet.dTheta * dtF;
+            comet.phi += comet.dPhi * dtF;
             if (comet.phi < 0.3 || comet.phi > Math.PI - 0.3) comet.dPhi *= -1;
             const dpr = window.devicePixelRatio;
             const p = projectStar(comet, comet.layerSpeed, viewRotX, viewRotY);
@@ -2775,7 +2785,7 @@
             if (!tidalDisrupt) { tidalScreenPos = null; return; }
             const age = now - tidalDisrupt.born;
             if (age > tidalDisrupt.duration) {
-                tidalDisrupt = null; tidalScreenPos = null; tidalNextTime = now + 60000 + Math.random() * 60000; return;
+                tidalDisrupt = null; tidalScreenPos = null; tidalNextTime = now + 420000 + Math.random() * 480000; return;
             }
             const dpr = window.devicePixelRatio;
             const t = age / tidalDisrupt.duration;
@@ -2835,7 +2845,7 @@
             }
             if (!starMerger) return;
             const age = now - starMerger.born;
-            if (age > starMerger.duration) { starMerger = null; mergerNextTime = now + 70000 + Math.random() * 50000; return; }
+            if (age > starMerger.duration) { starMerger = null; mergerNextTime = now + 480000 + Math.random() * 480000; return; }
             const dpr = window.devicePixelRatio;
             const p = projectStar(starMerger, starMerger.layerSpeed, viewRotX, viewRotY);
             if (!p || isOccludedByHole(p.x, p.y)) return;
@@ -2912,7 +2922,7 @@
             }
             if (!quasar) { quasarScreenPos = null; return; }
             const age = now - quasar.born;
-            if (age > quasar.duration) { quasar = null; quasarScreenPos = null; quasarNextTime = now + 80000 + Math.random() * 80000; return; }
+            if (age > quasar.duration) { quasar = null; quasarScreenPos = null; quasarNextTime = Infinity; return; }
             const dpr = window.devicePixelRatio;
             const p = projectStar(quasar, quasar.layerSpeed, viewRotX, viewRotY);
             if (!p || isOccludedByHole(p.x, p.y)) { quasarScreenPos = null; return; }
@@ -3152,8 +3162,7 @@
             const w = starsCanvas.width, h = starsCanvas.height;
             const cx = w / 2, cy = h / 2;
             const fov = Math.min(w, h) * 0.55;
-            const canvasR = canvas.getBoundingClientRect();
-            const hR = (canvasR.width * dpr) * 0.17;
+            const hR = getHorizonRadius();
 
             let bestDist = Infinity, bestSX = 0, bestSY = 0, bestLayer = -1, bestIdx = -1;
 
@@ -3443,7 +3452,9 @@
                 } else {
                     const seed = lockTarget.layerIdx * 10000 + lockTarget.starIdx;
                     const name = STAR_NAMES[seed % STAR_NAMES.length];
-                    const cls = STAR_CLASSES[seed % STAR_CLASSES.length];
+                    // Label with the star's actual spectral class so color and lore agree
+                    const lockedStar = starLayers[lockTarget.layerIdx]?.stars[lockTarget.starIdx];
+                    const cls = lockedStar?.cls || STAR_CLASSES[seed % STAR_CLASSES.length];
                     const catalog = `JMK-${String(seed).padStart(4, '0')}`;
                     label = `${name}  ·  ${cls}  ·  ${catalog}`;
                 }
