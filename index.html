@@ -841,8 +841,18 @@
             const theta = 0.5 * (b + Math.sqrt(b * b + 4 * lensTE * lensTE));
             const s = theta / b;
             const u = b / lensTE;
-            const mag = 0.5 + (u * u + 2) / (2 * u * Math.sqrt(u * u + 4));
-            return { x: cx + dx * s, y: cy + dy * s, mag };
+            const A = (u * u + 2) / (2 * u * Math.sqrt(u * u + 4));
+            const out = { x: cx + dx * s, y: cy + dy * s, mag: 0.5 + A };
+            // Secondary (parity-flipped) image on the far side of the lens, at
+            // θ₋ = θ_E²/θ₊ (between photon ring and Einstein ring), demagnified by
+            // |½ − A|. Its flux falls off ~u⁻⁴, so skip sources far from the axis.
+            if (u < 3) {
+                const s2 = (lensTE * lensTE / theta) / b;
+                out.x2 = cx - dx * s2;
+                out.y2 = cy - dy * s2;
+                out.mag2 = A - 0.5;
+            }
+            return out;
         }
 
         function drawStars(isDark, viewRotX = 0, viewRotY = 0, time = 0) {
@@ -851,9 +861,12 @@
             if (!isDark) return;
             const cx = w / 2, cy = h / 2;
             const fov = Math.min(w, h) * 0.55;
+            // True Einstein radius: the shader views the hole (Rs = 1) from D = 18 Rs and
+            // the stars sit at infinity, so θ_E = √(2Rs/D) = 1/3 rad. Through the shader's
+            // projection (tan θ_E / fov 0.48 → uv 0.72) the ring lands at ≈ 0.36 of the
+            // canvas width — ~2.4× the shadow radius, matching the GR scene geometry.
             const canvasR = canvas.getBoundingClientRect();
-            const horizonR = (canvasR.width * window.devicePixelRatio) * 0.17;
-            lensTE = horizonR * 0.92; // Einstein radius (≈ shadow edge), shared with the structures
+            lensTE = (canvasR.width * window.devicePixelRatio) * 0.36;
 
             for (const layer of starLayers) {
                 const rotX = viewRotX * layer.speed;
@@ -906,6 +919,19 @@
                     starsCtx.beginPath();
                     starsCtx.arc(sx, sy, star.size, 0, Math.PI * 2);
                     starsCtx.fill();
+
+                    // Secondary lensed image — dim, parity-flipped counterpart on the far
+                    // side of the hole, filling the annulus inside the Einstein ring. Any
+                    // that land within the shadow are hidden by the opaque shader above.
+                    if (isDark && L.mag2 !== undefined) {
+                        const alpha2 = star.opacity * Math.min(2.2, L.mag2) * Math.min(1, z2 * 4) * twinkle;
+                        if (alpha2 >= 0.01) {
+                            starsCtx.fillStyle = `rgba(255, 255, 255, ${alpha2})`;
+                            starsCtx.beginPath();
+                            starsCtx.arc(L.x2, L.y2, star.size, 0, Math.PI * 2);
+                            starsCtx.fill();
+                        }
+                    }
                 }
             }
         }
@@ -1215,14 +1241,16 @@
         function updateHawkingRadiation(time, w, h, isDark) {
             if (!isDark) return;
             const cx = w / 2, cy = h / 2;
-            const bhRadius = Math.min(w, h) * 0.055;
+            // Hawking pairs separate at the event horizon — spawn just outside the
+            // rendered shadow so the escaping partner is actually visible.
+            const bhRadius = getHorizonRadius();
             const dpr = window.devicePixelRatio;
 
             // Spawn new particles
             if (time - lastHawkingSpawn > 200 + Math.random() * 300) {
                 lastHawkingSpawn = time;
                 const angle = Math.random() * Math.PI * 2;
-                const spawnR = bhRadius * (1.0 + Math.random() * 0.3);
+                const spawnR = bhRadius * (1.02 + Math.random() * 0.12);
                 hawkingParticles.push({
                     x: cx + Math.cos(angle) * spawnR,
                     y: cy + Math.sin(angle) * spawnR,
@@ -1248,7 +1276,6 @@
 
                 const t = age / p.life;
                 const alpha = t < 0.1 ? t / 0.1 : (1 - (t - 0.1) / 0.9);
-                alpha * 0.4; // faint
 
                 starsCtx.fillStyle = `rgba(200, 220, 255, ${alpha * 0.35})`;
                 starsCtx.beginPath();
@@ -2740,6 +2767,7 @@
                     if (dist > hR * 3 && dist < hR * 8) {
                         tidalDisrupt = { theta: star.theta, phi: star.phi, origTheta: star.theta, origPhi: star.phi,
                             layerSpeed: layer.speed, born: now, duration: 15000 + Math.random() * 10000, starIdx: si };
+                        star.dead = true; // the disrupted star replaces its point image
                         break;
                     }
                 }
@@ -2747,52 +2775,51 @@
             if (!tidalDisrupt) { tidalScreenPos = null; return; }
             const age = now - tidalDisrupt.born;
             if (age > tidalDisrupt.duration) {
-                starLayers[0].stars[tidalDisrupt.starIdx].dead = true;
                 tidalDisrupt = null; tidalScreenPos = null; tidalNextTime = now + 60000 + Math.random() * 60000; return;
             }
             const dpr = window.devicePixelRatio;
             const t = age / tidalDisrupt.duration;
-            // Spiral inward — angle increases, radius decreases
-            const spiralAngle = t * Math.PI * 6;
-            const spiralR = (1 - t * t) * 0.15; // quadratic collapse
             const cx2 = w / 2, cy2 = h / 2;
-            // Calculate center direction in theta/phi space
-            const centerTheta = tidalDisrupt.origTheta;
-            const centerPhi = tidalDisrupt.origPhi;
-            const theta = centerTheta + Math.cos(spiralAngle) * spiralR;
-            const phi = centerPhi + Math.sin(spiralAngle) * spiralR;
-            const p = projectStar({ theta, phi }, tidalDisrupt.layerSpeed, viewRotX, viewRotY);
-            if (!p) { tidalScreenPos = null; return; }
-            tidalScreenPos = { x: p.x, y: p.y };
-            // Color shifts toward red as it approaches
+            // Anchor on the star's current (lensed) projected position so the
+            // infall tracks the background when the user drags the view.
+            const anchor = projectStar({ theta: tidalDisrupt.origTheta, phi: tidalDisrupt.origPhi },
+                tidalDisrupt.layerSpeed, viewRotX, viewRotY);
+            if (!anchor) { tidalScreenPos = null; return; }
+            const hR = getHorizonRadius();
+            const r0 = Math.hypot(anchor.x - cx2, anchor.y - cy2);
+            const ang0 = Math.atan2(anchor.y - cy2, anchor.x - cx2);
+            // Inspiral toward the hole: radius decays from the star's position to the
+            // horizon; the sweep accelerates as it falls (Keplerian ω grows as r shrinks).
+            const fall = (tt) => {
+                const rad = hR + (r0 - hR) * Math.pow(1 - tt, 1.4);
+                const ang = ang0 + Math.PI * 5 * Math.pow(tt, 2.2);
+                return { x: cx2 + Math.cos(ang) * rad, y: cy2 + Math.sin(ang) * rad, ang };
+            };
+            const head = fall(t);
+            tidalScreenPos = { x: head.x, y: head.y };
+            // Gravitational redshift — the stream reddens and dims as it nears the horizon
             const redness = t;
             const r = 255, g = Math.round(240 * (1 - redness * 0.7)), b = Math.round(200 * (1 - redness * 0.9));
             let alpha = 0.8 * (1 - t * 0.5);
-            // Stretching
-            const stretch = 1 + t * 2;
+            // Tidal stretching along the direction of motion — the debris stream
+            const stretch = 1 + t * 3;
             starsCtx.save();
-            starsCtx.translate(p.x, p.y);
-            starsCtx.rotate(spiralAngle);
+            starsCtx.translate(head.x, head.y);
+            starsCtx.rotate(head.ang); // local y axis → spiral tangent
             starsCtx.scale(1, stretch);
             starsCtx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
             starsCtx.beginPath();
             starsCtx.arc(0, 0, (1.5 - t * 0.5) * dpr, 0, Math.PI * 2);
             starsCtx.fill();
             starsCtx.restore();
-            // Debris trail
+            // Debris trail — lags the head along the same infall trajectory
             for (let i = 1; i <= 5; i++) {
-                const tt = Math.max(0, t - i * 0.03);
-                const sa = tt * Math.PI * 6;
-                const sr = (1 - tt * tt) * 0.15;
-                const tTheta = centerTheta + Math.cos(sa) * sr;
-                const tPhi = centerPhi + Math.sin(sa) * sr;
-                const tp = projectStar({ theta: tTheta, phi: tPhi }, tidalDisrupt.layerSpeed, viewRotX, viewRotY);
-                if (tp) {
-                    starsCtx.fillStyle = `rgba(255, ${150 + i * 20}, ${50 + i * 20}, ${alpha * (1 - i / 5) * 0.4})`;
-                    starsCtx.beginPath();
-                    starsCtx.arc(tp.x, tp.y, 0.6 * dpr, 0, Math.PI * 2);
-                    starsCtx.fill();
-                }
+                const tt = Math.max(0, t - i * 0.025);
+                const tp = fall(tt);
+                starsCtx.fillStyle = `rgba(255, ${150 + i * 20}, ${50 + i * 20}, ${alpha * (1 - i / 5) * 0.4})`;
+                starsCtx.beginPath();
+                starsCtx.arc(tp.x, tp.y, 0.6 * dpr, 0, Math.PI * 2);
+                starsCtx.fill();
             }
         }
 
