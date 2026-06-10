@@ -74,8 +74,8 @@
             }
         }
         body.dark-mode {
-            /* background-color: rgb(2, 2, 42); */
-            background-color: rgb(10, 10, 10);
+            /* True black — on OLED the void merges with the hardware; the page has no edges */
+            background-color: #000;
             color: #fff;
         }
         body.dark-mode footer {
@@ -120,8 +120,10 @@
             padding: 0;
         }
         #logo-canvas {
-            width: min(74vw, 34rem);
-            height: min(74vw, 34rem);
+            /* Sized with the shader fov (0.52) so the disk's widest image (~0.90 of
+               half-width) never touches the canvas edge at any drag orientation. */
+            width: min(80vw, 36.75rem);
+            height: min(80vw, 36.75rem);
             display: block;
         }
         header, footer {
@@ -199,8 +201,8 @@
                 margin: 0;
             }
             #logo-canvas {
-                width: min(88vw, 26rem);
-                height: min(88vw, 26rem);
+                width: min(95vw, 28.25rem);
+                height: min(95vw, 28.25rem);
             }
         }
     </style>
@@ -239,11 +241,11 @@
 
         function resizeRenderer() {
             const s = canvas.offsetWidth || Math.round(window.innerWidth <= 768
-                ? Math.min(window.innerWidth * 0.88, 416)
-                : Math.min(window.innerWidth * 0.74, 544));
+                ? Math.min(window.innerWidth * 0.95, 452)
+                : Math.min(window.innerWidth * 0.80, 588));
             // Retina-aware buffer: the photon ring is the sharpest feature on the page,
             // so give it real pixels — capped to keep the ray-march affordable.
-            const buf = Math.min(Math.round(s * Math.min(window.devicePixelRatio || 1, 1.5)), 640);
+            const buf = Math.min(Math.round(s * Math.min(window.devicePixelRatio || 1, 1.5)), 692);
             renderer.setSize(buf, buf, false);
         }
         resizeRenderer();
@@ -345,7 +347,7 @@
                 void main(){
                     vec2 uv = vUv;
                     float D = 18.0;
-                    float fov = 0.48;
+                    float fov = 0.52; // wide enough that the disk image (b ≲ 7.6) keeps ~10% edge margin
                     // Fixed camera down -Z; rotate the world by yaw then pitch (same as the
                     // star field). Using rotation matrices means no pole singularity, so the
                     // hole keeps tracking the background all the way around.
@@ -761,6 +763,14 @@
                     rotX = 12 * DEG; rotY = 0; userDragX = 0; userDragY = 0;
                     resetting = false;
                 }
+            } else if (!isDragging && (spinVX !== 0 || spinVY !== 0)) {
+                // Coast after release with exponential damping (frame-rate independent);
+                // hole and star field move together, same as during the drag.
+                rotX += spinVX * dtF; rotY += spinVY * dtF;
+                userDragX += spinVX * dtF; userDragY += spinVY * dtF;
+                const damp = Math.pow(0.90, dtF);
+                spinVX *= damp; spinVY *= damp;
+                if (Math.abs(spinVX) < 1e-5 && Math.abs(spinVY) < 1e-5) { spinVX = 0; spinVY = 0; }
             }
 
             // Drive the lensing shader — tilt, disk-flow time, and a subtle brightness flicker.
@@ -824,11 +834,18 @@
         }
 
         let downX = 0, downY = 0;
+        // Fling inertia — the sky carries momentum past release and decelerates smoothly,
+        // so the hole handles like something massive instead of stopping dead.
+        let spinVX = 0, spinVY = 0;   // coast velocity, rad per 60 Hz frame
+        let flingVX = 0, flingVY = 0; // smoothed in-drag velocity estimate
+        let lastMoveT = 0;
         document.addEventListener('pointerdown', e => {
             if (e.target.closest('.info-text, .ui-info-link, .theme-toggle, a[href]')) return;
             isDragging = true; resetting = false;
+            spinVX = spinVY = flingVX = flingVY = 0; // grabbing the sky stops it
             downX = e.clientX; downY = e.clientY;
             lastX = e.clientX; lastY = e.clientY;
+            lastMoveT = e.timeStamp;
             e.preventDefault();
         });
         document.addEventListener('pointermove', e => {
@@ -838,8 +855,20 @@
             rotY += dY; rotX += dX;
             userDragY += dY; userDragX += dX;
             lastX = e.clientX; lastY = e.clientY;
+            const f = Math.max(0.5, Math.min(3, (e.timeStamp - lastMoveT) / (1000 / 60)));
+            lastMoveT = e.timeStamp;
+            flingVX = 0.6 * flingVX + 0.4 * (dX / f); // low-pass: one jittery event can't dominate
+            flingVY = 0.6 * flingVY + 0.4 * (dY / f);
         });
-        document.addEventListener('pointerup', () => { isDragging = false; });
+        document.addEventListener('pointerup', e => {
+            isDragging = false;
+            // Coast only if the pointer was still moving at release
+            if (e.timeStamp - lastMoveT < 120) {
+                const cap = 1.5 * DEG; // massive things don't get flung fast
+                spinVX = Math.max(-cap, Math.min(cap, flingVX));
+                spinVY = Math.max(-cap, Math.min(cap, flingVY));
+            }
+        });
         document.addEventListener('pointercancel', () => { isDragging = false; });
         document.addEventListener('click', e => {
             if (e.target.closest('.info-text, .ui-info-link, .theme-toggle, a[href]')) return;
@@ -849,9 +878,10 @@
                 const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
                 const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-                const holeR = rect.width * 0.16; // true shadow ≈ 0.152 + a little touch padding
+                const holeR = rect.width * 0.147; // true shadow ≈ 0.140 + a little touch padding
                 if (dist < holeR) {
                     resetting = true; // animate() eases hole + stars home together
+                    spinVX = 0; spinVY = 0; // reset overrides any residual coast
                 }
             }
         });
@@ -950,10 +980,10 @@
             const fov = Math.min(w, h) * 0.55;
             // True Einstein radius: the shader views the hole (Rs = 1) from D = 18 Rs and
             // the stars sit at infinity, so θ_E = √(2Rs/D) = 1/3 rad. Through the shader's
-            // projection (tan θ_E / fov 0.48 → uv 0.72) the ring lands at ≈ 0.36 of the
+            // projection (tan θ_E / fov 0.52 → uv 0.666) the ring lands at ≈ 0.333 of the
             // canvas width — ~2.4× the shadow radius, matching the GR scene geometry.
             const canvasR = canvas.getBoundingClientRect();
-            lensTE = (canvasR.width * window.devicePixelRatio) * 0.36;
+            lensTE = (canvasR.width * window.devicePixelRatio) * 0.333;
 
             for (const layer of starLayers) {
                 const rotX = viewRotX * layer.speed;
@@ -1387,9 +1417,9 @@
         // ── Shared: black hole occlusion check ──
         function getHorizonRadius() {
             // True rendered shadow: b_crit = (3√3/2)Rs from D = 18Rs → sinθ = 2.598/18,
-            // through the shader projection (tan θ / fov 0.48) → 0.152 of canvas width.
+            // through the shader projection (tan θ / fov 0.52) → 0.140 of canvas width.
             const canvasR = canvas.getBoundingClientRect();
-            return (canvasR.width * window.devicePixelRatio) * 0.152;
+            return (canvasR.width * window.devicePixelRatio) * 0.140;
         }
         function isOccludedByHole(sx, sy) {
             const w = starsCanvas.width, h = starsCanvas.height;
