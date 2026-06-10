@@ -278,9 +278,10 @@
                 uniform float uPitch;
                 uniform float uFlicker;
 
-                const int   STEPS    = 200;
+                const int   STEPS    = 300;
                 const float DISK_IN  = 3.0;
                 const float DISK_OUT = 8.0;
+                const float FLOW_P   = 40.0; // seconds per advection cycle — JS wraps uTime to this
 
                 float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
                 float vnoise(vec2 p){
@@ -303,17 +304,31 @@
                     return c;
                 }
 
-                void diskSample(float r, float ang, float g, inout vec3 col, inout float transmit){
+                void diskSample(float r, float ang, float g, float graze, inout vec3 col, inout float transmit){
                     if(r < DISK_IN || r > DISK_OUT) return;
                     float t = (r - DISK_IN) / (DISK_OUT - DISK_IN);
                     // Novikov–Thorne thin disk: T(r) ∝ [r⁻³(1 − √(r_in/r))]^¼ — zero torque
                     // (and zero T) at the ISCO, peak at r = 49/12 ≈ 4.08, ~r^(−3/4) tail.
                     // 476.6 normalizes the peak to T = 1.
                     float Temit = pow(max((1.0 - sqrt(DISK_IN / r)) / (r * r * r), 0.0) * 476.6, 0.25);
-                    float spin = uTime * (2.4 / pow(r, 1.5));
-                    float a2 = ang - spin;                                   // differential rotation
-                    vec2 nc = vec2(cos(a2), sin(a2)) * (3.0 + r * 0.4) + vec2(r * 0.9, 0.0); // seamless around the ring
-                    float n = fbm(nc);
+                    float rate = 2.4 / pow(r, 1.5);                          // Keplerian Ω(r), differential rotation
+                    // Flow-noise advection: two decorrelated turbulence streams, each advected
+                    // for one bounded cycle and crossfaded out exactly where the other resets.
+                    // A raw uTime·Ω angle grows unboundedly and overflows fp32 sin/cos range
+                    // reduction within the hour — the disk dissolves into per-pixel grain.
+                    float ph1 = fract(uTime / FLOW_P);
+                    float ph2 = fract(uTime / FLOW_P + 0.5);
+                    float w = abs(2.0 * ph1 - 1.0);                          // 0 → stream 1, 1 → stream 2
+                    float a1 = ang - ph1 * FLOW_P * rate;
+                    float a2 = ang - ph2 * FLOW_P * rate;
+                    vec2 nc1 = vec2(cos(a1), sin(a1)) * (3.0 + r * 0.4) + vec2(r * 0.9, 0.0);        // seamless around the ring
+                    vec2 nc2 = vec2(cos(a2), sin(a2)) * (3.0 + r * 0.4) + vec2(r * 0.9 + 23.7, 11.3); // decorrelated domain
+                    float nf = mix(fbm(nc1), fbm(nc2), w);
+                    nf = 0.47 + (nf - 0.47) / sqrt(w * w + (1.0 - w) * (1.0 - w)); // keep contrast through the blend
+                    // A grazing ray slices a long path through the disk, so its single-point
+                    // sample should average the turbulence — blend toward the fbm mean to
+                    // kill edge-on speckle without touching face-on detail.
+                    float n = mix(0.47, nf, graze);
                     float dens = pow(0.35 + 0.65 * n, 1.4);
                     dens *= smoothstep(0.0, 0.30, 1.0 - t);                  // soft outer rim
                     // Observed temperature is the Doppler+gravity-shifted one; bolometric
@@ -350,7 +365,10 @@
                         float r = sqrt(r2);
                         if(r < 1.0){ horizon = true; break; }
                         if(r > 12.0 && dot(pos, dir) > 0.0) break;
-                        float dt = clamp(0.022 * r, 0.02, 0.45);
+                        // Refine steps near the photon sphere (r = 1.5): winding rays are
+                        // what build the photon ring, and coarse steps band-alias them.
+                        float dt = clamp(0.022 * r, 0.02, 0.45)
+                                 * mix(0.3, 1.0, smoothstep(0.0, 1.5, abs(r - 1.5)));
                         vec3 acc = -1.5 * h2 * pos / pow(r2, 2.5);
                         vec3 npos = pos + dir * dt;
                         if(pos.y * npos.y < 0.0){
@@ -364,10 +382,12 @@
                                 // the Doppler-free part reduces to the textbook √(1−3M/r).
                                 float beta = inversesqrt(2.0 * (cr - 1.0));
                                 vec3 vhat = normalize(vec3(-cpz.z, 0.0, cpz.x));
-                                float mu = dot(vhat, -normalize(dir));       // cos angle, emitter velocity → escaping photon
+                                vec3 nd = normalize(dir);
+                                float mu = dot(vhat, -nd);                   // cos angle, emitter velocity → escaping photon
                                 float g = sqrt(max(1.0 - 1.0 / cr, 0.0)) * sqrt(1.0 - beta * beta) / (1.0 - beta * mu);
                                 float ang = atan(cpz.z, cpz.x);
-                                diskSample(cr, ang, g, col, transmit);
+                                float graze = clamp(abs(nd.y) * 8.0, 0.0, 1.0); // 0 = edge-on slice, 1 = clean crossing
+                                diskSample(cr, ang, g, graze, col, transmit);
                             }
                         }
                         dir += acc * dt;
@@ -730,9 +750,15 @@
             dtF = Math.min((now - lastFrameT) / (1000 / 60), 4); // clamp tab-switch gaps
             lastFrameT = now;
             if (resetting) {
-                rotX += (12 * DEG - rotX) * (1 - Math.pow(0.88, dtF));
-                if (Math.abs(rotX - 12 * DEG) < 0.001) {
-                    rotX = 12 * DEG;
+                // Ease the hole and the star field home together — snapping one while
+                // easing the other visibly unregisters the scene mid-reset.
+                const k = 1 - Math.pow(0.88, dtF);
+                rotX += (12 * DEG - rotX) * k;
+                rotY -= rotY * k;
+                userDragX -= userDragX * k;
+                userDragY -= userDragY * k;
+                if (Math.abs(rotX - 12 * DEG) < 0.001 && Math.abs(userDragX) < 0.001 && Math.abs(userDragY) < 0.001) {
+                    rotX = 12 * DEG; rotY = 0; userDragX = 0; userDragY = 0;
                     resetting = false;
                 }
             }
@@ -744,7 +770,9 @@
                           + 0.015 * Math.sin(now * 0.0137 + 2.7);
             bhUniforms.uYaw.value = rotY;
             bhUniforms.uPitch.value = rotX;
-            bhUniforms.uTime.value = now * 0.001;
+            // The shader's disk advection is FLOW_P-periodic (40 s); wrapping here keeps
+            // the fp32 uniform exact no matter how long the page stays open.
+            bhUniforms.uTime.value = (now * 0.001) % 40.0;
             bhUniforms.uFlicker.value = flicker;
 
 
@@ -823,8 +851,7 @@
                 const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
                 const holeR = rect.width * 0.16; // true shadow ≈ 0.152 + a little touch padding
                 if (dist < holeR) {
-                    resetting = true;
-                    userDragX = 0; userDragY = 0;
+                    resetting = true; // animate() eases hole + stars home together
                 }
             }
         });
@@ -884,6 +911,7 @@
                     opacity: 0.06 + Math.random() * 0.18,
                     twinkleOffset: Math.random() * 1000,
                     rgb: spec.rgb, cls: spec.cls,
+                    band: true, // too faint to anchor events — skipped by pickRandomVisibleStar
                 });
             }
         }
@@ -1399,7 +1427,7 @@
                 if (layer.stars.length === 0) continue;
                 const si = Math.floor(Math.random() * layer.stars.length);
                 const star = layer.stars[si];
-                if (star.dead) continue;
+                if (star.dead || star.band) continue;
                 const p = projectStar(star, layer.speed, viewRotX, viewRotY);
                 if (p && p.x > 50 && p.x < w - 50 && p.y > 50 && p.y < h - 50) {
                     return { layerIdx: li, starIdx: si, star };
@@ -2999,7 +3027,10 @@
             }
         }
 
-        generateStars();
+        // Anoint Sol and the megastructure hosts. generateStars() rebuilds the sky from
+        // scratch, so this must re-run after every regeneration (initial load AND resize)
+        // or Sol loses its flag and the structures rebind to random faint stars.
+        function assignSpecialStars() {
         // Assign one star as the Pale Blue Dot (Sol)
         paleBlueDotStar = { layerIdx: 0, starIdx: 42 }; // near layer, star #42
         if (starLayers[0].stars.length > 42) {
@@ -3052,9 +3083,16 @@
             aldersonStar = { layerIdx: 0, starIdx: 250 };
             starLayers[0].stars[250].size = 1.6; starLayers[0].stars[250].opacity = 0.6;
         }
+        }
 
+        generateStars();
+        assignSpecialStars();
         drawStars(true, 0, 0, 0);
-        window.addEventListener('resize', () => { generateStars(); drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY, performance.now()); });
+        window.addEventListener('resize', () => {
+            generateStars();
+            assignSpecialStars();
+            drawStars(document.body.classList.contains('dark-mode'), userDragX, userDragY, performance.now());
+        });
 
         // ── Sci-fi reticle cursor with spaghettification ──
         const cursorCanvas = document.createElement('canvas');
