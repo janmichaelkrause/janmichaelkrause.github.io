@@ -118,6 +118,19 @@
             justify-content: center;
             margin: 0;
             padding: 0;
+            position: relative;
+        }
+        /* Bloom overlay — the brightest disk light bleeds, photographically.
+           Slightly larger than the render canvas so the glow has room to spill. */
+        #bloom-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: calc(min(80vw, 36.75rem) + 48px);
+            height: calc(min(80vw, 36.75rem) + 48px);
+            pointer-events: none;
+            mix-blend-mode: screen;
         }
         #logo-canvas {
             /* Sized with the shader fov (0.52) so the disk's widest image (~0.90 of
@@ -204,6 +217,10 @@
                 width: min(95vw, 28.25rem);
                 height: min(95vw, 28.25rem);
             }
+            #bloom-canvas {
+                width: calc(min(95vw, 28.25rem) + 48px);
+                height: calc(min(95vw, 28.25rem) + 48px);
+            }
         }
     </style>
 </head>
@@ -222,6 +239,7 @@
     <main>
         <section class="hero">
             <canvas id="logo-canvas" aria-label="Interactive 3D black hole"></canvas>
+            <canvas id="bloom-canvas" aria-hidden="true"></canvas>
         </section>
     </main>
     <script type="module">
@@ -251,10 +269,33 @@
         resizeRenderer();
         window.addEventListener('resize', resizeRenderer);
 
+        // ── Bloom — cheap glow pass. Each frame the WebGL output is drawn
+        // downsampled through a bright-pass (contrast acts as the threshold) and a
+        // blur, onto an overlay composited with screen blending: the crescent
+        // bleeds light the way a camera would, the dim halo stays untouched.
+        const bloomCanvas = document.getElementById('bloom-canvas');
+        const bloomCtx = bloomCanvas.getContext('2d');
+        bloomCanvas.width = 200;
+        bloomCanvas.height = 200;
+        bloomCtx.filter = 'blur(2px)';
+        const bloomOK = bloomCtx.filter === 'blur(2px)'; // old Safari lacks canvas filters
+        if (!bloomOK) bloomCanvas.style.display = 'none';
+        function bloomPass() {
+            if (!bloomOK) return;
+            const cssInner = canvas.offsetWidth || 1;
+            const inner = 200 * cssInner / (cssInner + 48);
+            const pad = (200 - inner) / 2;
+            bloomCtx.clearRect(0, 0, 200, 200);
+            bloomCtx.filter = 'contrast(2.4) brightness(1.15) blur(4px)';
+            bloomCtx.globalAlpha = 0.55;
+            bloomCtx.drawImage(renderer.domElement, pad, pad, inner, inner);
+        }
+
         // ── Black hole — gravitational-lensing ray-marcher ──
-        // Screen-filling quad. The fragment shader integrates photon geodesics
-        // around a Schwarzschild hole (Rs = 1): the accretion disk is lensed so
-        // its far side wraps over and under the shadow, and a photon ring forms.
+        // Screen-filling quad. The fragment shader integrates exact null geodesics
+        // of a Kerr hole (a = 0.95M, prograde disk) via the Kerr–Schild Hamiltonian:
+        // the disk is lensed over and under the shadow, frame dragging skews the
+        // photon ring, and the shadow takes its asymmetric D-shape.
         const bhUniforms = {
             uTime:    { value: 0 },
             uYaw:     { value: 0 },
@@ -280,9 +321,13 @@
                 uniform float uPitch;
                 uniform float uFlicker;
 
-                const int   STEPS    = 300;
-                const float DISK_IN  = 3.0;
-                const float DISK_OUT = 8.0;
+                const int   STEPS    = 420;
+                // Kerr, geometrized units M = 1 (lengths in GM/c²; the old Rs=1 scene ×2)
+                const float A_BH     = 0.95;    // spin a/M — fast astrophysical spin, prograde disk
+                const float A2_BH    = 0.9025;  // a²
+                const float R_HOR    = 1.3122;  // outer horizon r₊ = 1 + √(1−a²)
+                const float DISK_IN  = 1.937;   // prograde ISCO for a = 0.95 (vs 6M at a = 0)
+                const float DISK_OUT = 16.0;
                 const float FLOW_P   = 40.0; // seconds per advection cycle — JS wraps uTime to this
 
                 float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -306,14 +351,17 @@
                     return c;
                 }
 
-                void diskSample(float r, float ang, float g, float graze, inout vec3 col, inout float transmit){
+                void diskSample(float r, float ang, float g, float graze, float fade, inout vec3 col, inout float transmit){
                     if(r < DISK_IN || r > DISK_OUT) return;
                     float t = (r - DISK_IN) / (DISK_OUT - DISK_IN);
                     // Novikov–Thorne thin disk: T(r) ∝ [r⁻³(1 − √(r_in/r))]^¼ — zero torque
-                    // (and zero T) at the ISCO, peak at r = 49/12 ≈ 4.08, ~r^(−3/4) tail.
-                    // 476.6 normalizes the peak to T = 1.
-                    float Temit = pow(max((1.0 - sqrt(DISK_IN / r)) / (r * r * r), 0.0) * 476.6, 0.25);
-                    float rate = 2.4 / pow(r, 1.5);                          // Keplerian Ω(r), differential rotation
+                    // (and zero T) at the ISCO, peak at r = (49/36)·r_in ≈ 2.64M, ~r^(−3/4) tail.
+                    // 128.3 normalizes the peak to T = 1 for r_in = 1.937.
+                    float Temit = pow(max((1.0 - sqrt(DISK_IN / r)) / (r * r * r), 0.0) * 128.3, 0.25);
+                    // Kerr Ω(r) = 1/(r^{3/2}+a) differential rotation — but cap the texture's
+                    // shear below r = 5: there ∂Ω/∂r wraps the noise phase sub-pixel within
+                    // seconds and point-sampling aliases it into moiré rings over the shadow.
+                    float rate = 2.4 / (pow(max(r, 5.0), 1.5) + A_BH);
                     // Flow-noise advection: two decorrelated turbulence streams, each advected
                     // for one bounded cycle and crossfaded out exactly where the other resets.
                     // A raw uTime·Ω angle grows unboundedly and overflows fp32 sin/cos range
@@ -323,8 +371,8 @@
                     float w = abs(2.0 * ph1 - 1.0);                          // 0 → stream 1, 1 → stream 2
                     float a1 = ang - ph1 * FLOW_P * rate;
                     float a2 = ang - ph2 * FLOW_P * rate;
-                    vec2 nc1 = vec2(cos(a1), sin(a1)) * (3.0 + r * 0.4) + vec2(r * 0.9, 0.0);        // seamless around the ring
-                    vec2 nc2 = vec2(cos(a2), sin(a2)) * (3.0 + r * 0.4) + vec2(r * 0.9 + 23.7, 11.3); // decorrelated domain
+                    vec2 nc1 = vec2(cos(a1), sin(a1)) * (3.0 + r * 0.2) + vec2(r * 0.3, 0.0);        // seamless around the ring
+                    vec2 nc2 = vec2(cos(a2), sin(a2)) * (3.0 + r * 0.2) + vec2(r * 0.3 + 23.7, 11.3); // decorrelated domain
                     float nf = mix(fbm(nc1), fbm(nc2), w);
                     nf = 0.47 + (nf - 0.47) / sqrt(w * w + (1.0 - w) * (1.0 - w)); // keep contrast through the blend
                     // A grazing ray slices a long path through the disk, so its single-point
@@ -337,63 +385,135 @@
                     // flux transforms as g⁴, so brightness goes as T_obs⁴ = (g·T_emit)⁴.
                     float Tobs = Temit * g;
                     float T2 = Tobs * Tobs;
-                    float bright = T2 * T2 * dens * uFlicker * 3.0;
+                    // 9.0 renormalizes for Kerr's deeper potential: even the approaching side
+                    // sits at g ≈ 0.8 near the ISCO, so g⁴ eats ~×6 more flux than at a = 0.
+                    float bright = T2 * T2 * dens * uFlicker * 9.0 * fade;
                     vec3 c = bbColor(Tobs);
                     float a = clamp(bright, 0.0, 1.0);
                     col += transmit * c * bright;
-                    transmit *= (1.0 - a * 0.8);
+                    // The disk is optically thick even where it's dim (α-disk optical depths
+                    // are enormous): each crossing absorbs at least half the light behind it,
+                    // which also collapses the near-critical multi-crossing stack (no
+                    // crossing-count rings). But the opacity floor must fade with the same
+                    // rim envelope as the emission — a constant floor prints the disk's
+                    // geometric footprint as a hard alpha edge over the background.
+                    float cover = smoothstep(0.0, 0.05, t) * smoothstep(0.0, 0.30, 1.0 - t) * fade;
+                    transmit *= 1.0 - max(a * 0.8, 0.5 * cover);
                 }
 
                 void main(){
                     vec2 uv = vUv;
-                    float D = 18.0;
-                    float fov = 0.52; // wide enough that the disk image (b ≲ 7.6) keeps ~10% edge margin
+                    float D = 36.0;   // camera distance, M units (same scene proportions as the old 18 Rs)
+                    float fov = 0.52; // wide enough that the disk image keeps ~10% edge margin
                     // Fixed camera down -Z; rotate the world by yaw then pitch (same as the
                     // star field). Using rotation matrices means no pole singularity, so the
                     // hole keeps tracking the background all the way around.
                     mat3 Rinv = rotYm(-uYaw) * rotXm(-uPitch);
-                    vec3 pos = Rinv * vec3(0.0, 0.0, D);
-                    vec3 dir = Rinv * normalize(vec3(uv.x * fov, uv.y * fov, -1.0));
+                    vec3 pw = Rinv * vec3(0.0, 0.0, D);
+                    vec3 dw = Rinv * normalize(vec3(uv.x * fov, uv.y * fov, -1.0));
 
-                    vec3 hvec = cross(pos, dir);
-                    float h2 = dot(hvec, hvec);
+                    // Kerr–Schild Cartesian coordinates, spin axis = disk normal (world y → KS z).
+                    // Metric g_μν = η_μν + f k_μ k_ν with k null; Hamiltonian H = ½ g^{μν}p_μ p_ν.
+                    // Horizon-penetrating: no coordinate blowup anywhere we integrate.
+                    vec3 q = pw.xzy;  // position
+                    vec3 p = dw.xzy;  // covariant spatial momentum
+
+                    // Conserved photon energy E = −p_t from H = 0 (quadratic in E), taking the
+                    // NEGATIVE root: a backward-traced ray is a past-directed photon. Kerr is
+                    // not time-symmetric (t → −t flips the spin), so unlike Schwarzschild this
+                    // sign decides which way frame dragging winds the rays.
+                    // Conserved axial angular momentum λ = p_φ = x p_y − y p_x.
+                    float RR = dot(q, q);
+                    float d2 = RR - A2_BH;
+                    float Dl = sqrt(d2 * d2 + 4.0 * A2_BH * q.z * q.z);
+                    float r2 = 0.5 * (d2 + Dl);
+                    float r  = sqrt(r2);
+                    float s  = r2 + A2_BH;
+                    vec3  k  = vec3((r * q.x + A_BH * q.y) / s, (r * q.y - A_BH * q.x) / s, q.z / r);
+                    float f  = 2.0 * r * r2 / (r2 * r2 + A2_BH * q.z * q.z);
+                    float kap = dot(k, p);
+                    float E  = (-f * kap - sqrt(f * f * kap * kap + (1.0 + f) * (dot(p, p) - f * kap * kap))) / (1.0 + f);
+                    float lam = (q.x * p.y - q.y * p.x) / E; // impact parameter λ = p_φ/E (reversal-invariant ratio)
 
                     vec3 col = vec3(0.0);
                     float transmit = 1.0;
                     bool horizon = false;
+                    int lastCross = -100; // step index of the previous accepted crossing
+                    float wind = 0.0; // accumulated azimuthal sweep |Δφ| along the ray
 
                     for(int i = 0; i < STEPS; i++){
-                        float r2 = dot(pos, pos);
-                        float r = sqrt(r2);
-                        if(r < 1.0){ horizon = true; break; }
-                        if(r > 12.0 && dot(pos, dir) > 0.0) break;
-                        // Refine steps near the photon sphere (r = 1.5): winding rays are
-                        // what build the photon ring, and coarse steps band-alias them.
-                        float dt = clamp(0.022 * r, 0.02, 0.45)
-                                 * mix(0.3, 1.0, smoothstep(0.0, 1.5, abs(r - 1.5)));
-                        vec3 acc = -1.5 * h2 * pos / pow(r2, 2.5);
-                        vec3 npos = pos + dir * dt;
-                        if(pos.y * npos.y < 0.0){
-                            float f = pos.y / (pos.y - npos.y);
-                            vec3 cpz = mix(pos, npos, f);
-                            float cr = length(cpz.xz);
+                        RR = dot(q, q);
+                        d2 = RR - A2_BH;
+                        Dl = sqrt(d2 * d2 + 4.0 * A2_BH * q.z * q.z);
+                        r2 = 0.5 * (d2 + Dl);
+                        r  = sqrt(r2);
+                        if(r < R_HOR * 1.01){ horizon = true; break; }
+                        s = r2 + A2_BH;
+                        float den = r2 * r2 + A2_BH * q.z * q.z;
+                        k = vec3((r * q.x + A_BH * q.y) / s, (r * q.y - A_BH * q.x) / s, q.z / r);
+                        f = 2.0 * r * r2 / den;
+                        float u = E + dot(k, p);
+                        // Refine steps through the photon region (r_ph spans 1.39–3.96 M at
+                        // a = 0.95): winding rays build the ring and band-alias on coarse steps.
+                        float dt = clamp(0.022 * r, 0.04, 0.9)
+                                 * mix(0.45, 1.0, smoothstep(0.0, 3.0, abs(r - 2.7)));
+                        // Plane-skimming rays (low, slow in z) can cross the disk down-and-up
+                        // within one step; resolve them so grazing pairs are reliably caught.
+                        if(r < 18.0 && abs(q.z) < 0.4 && abs(p.z) < 0.25 * length(p)) dt *= 0.45;
+                        // dp_i/dλ = −∂H/∂x_i = ½ u² ∂_i f + f u (∂_i k_j) p_j  (analytic gradients)
+                        vec3 gr = vec3(q.x * r / Dl, q.y * r / Dl, q.z * s / (r * Dl));     // ∂r/∂q
+                        vec3 gf = f * ((3.0 / r) * gr - (4.0 * r * r2 * gr + 2.0 * A2_BH * q.z * vec3(0.0, 0.0, 1.0)) / den);
+                        float c = (q.x * p.x + q.y * p.y - 2.0 * r * (k.x * p.x + k.y * p.y)) / s - q.z * p.z / r2;
+                        vec3 w = c * gr + vec3((r * p.x - A_BH * p.y) / s, (A_BH * p.x + r * p.y) / s, p.z / r);
+                        p += (0.5 * gf * u * u + f * u * w) * dt;
+                        u = E + dot(k, p);
+                        vec3 v = p - f * u * k;          // dq/dλ = ∂H/∂p
+                        if(r > 24.0 && dot(q, v) > 0.0) break;
+                        wind += abs(q.x * v.y - q.y * v.x) / max(q.x * q.x + q.y * q.y, 1.0) * dt;
+                        // A ray that has wound ≈ a full turn deep inside the photon region is
+                        // captured for any visual purpose: each further half-turn demagnifies
+                        // its images by e^(−π). Classifying it now prevents step starvation,
+                        // whose die-mid-flight contours otherwise print as rings on the shadow.
+                        if(wind > 6.0 && r < 3.5){ horizon = true; break; }
+                        vec3 nq = q + v * dt;
+                        // Deduplicate grazing pairs: a down-and-up recross within a few steps
+                        // is one slab passage through a finite-thickness disk, not two — double
+                        // counting its absorption prints dark contour curls on the near disk.
+                        if(q.z * nq.z < 0.0 && i - lastCross > 5){
+                            lastCross = i;
+                            float fr = q.z / (q.z - nq.z);
+                            vec3 cp = mix(q, nq, fr);
+                            // Boyer–Lindquist radius in the equatorial plane: r² = ρ² − a²
+                            float cr = sqrt(max(cp.x * cp.x + cp.y * cp.y - A2_BH, 0.0));
                             if(cr >= DISK_IN && cr <= DISK_OUT){
-                                // Exact Schwarzschild circular orbit: local speed β = 1/√(2(r−1))
-                                // (Rs = 1) — c/2 at the ISCO. Total shift to infinity factors as
-                                // g = √(1−Rs/r) · √(1−β²)/(1−β·μ): gravitational × SR Doppler;
-                                // the Doppler-free part reduces to the textbook √(1−3M/r).
-                                float beta = inversesqrt(2.0 * (cr - 1.0));
-                                vec3 vhat = normalize(vec3(-cpz.z, 0.0, cpz.x));
-                                vec3 nd = normalize(dir);
-                                float mu = dot(vhat, -nd);                   // cos angle, emitter velocity → escaping photon
-                                float g = sqrt(max(1.0 - 1.0 / cr, 0.0)) * sqrt(1.0 - beta * beta) / (1.0 - beta * mu);
-                                float ang = atan(cpz.z, cpz.x);
-                                float graze = clamp(abs(nd.y) * 8.0, 0.0, 1.0); // 0 = edge-on slice, 1 = clean crossing
-                                diskSample(cr, ang, g, graze, col, transmit);
+                                // Exact Kerr redshift for a prograde circular emitter:
+                                // g = r^{3/4}·√(r^{3/2} − 3r^{1/2} + 2a) / (r^{3/2} + a − λ).
+                                // Reduces to √(1−3M/r) at a = 0, λ = 0. λ > 0 (co-rotating
+                                // photons, approaching side) shrinks the denominator → blueshift.
+                                float sq = sqrt(cr);
+                                float g = pow(cr, 0.75) * sqrt(max(cr * sq - 3.0 * sq + 2.0 * A_BH, 0.0))
+                                        / max(cr * sq + A_BH - lam, 0.4);
+                                g = min(g, 2.4);
+                                float ang = atan(cp.y, cp.x);
+                                // Noise detail vs incidence: at 12° the near-disk image is
+                                // ~5× vertically compressed and full-detail turbulence aliases
+                                // into curl moiré, so average it in proportion to foreshortening.
+                                float graze = clamp(abs(v.z) * 1.6 / length(v), 0.0, 1.0); // 0 = edge-on slice
+                                // NOTE: texture-flattening by path history (wind, ncross, rmin)
+                                // was tried and removed — those quantities jump where a pixel's
+                                // crossing slips from the near rim to the wrapped far image, and
+                                // any function of them prints a hard texture seam there. The
+                                // demagnification fade below + crossing dedup cover their job.
+                                // Demagnification fade: images dim exponentially with winding.
+                                // Deposits must reach zero BEFORE winding becomes chaotic
+                                // (sub-pixel near the critical curve) or any cutoff prints
+                                // per-pixel speckle. Primary/secondary arcs live at wind ≲ π,
+                                // safely below this band.
+                                float fade = 1.0 - smoothstep(3.2, 4.6, wind);
+                                diskSample(cr, ang, g, graze, fade, col, transmit);
                             }
                         }
-                        dir += acc * dt;
-                        pos = npos;
+                        q = nq;
                         if(transmit < 0.02) break;
                     }
 
@@ -404,6 +524,11 @@
                     float gray = dot(col, vec3(0.299, 0.587, 0.114));
                     col = max(mix(vec3(gray), col, 1.3), 0.0);     // lift saturation
                     float alpha = horizon ? 1.0 : clamp(1.0 - transmit, 0.0, 1.0);
+                    // ±0.5 LSB of dither breaks 8-bit banding in the dim halo gradients,
+                    // which the true-black background otherwise makes visible on OLED.
+                    float dn = hash(gl_FragCoord.xy) - 0.5;
+                    col = max(col + dn * (2.0 / 255.0), 0.0);
+                    alpha = clamp(alpha + dn * (1.0 / 255.0), 0.0, 1.0);
                     gl_FragColor = vec4(col, alpha);
                 }
             `,
@@ -831,6 +956,7 @@
             drawSolarSystem(now, sw, sh, isDark, userDragX, userDragY);
 
             renderer.render(scene, camera);
+            bloomPass();
         }
 
         let downX = 0, downY = 0;
@@ -878,7 +1004,7 @@
                 const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
                 const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-                const holeR = rect.width * 0.147; // true shadow ≈ 0.140 + a little touch padding
+                const holeR = rect.width * 0.140; // effective shadow ≈ 0.128 + a little touch padding
                 if (dist < holeR) {
                     resetting = true; // animate() eases hole + stars home together
                     spinVX = 0; spinVY = 0; // reset overrides any residual coast
@@ -890,6 +1016,7 @@
             animate();
         } else {
             renderer.render(scene, camera);
+            bloomPass();
         }
 
         // ── Star field — 3 depth layers with different rotation speeds ──
@@ -978,10 +1105,10 @@
             if (!isDark) return;
             const cx = w / 2, cy = h / 2;
             const fov = Math.min(w, h) * 0.55;
-            // True Einstein radius: the shader views the hole (Rs = 1) from D = 18 Rs and
-            // the stars sit at infinity, so θ_E = √(2Rs/D) = 1/3 rad. Through the shader's
-            // projection (tan θ_E / fov 0.52 → uv 0.666) the ring lands at ≈ 0.333 of the
-            // canvas width — ~2.4× the shadow radius, matching the GR scene geometry.
+            // True Einstein radius: the shader views the hole (M = 1, Rs = 2) from D = 36M
+            // and the stars sit at infinity, so θ_E = √(2Rs/D) = 1/3 rad (spin doesn't enter
+            // the monopole lens). Through the shader's projection (tan θ_E / fov 0.52 →
+            // uv 0.666) the ring lands at ≈ 0.333 of the canvas width.
             const canvasR = canvas.getBoundingClientRect();
             lensTE = (canvasR.width * window.devicePixelRatio) * 0.333;
 
@@ -1416,10 +1543,11 @@
 
         // ── Shared: black hole occlusion check ──
         function getHorizonRadius() {
-            // True rendered shadow: b_crit = (3√3/2)Rs from D = 18Rs → sinθ = 2.598/18,
-            // through the shader projection (tan θ / fov 0.52) → 0.140 of canvas width.
+            // Effective rendered shadow. Kerr (a = 0.95) seen near-equatorially is an
+            // asymmetric D ~4.4–5.0M across; mean ≈ 4.7M from D = 36M, through the
+            // shader projection (tan θ / fov 0.52) → 0.128 of canvas width.
             const canvasR = canvas.getBoundingClientRect();
-            return (canvasR.width * window.devicePixelRatio) * 0.140;
+            return (canvasR.width * window.devicePixelRatio) * 0.128;
         }
         function isOccludedByHole(sx, sy) {
             const w = starsCanvas.width, h = starsCanvas.height;
