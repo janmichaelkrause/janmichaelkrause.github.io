@@ -127,16 +127,17 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: calc(min(80vw, 36.75rem) + 48px);
-            height: calc(min(80vw, 36.75rem) + 48px);
+            width: calc(min(88vw, 40.3rem) + 48px);
+            height: calc(min(88vw, 40.3rem) + 48px);
             pointer-events: none;
             mix-blend-mode: screen;
         }
         #logo-canvas {
-            /* Sized with the shader fov (0.52) so the disk's widest image (~0.90 of
-               half-width) never touches the canvas edge at any drag orientation. */
-            width: min(80vw, 36.75rem);
-            height: min(80vw, 36.75rem);
+            /* Sized with the shader fov (0.57) so the disk's widest image never
+               touches the canvas edge at any drag orientation, even after the
+               shadow-centering pan. */
+            width: min(88vw, 40.3rem);
+            height: min(88vw, 40.3rem);
             display: block;
         }
         header, footer {
@@ -214,12 +215,12 @@
                 margin: 0;
             }
             #logo-canvas {
-                width: min(95vw, 28.25rem);
-                height: min(95vw, 28.25rem);
+                width: min(99vw, 31rem);
+                height: min(99vw, 31rem);
             }
             #bloom-canvas {
-                width: calc(min(95vw, 28.25rem) + 48px);
-                height: calc(min(95vw, 28.25rem) + 48px);
+                width: calc(min(99vw, 31rem) + 48px);
+                height: calc(min(99vw, 31rem) + 48px);
             }
         }
     </style>
@@ -253,6 +254,7 @@
 
         const scene = new THREE.Scene();
         let lensTE = 0; // Einstein radius (px) for background lensing; refreshed each frame by drawStars
+        let lensCX = 0; // lens (mass) screen x — right of the screen-centered shadow; set by drawStars
         const frustum = 1.5;
         const camera = new THREE.OrthographicCamera(-frustum, frustum, frustum, -frustum, 0.1, 50);
         camera.position.set(0, 0, 20);
@@ -260,11 +262,11 @@
         const bhPx = { value: 2 / 640 }; // declared before the first resizeRenderer() call
         function resizeRenderer() {
             const s = canvas.offsetWidth || Math.round(window.innerWidth <= 768
-                ? Math.min(window.innerWidth * 0.95, 452)
-                : Math.min(window.innerWidth * 0.80, 588));
+                ? Math.min(window.innerWidth * 0.99, 496)
+                : Math.min(window.innerWidth * 0.88, 645));
             // Retina-aware buffer: the photon ring is the sharpest feature on the page,
             // so give it real pixels — capped to keep the ray-march affordable.
-            const buf = Math.min(Math.round(s * Math.min(window.devicePixelRatio || 1, 1.5)), 692);
+            const buf = Math.min(Math.round(s * Math.min(window.devicePixelRatio || 1, 1.5)), 759);
             renderer.setSize(buf, buf, false);
             bhPx.value = 2 / buf; // one buffer pixel in uv units, shared into bhUniforms.uPx
         }
@@ -415,13 +417,17 @@
 
                 vec4 march(vec2 uv){
                     float D = 36.0;   // camera distance, M units (same scene proportions as the old 18 Rs)
-                    float fov = 0.52; // wide enough that the disk image keeps ~10% edge margin
+                    float fov = 0.57; // wide enough that the disk image keeps edge margin after the pan
+                    // Pan the aim so the Kerr shadow (displaced ≈ 1.9M retrograde by frame
+                    // dragging) sits at SCREEN center: the eye reads the shadow as "the black
+                    // hole", so the composition centers it, not the mass. 1.9M ≈ 0.0926 uv.
+                    float pan = -0.0926 * cos(uPitch);
                     // Fixed camera down -Z; rotate the world by yaw then pitch (same as the
                     // star field). Using rotation matrices means no pole singularity, so the
                     // hole keeps tracking the background all the way around.
                     mat3 Rinv = rotYm(-uYaw) * rotXm(-uPitch);
                     vec3 pw = Rinv * vec3(0.0, 0.0, D);
-                    vec3 dw = Rinv * normalize(vec3(uv.x * fov, uv.y * fov, -1.0));
+                    vec3 dw = Rinv * normalize(vec3((uv.x + pan) * fov, uv.y * fov, -1.0));
 
                     // Kerr–Schild Cartesian coordinates, spin axis = disk normal (world y → KS z).
                     // Metric g_μν = η_μν + f k_μ k_ν with k null; Hamiltonian H = ½ g^{μν}p_μ p_ν.
@@ -560,14 +566,13 @@
 
                 void main(){
                     vec2 uv = vUv;
-                    // Supersample the annulus around the (displaced) Kerr shadow: the n≥2
-                    // photon-ring images of the disk live there, compressed below pixel
-                    // scale — one ray per pixel aliases them into squiggles and stipple.
-                    // Four rotated-grid rays average them into the thin ring they truly are.
-                    vec2 shadowC = vec2(-0.101 * cos(uPitch), 0.0); // 2a·cos(pitch) · (1M ≈ 0.0534 uv)
-                    float dC = length(uv - shadowC);
+                    // Supersample the annulus around the shadow (screen-centered after the
+                    // pan in march): the n≥2 photon-ring images of the disk live there,
+                    // compressed below pixel scale — one ray per pixel aliases them into
+                    // squiggles and stipple. Four rotated-grid rays average them properly.
+                    float dC = length(uv);
                     vec4 acc;
-                    if(dC > 0.10 && dC < 0.36){
+                    if(dC > 0.09 && dC < 0.33){
                         float hpx = 0.375 * uPx;
                         vec4 m1 = march(uv + vec2(-hpx, -hpx * 0.33));
                         vec4 m2 = march(uv + vec2( hpx * 0.33, -hpx));
@@ -1064,12 +1069,12 @@
         document.addEventListener('click', e => {
             if (e.target.closest('.info-text, .ui-info-link, .theme-toggle, a[href]')) return;
             if (Math.abs(e.clientX - downX) < 5 && Math.abs(e.clientY - downY) < 5) {
-                // Only reset if click is on the black hole (Kerr shadow sits left of center)
+                // Only reset if click is on the black hole (shadow is screen-centered now)
                 const rect = canvas.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2 - 2 * 0.95 * Math.cos(rotX) * 0.0267 * rect.width;
+                const cx = rect.left + rect.width / 2;
                 const cy = rect.top + rect.height / 2;
                 const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-                const holeR = rect.width * 0.142; // effective shadow ≈ 0.132 + a little touch padding
+                const holeR = rect.width * 0.134; // effective shadow ≈ 0.125 + a little touch padding
                 if (dist < holeR) {
                     resetting = true; // animate() eases hole + stars home together
                     spinVX = 0; spinVY = 0; // reset overrides any residual coast
@@ -1143,7 +1148,7 @@
         // in px) is refreshed each frame by drawStars, which runs before the structures draw.
         // (lensTE is declared near the top so an early animate() call can't hit a TDZ.)
         function lensXY(sx, sy) {
-            const cx = starsCanvas.width / 2, cy = starsCanvas.height / 2;
+            const cx = lensCX || starsCanvas.width / 2, cy = starsCanvas.height / 2;
             const dx = sx - cx, dy = sy - cy;
             const b = Math.sqrt(dx * dx + dy * dy);
             if (b < 1e-3 || lensTE <= 0) return { x: sx, y: sy, mag: 1 };
@@ -1172,10 +1177,11 @@
             const fov = Math.min(w, h) * 0.55;
             // True Einstein radius: the shader views the hole (M = 1, Rs = 2) from D = 36M
             // and the stars sit at infinity, so θ_E = √(2Rs/D) = 1/3 rad (spin doesn't enter
-            // the monopole lens). Through the shader's projection (tan θ_E / fov 0.52 →
-            // uv 0.666) the ring lands at ≈ 0.333 of the canvas width.
+            // the monopole lens). Through the shader's projection (tan θ_E / fov 0.57 →
+            // uv 0.607) the ring lands at ≈ 0.304 of the canvas width.
             const canvasR = canvas.getBoundingClientRect();
-            lensTE = (canvasR.width * window.devicePixelRatio) * 0.333;
+            lensTE = (canvasR.width * window.devicePixelRatio) * 0.304;
+            lensCX = cx + getMassOffsetX(); // lens sits at the MASS, right of the centered shadow
 
             for (const layer of starLayers) {
                 const rotX = viewRotX * layer.speed;
@@ -1610,23 +1616,24 @@
         // ── Shared: black hole occlusion check ──
         function getHorizonRadius() {
             // Effective rendered shadow radius: Kerr (a = 0.95) shadow ≈ 4.9M across
-            // from D = 36M, through the shader projection (tan θ / fov 0.52) → 0.132
-            // of canvas width. Pair with getShadowCenter(): the shadow is NOT centered.
+            // from D = 36M, through the shader projection (tan θ / fov 0.57) → 0.120
+            // of canvas width, plus margin.
             const canvasR = canvas.getBoundingClientRect();
-            return (canvasR.width * window.devicePixelRatio) * 0.137;
+            return (canvasR.width * window.devicePixelRatio) * 0.125;
         }
         function getShadowCenter() {
-            // The Kerr shadow is displaced toward the retrograde side by ≈ 2a·sin(incl)
-            // (Bardeen 1973) — about 1.9M leftward at our default tilt. 1M subtends
-            // ≈ 0.0267 of the canvas width from D = 36M. Without this shift, transient
-            // events leak through the crescent-shaped gap between an assumed centered
-            // circle and the true displaced shadow.
+            // The shader pans its aim so the (frame-dragging-displaced) Kerr shadow
+            // lands exactly at screen center; the MASS sits ≈ 1.9M to the right —
+            // see getMassOffsetX(), which the lens map uses.
+            return { x: starsCanvas.width / 2, y: starsCanvas.height / 2 };
+        }
+        function getMassOffsetX() {
+            // Bardeen displacement, inverted by the pan: mass = center + 2a·cos(pitch),
+            // with 1M ≈ 0.0244 of canvas width at fov 0.57 from D = 36M.
+            // (Pitch read from bhUniforms — it exists before the first drawStars call,
+            // unlike the rotX binding, which would TDZ-crash during theme init.)
             const canvasR = canvas.getBoundingClientRect();
-            const W = canvasR.width * window.devicePixelRatio;
-            return {
-                x: starsCanvas.width / 2 - 2 * 0.95 * Math.cos(rotX) * 0.0267 * W,
-                y: starsCanvas.height / 2,
-            };
+            return 2 * 0.95 * Math.cos(bhUniforms.uPitch.value) * 0.0244 * (canvasR.width * window.devicePixelRatio);
         }
         function isOccludedByHole(sx, sy) {
             const c = getShadowCenter();
@@ -3053,7 +3060,7 @@
             }
             const dpr = window.devicePixelRatio;
             const t = age / tidalDisrupt.duration;
-            const cx2 = w / 2, cy2 = h / 2;
+            const cx2 = lensCX || w / 2, cy2 = h / 2; // infall target = the mass, not screen center
             // Anchor on the star's current (lensed) projected position so the
             // infall tracks the background when the user drags the view.
             const anchor = projectStar({ theta: tidalDisrupt.origTheta, phi: tidalDisrupt.origPhi },
