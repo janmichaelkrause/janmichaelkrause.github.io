@@ -257,6 +257,7 @@
         const camera = new THREE.OrthographicCamera(-frustum, frustum, frustum, -frustum, 0.1, 50);
         camera.position.set(0, 0, 20);
 
+        const bhPx = { value: 2 / 640 }; // declared before the first resizeRenderer() call
         function resizeRenderer() {
             const s = canvas.offsetWidth || Math.round(window.innerWidth <= 768
                 ? Math.min(window.innerWidth * 0.95, 452)
@@ -265,6 +266,7 @@
             // so give it real pixels — capped to keep the ray-march affordable.
             const buf = Math.min(Math.round(s * Math.min(window.devicePixelRatio || 1, 1.5)), 692);
             renderer.setSize(buf, buf, false);
+            bhPx.value = 2 / buf; // one buffer pixel in uv units, shared into bhUniforms.uPx
         }
         resizeRenderer();
         window.addEventListener('resize', resizeRenderer);
@@ -301,6 +303,7 @@
             uYaw:     { value: 0 },
             uPitch:   { value: 12 * Math.PI / 180 },
             uFlicker: { value: 1 },
+            uPx:      bhPx, // one buffer pixel in uv units; written by resizeRenderer
         };
         const bhMaterial = new THREE.ShaderMaterial({
             uniforms: bhUniforms,
@@ -320,6 +323,7 @@
                 uniform float uYaw;
                 uniform float uPitch;
                 uniform float uFlicker;
+                uniform float uPx;
 
                 const int   STEPS    = 420;
                 // Kerr, geometrized units M = 1 (lengths in GM/c²; the old Rs=1 scene ×2)
@@ -378,7 +382,11 @@
                     // A grazing ray slices a long path through the disk, so its single-point
                     // sample should average the turbulence — blend toward the fbm mean to
                     // kill edge-on speckle without touching face-on detail.
-                    float n = mix(0.47, nf, graze);
+                    // Likewise the innermost annulus (r ≲ 3.3): its image is radially
+                    // compressed by lensing far below pixel scale, and full-contrast
+                    // turbulence there renders as red-orange knots on the shadow. r is
+                    // deposit-local and smooth within each image branch, so no seams.
+                    float n = mix(0.47, nf, graze * smoothstep(2.1, 3.3, r));
                     float dens = pow(0.35 + 0.65 * n, 1.4);
                     dens *= smoothstep(0.0, 0.30, 1.0 - t);                  // soft outer rim
                     // Observed temperature is the Doppler+gravity-shifted one; bolometric
@@ -397,12 +405,15 @@
                     // crossing-count rings). But the opacity floor must fade with the same
                     // rim envelope as the emission — a constant floor prints the disk's
                     // geometric footprint as a hard alpha edge over the background.
+                    // Near-opaque body (real thin disks have τ ≫ 1). This matters beyond
+                    // realism: the sub-pixel capture/escape chaos around the critical curve
+                    // otherwise shows through the translucent near disk as salt-and-pepper
+                    // speckle. The rim still fades smoothly via the cover envelope.
                     float cover = smoothstep(0.0, 0.05, t) * smoothstep(0.0, 0.30, 1.0 - t) * fade;
-                    transmit *= 1.0 - max(a * 0.8, 0.5 * cover);
+                    transmit *= 1.0 - max(a * 0.85, 0.85 * cover);
                 }
 
-                void main(){
-                    vec2 uv = vUv;
+                vec4 march(vec2 uv){
                     float D = 36.0;   // camera distance, M units (same scene proportions as the old 18 Rs)
                     float fov = 0.52; // wide enough that the disk image keeps ~10% edge margin
                     // Fixed camera down -Z; rotate the world by yaw then pitch (same as the
@@ -438,7 +449,8 @@
                     vec3 col = vec3(0.0);
                     float transmit = 1.0;
                     bool horizon = false;
-                    int lastCross = -100; // step index of the previous accepted crossing
+                    bool escaped = false;
+                    float sinceCross = 1e3; // path length since the previous accepted crossing
                     float wind = 0.0; // accumulated azimuthal sweep |Δφ| along the ray
 
                     for(int i = 0; i < STEPS; i++){
@@ -460,6 +472,12 @@
                         // Plane-skimming rays (low, slow in z) can cross the disk down-and-up
                         // within one step; resolve them so grazing pairs are reliably caught.
                         if(r < 18.0 && abs(q.z) < 0.4 && abs(p.z) < 0.25 * length(p)) dt *= 0.45;
+                        // Never let one step hop across the horizon: |dq/dλ| blows up near
+                        // the hole (blueshift), so a fixed-dλ Euler step can jump clean over
+                        // the r < r₊ check — "tunneled" rays escape from inside the shadow
+                        // and print low-alpha orange speckle. Cap the physical step length.
+                        vec3 v0 = p - f * u * k;
+                        dt = min(dt, 0.06 * max(r - 1.0, 0.3) / length(v0));
                         // dp_i/dλ = −∂H/∂x_i = ½ u² ∂_i f + f u (∂_i k_j) p_j  (analytic gradients)
                         vec3 gr = vec3(q.x * r / Dl, q.y * r / Dl, q.z * s / (r * Dl));     // ∂r/∂q
                         vec3 gf = f * ((3.0 / r) * gr - (4.0 * r * r2 * gr + 2.0 * A2_BH * q.z * vec3(0.0, 0.0, 1.0)) / den);
@@ -468,19 +486,34 @@
                         p += (0.5 * gf * u * u + f * u * w) * dt;
                         u = E + dot(k, p);
                         vec3 v = p - f * u * k;          // dq/dλ = ∂H/∂p
-                        if(r > 24.0 && dot(q, v) > 0.0) break;
+                        if(r > 24.0 && dot(q, v) > 0.0){
+                            // A ray "escaping" after winding > 5 rad sits in the exponentially
+                            // thin critical band: its real sky image is demagnified to nothing
+                            // AND chaotic integration error dominates there — Euler-perturbed
+                            // rays tunnel out of the capture set and print orange speckle on
+                            // the shadow. Classify them as captured (their accumulated disk
+                            // light is kept; only the bogus sky transparency is dropped).
+                            if(wind > 5.2) horizon = true; else escaped = true;
+                            break;
+                        }
                         wind += abs(q.x * v.y - q.y * v.x) / max(q.x * q.x + q.y * q.y, 1.0) * dt;
-                        // A ray that has wound ≈ a full turn deep inside the photon region is
+                        // A ray that has wound ≈ a full turn inside the photon region is
                         // captured for any visual purpose: each further half-turn demagnifies
                         // its images by e^(−π). Classifying it now prevents step starvation,
-                        // whose die-mid-flight contours otherwise print as rings on the shadow.
-                        if(wind > 6.0 && r < 3.5){ horizon = true; break; }
+                        // whose die-mid-flight, low-alpha pixels otherwise print speckle.
+                        // The radius must cover the FULL photon region: retrograde spherical
+                        // photon orbits reach r = 3.96M at a = 0.95 (prograde 1.39M) — a 3.5
+                        // cutoff left retrograde-trapped rays starving on the shadow's left.
+                        if(wind > 6.6 && r < 4.2){ horizon = true; break; }
                         vec3 nq = q + v * dt;
-                        // Deduplicate grazing pairs: a down-and-up recross within a few steps
-                        // is one slab passage through a finite-thickness disk, not two — double
-                        // counting its absorption prints dark contour curls on the near disk.
-                        if(q.z * nq.z < 0.0 && i - lastCross > 5){
-                            lastCross = i;
+                        sinceCross += length(v) * dt;
+                        // Deduplicate grazing pairs by PATH LENGTH: a down-and-up recross
+                        // within ~2M of travel is one slab passage through a finite-thickness
+                        // disk, not two — double counting its absorption prints dark stipple.
+                        // Step count can't discriminate (refined steps overlap the ranges);
+                        // genuinely distinct disk passages are ≥5M of travel apart.
+                        if(q.z * nq.z < 0.0 && sinceCross > 2.0){
+                            sinceCross = 0.0;
                             float fr = q.z / (q.z - nq.z);
                             vec3 cp = mix(q, nq, fr);
                             // Boyer–Lindquist radius in the equatorial plane: r² = ρ² − a²
@@ -499,17 +532,15 @@
                                 // ~5× vertically compressed and full-detail turbulence aliases
                                 // into curl moiré, so average it in proportion to foreshortening.
                                 float graze = clamp(abs(v.z) * 1.6 / length(v), 0.0, 1.0); // 0 = edge-on slice
-                                // NOTE: texture-flattening by path history (wind, ncross, rmin)
-                                // was tried and removed — those quantities jump where a pixel's
-                                // crossing slips from the near rim to the wrapped far image, and
-                                // any function of them prints a hard texture seam there. The
-                                // demagnification fade below + crossing dedup cover their job.
-                                // Demagnification fade: images dim exponentially with winding.
-                                // Deposits must reach zero BEFORE winding becomes chaotic
-                                // (sub-pixel near the critical curve) or any cutoff prints
-                                // per-pixel speckle. Primary/secondary arcs live at wind ≲ π,
-                                // safely below this band.
-                                float fade = 1.0 - smoothstep(3.2, 4.6, wind);
+                                // NOTE: do NOT modulate emission or texture by path history
+                                // BELOW wind ≈ 5. Branch jumps (a pixel's crossing slipping from
+                                // the near rim to the wrapped far image) all occur at wind ≤ ~5,
+                                // and any history-dependent factor that varies across that range
+                                // prints a hard seam — the "mystery vertical line" hunt.
+                                // ABOVE wind 5 there are no more branch jumps, only the chaotic
+                                // critical-curve core, so a fade there is seam-safe and stops
+                                // the wind-capture cutoff from printing speckle.
+                                float fade = 1.0 - smoothstep(5.0, 6.3, wind);
                                 diskSample(cr, ang, g, graze, fade, col, transmit);
                             }
                         }
@@ -519,11 +550,45 @@
 
                     // Background stars are drawn (and lensed) by the 2D field behind this canvas,
                     // so escaped rays are simply transparent here — no separate overlaid star layer.
+                    // A ray that exhausted its step budget without escaping is, by
+                    // definition, trapped near the photon orbits: captured. Leaving it
+                    // half-transparent prints low-alpha speckle on the shadow.
+                    if(!escaped) horizon = true;
+                    float alpha = horizon ? 1.0 : clamp(1.0 - transmit, 0.0, 1.0);
+                    return vec4(col, alpha);
+                }
+
+                void main(){
+                    vec2 uv = vUv;
+                    // Supersample the annulus around the (displaced) Kerr shadow: the n≥2
+                    // photon-ring images of the disk live there, compressed below pixel
+                    // scale — one ray per pixel aliases them into squiggles and stipple.
+                    // Four rotated-grid rays average them into the thin ring they truly are.
+                    vec2 shadowC = vec2(-0.101 * cos(uPitch), 0.0); // 2a·cos(pitch) · (1M ≈ 0.0534 uv)
+                    float dC = length(uv - shadowC);
+                    vec4 acc;
+                    if(dC > 0.10 && dC < 0.36){
+                        float hpx = 0.375 * uPx;
+                        vec4 m1 = march(uv + vec2(-hpx, -hpx * 0.33));
+                        vec4 m2 = march(uv + vec2( hpx * 0.33, -hpx));
+                        vec4 m3 = march(uv + vec2(-hpx * 0.33,  hpx));
+                        vec4 m4 = march(uv + vec2( hpx,  hpx * 0.33));
+                        // Trimmed mean (drop min and max, average the middle two): the
+                        // chaotic deposits are heavy-tailed, and a plain mean leaves any
+                        // single hot subsample visible at quarter strength.
+                        vec3 lo = min(min(m1.rgb, m2.rgb), min(m3.rgb, m4.rgb));
+                        vec3 hi = max(max(m1.rgb, m2.rgb), max(m3.rgb, m4.rgb));
+                        acc.rgb = (m1.rgb + m2.rgb + m3.rgb + m4.rgb - lo - hi) * 0.5;
+                        acc.a = (m1.a + m2.a + m3.a + m4.a) * 0.25;
+                    } else {
+                        acc = march(uv);
+                    }
+                    vec3 col = acc.rgb;
+                    float alpha = acc.a;
                     float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
                     col *= 1.0 / (1.0 + luma * 0.55);              // hue-preserving compress
                     float gray = dot(col, vec3(0.299, 0.587, 0.114));
                     col = max(mix(vec3(gray), col, 1.3), 0.0);     // lift saturation
-                    float alpha = horizon ? 1.0 : clamp(1.0 - transmit, 0.0, 1.0);
                     // ±0.5 LSB of dither breaks 8-bit banding in the dim halo gradients,
                     // which the true-black background otherwise makes visible on OLED.
                     float dn = hash(gl_FragCoord.xy) - 0.5;
@@ -999,12 +1064,12 @@
         document.addEventListener('click', e => {
             if (e.target.closest('.info-text, .ui-info-link, .theme-toggle, a[href]')) return;
             if (Math.abs(e.clientX - downX) < 5 && Math.abs(e.clientY - downY) < 5) {
-                // Only reset if click is on the black hole
+                // Only reset if click is on the black hole (Kerr shadow sits left of center)
                 const rect = canvas.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
+                const cx = rect.left + rect.width / 2 - 2 * 0.95 * Math.cos(rotX) * 0.0267 * rect.width;
                 const cy = rect.top + rect.height / 2;
                 const dist = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
-                const holeR = rect.width * 0.140; // effective shadow ≈ 0.128 + a little touch padding
+                const holeR = rect.width * 0.142; // effective shadow ≈ 0.132 + a little touch padding
                 if (dist < holeR) {
                     resetting = true; // animate() eases hole + stars home together
                     spinVX = 0; spinVY = 0; // reset overrides any residual coast
@@ -1306,12 +1371,13 @@
                 const Lsn = lensXY(sx, sy);
                 let drawX = Lsn.x, drawY = Lsn.y;
 
-                // Clip around the event horizon — don't paint over the black hole
+                // Clip around the shadow (displaced Kerr center) — don't paint over the hole
                 const bhScreenR = getHorizonRadius() * 1.05;
+                const shadowC = getShadowCenter();
                 starsCtx.save();
                 starsCtx.beginPath();
                 starsCtx.rect(0, 0, w, h);
-                starsCtx.arc(cx, cy, bhScreenR, 0, Math.PI * 2, true);
+                starsCtx.arc(shadowC.x, shadowC.y, bhScreenR, 0, Math.PI * 2, true);
                 starsCtx.clip();
 
                 // Blackbody temperature decay: ~30000K → ~8000K → ~4000K → ~2000K
@@ -1543,16 +1609,28 @@
 
         // ── Shared: black hole occlusion check ──
         function getHorizonRadius() {
-            // Effective rendered shadow. Kerr (a = 0.95) seen near-equatorially is an
-            // asymmetric D ~4.4–5.0M across; mean ≈ 4.7M from D = 36M, through the
-            // shader projection (tan θ / fov 0.52) → 0.128 of canvas width.
+            // Effective rendered shadow radius: Kerr (a = 0.95) shadow ≈ 4.9M across
+            // from D = 36M, through the shader projection (tan θ / fov 0.52) → 0.132
+            // of canvas width. Pair with getShadowCenter(): the shadow is NOT centered.
             const canvasR = canvas.getBoundingClientRect();
-            return (canvasR.width * window.devicePixelRatio) * 0.128;
+            return (canvasR.width * window.devicePixelRatio) * 0.137;
+        }
+        function getShadowCenter() {
+            // The Kerr shadow is displaced toward the retrograde side by ≈ 2a·sin(incl)
+            // (Bardeen 1973) — about 1.9M leftward at our default tilt. 1M subtends
+            // ≈ 0.0267 of the canvas width from D = 36M. Without this shift, transient
+            // events leak through the crescent-shaped gap between an assumed centered
+            // circle and the true displaced shadow.
+            const canvasR = canvas.getBoundingClientRect();
+            const W = canvasR.width * window.devicePixelRatio;
+            return {
+                x: starsCanvas.width / 2 - 2 * 0.95 * Math.cos(rotX) * 0.0267 * W,
+                y: starsCanvas.height / 2,
+            };
         }
         function isOccludedByHole(sx, sy) {
-            const w = starsCanvas.width, h = starsCanvas.height;
-            const cx = w / 2, cy = h / 2;
-            const dx = sx - cx, dy = sy - cy;
+            const c = getShadowCenter();
+            const dx = sx - c.x, dy = sy - c.y;
             return Math.sqrt(dx * dx + dy * dy) < getHorizonRadius();
         }
 
@@ -3382,7 +3460,8 @@
                     if (z2 < 0.4) continue;
                     const _h = lensXY(cx + (x1 / z2) * fov, cy - (y2 / z2) * fov);
                     const sx = _h.x, sy = _h.y;
-                    const distC = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
+                    const shC = getShadowCenter();
+                    const distC = Math.sqrt((sx - shC.x) ** 2 + (sy - shC.y) ** 2);
                     if (distC < hR) continue;
                     const d = Math.sqrt((sx - px) ** 2 + (sy - py) ** 2);
                     if (d < bestDist) {
