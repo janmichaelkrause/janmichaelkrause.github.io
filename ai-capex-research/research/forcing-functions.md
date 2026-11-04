@@ -46,13 +46,14 @@ What changed from the draft table when it went live:
 - Speculative data centers read neutral while the uncontracted build is far from the 2000 merchant-power level.
 - Lines marked "ours" (amber, two-thirds of the way to the break) are judgment, not history.
 
-## Lab revenue growth
+## Lab revenue
 
-Most calls hang on how fast OpenAI and Anthropic grow revenue, so the page makes it the main control: growth for each year 2027–30, separately for each lab, with presets for the labs' plans and the three history paths.
+Most calls hang on how much revenue OpenAI and Anthropic make, so the page makes it the main control: revenue in $B for each year 2027–30, separately for each lab, with presets for OpenAI's plan and the three history paths. The page shows the growth each number implies.
 
 - OpenAI's plan: $36B (2026) to $350B (2030), $840B in total, $856B of compute, and $278B of cash burn [23]. That implies non-compute costs of about 31% of revenue, used for both labs.
 - Funded share through 2030 = (cash + 69% of 2026–30 revenue) ÷ commitments. Under its own plan OpenAI funds about 82% and still needs about $155B from outside, consistent with the reported burn net of its cash.
-- Break-evens, holding today's funding warnings: OpenAI exposure moves to neutral at about 74% a year; below about 26% a year OpenAI covers less than the 1847 line, the listing window counts as shut, the funding check fires and most calls move down a step.
+- Break-evens, holding today's funding warnings and both labs growing at the same rate: OpenAI exposure moves to neutral at about $330B of OpenAI revenue in 2030 (74% a year); below about $91B (26% a year) OpenAI covers less than the 1847 line, the listing window counts as shut, the funding check fires and most calls move down a step.
+- Anthropic has published no revenue plan, so the "OpenAI's plan" preset puts it on the Absorbed path.
 
 ## Rough backtest
 
