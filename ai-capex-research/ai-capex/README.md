@@ -33,7 +33,7 @@ If step 3 fails at the push step, go to **Settings → Actions → General → W
 | Stooq, Yahoo as fallback | Daily closes and 52-week highs; trailing P/E against each stock's own five-year average |
 | FRED | High-yield and BBB credit spreads |
 
-From these the page recomputes, each morning: the layer signals and their direction, the watchlist, the signposts, the five gauges, the price factor, and the overall and per-instrument stance. Momentum compares each reading with the one before it, and the P/E baselines roll forward as new months come in.
+From these the page recomputes, each morning: the stance model (each forcing function against the level where it broke in history, the calls that follow, the funding check and a countdown to each break line), plus the layer signals, the watchlist, the signposts and the five gauges. The calibration is in `ai-capex-research/research/forcing-functions.md`.
 
 Company figures change when a 10-Q or 10-K is filed, so expect jumps around earnings, not every day.
 
@@ -46,6 +46,7 @@ Edit `data/manual.json` when a new number comes out:
 - vacancy, H100 rental prices, the PJM auction, GE Vernova's backlog, Oracle's CDS and rating, debt share of capex, the Nvidia 10-Q items, lab commitments and run-rates
 - the "Latest step" list (`changes`) and the calendar (`calendar`). Past calendar dates drop off automatically.
 - three yes/no `flags` used by the signposts
+- `labs` (OpenAI and Anthropic cash and commitments), `dc_build` (data center construction and built capacity) and `funding` (the fallback funding check, including whether the AI IPO window is open or shut) for the stance model
 
 Change `v` and `date`. Leave `prev` out: the updater fills it with the last different value it saw. `src` is a source key already on the page. For a new source, add `{"k", "t", "url"}` to `sources` and use its `k`.
 

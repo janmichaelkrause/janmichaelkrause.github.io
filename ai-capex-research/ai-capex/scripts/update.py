@@ -278,7 +278,7 @@ def _fred_rows_api(series, start):
 
 def _fred_rows_csv(series, start):
     url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=%s&cosd=%s" % (series, start)
-    raw = get(url, UA_WEB, timeout=90).decode("utf-8", "replace")
+    raw = get(url, UA_WEB, tries=1, timeout=45).decode("utf-8", "replace")  # often slow from cloud servers; fail fast
     rows = []
     for r in csv.reader(io.StringIO(raw)):
         if len(r) < 2 or r[1] in (".", "") or not r[0][:1].isdigit():
