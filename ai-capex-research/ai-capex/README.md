@@ -19,6 +19,7 @@ A subpage of this site. `index.html` is the whole page. It reads `data/latest.js
 1. The `ai-capex-research` folder sits in the repo root, and the workflow at `.github/workflows/ai-capex-daily.yml`. GitHub only runs workflows from that folder.
 2. On GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
    Name: `SEC_USER_AGENT`. Value: your name and email, e.g. `Jan Krause you@example.edu`. The SEC requires this on automated requests. It stays private.
+   Optional but recommended: a free FRED API key (sign up at fred.stlouisfed.org, then My Account → API Keys). Add it as a second secret named `FRED_API_KEY`. Without it the updater falls back to FRED's public download, which often times out from GitHub's servers.
 3. **Actions → ai-capex daily data → Run workflow**. That writes the first `latest.json`.
 4. Open `https://janmichaelkrause.com/ai-capex-research/ai-capex/`. The footer should read "Live figures updated ...".
 
@@ -32,7 +33,7 @@ If step 3 fails at the push step, go to **Settings → Actions → General → W
 | Stooq, Yahoo as fallback | Daily closes and 52-week highs; trailing P/E against each stock's own five-year average |
 | FRED | High-yield and BBB credit spreads |
 
-From these the page recomputes, each morning: the layer signals and their direction, the watchlist, the signposts, the five gauges, the price factor, and the overall and per-instrument stance. Momentum compares each reading with the one before it, and the P/E baselines roll forward as new months come in.
+From these the page recomputes, each morning: the stance model (each forcing function against the level where it broke in history, the calls that follow, the funding check and a countdown to each break line), plus the layer signals, the watchlist, the signposts and the five gauges. The calibration is in `ai-capex-research/research/forcing-functions.md`.
 
 Company figures change when a 10-Q or 10-K is filed, so expect jumps around earnings, not every day.
 
@@ -45,6 +46,7 @@ Edit `data/manual.json` when a new number comes out:
 - vacancy, H100 rental prices, the PJM auction, GE Vernova's backlog, Oracle's CDS and rating, debt share of capex, the Nvidia 10-Q items, lab commitments and run-rates
 - the "Latest step" list (`changes`) and the calendar (`calendar`). Past calendar dates drop off automatically.
 - three yes/no `flags` used by the signposts
+- `labs` (OpenAI and Anthropic cash and commitments), `dc_build` (data center construction and built capacity) and `funding` (the fallback funding check, including whether the AI IPO window is open or shut) for the stance model
 
 Change `v` and `date`. Leave `prev` out: the updater fills it with the last different value it saw. `src` is a source key already on the page. For a new source, add `{"k", "t", "url"}` to `sources` and use its `k`.
 

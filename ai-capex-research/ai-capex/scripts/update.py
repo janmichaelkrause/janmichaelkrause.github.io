@@ -13,6 +13,7 @@ so a bad morning never blanks the page.
 
 Environment:
   SEC_USER_AGENT   required by the SEC, e.g. "Jane Doe jane@example.edu"
+  FRED_API_KEY     optional, free from fred.stlouisfed.org; more reliable than the CSV download
   AI_CAPEX_MOCK    optional folder of saved responses, for offline testing
 """
 import csv, io, json, os, sys, time, datetime as dt, urllib.request, urllib.error
@@ -25,6 +26,7 @@ HISTORY = os.path.join(DATA, "history.json")
 MANUAL = os.path.join(DATA, "manual.json")
 
 UA_SEC = os.environ.get("SEC_USER_AGENT", "").strip()
+FRED_KEY = os.environ.get("FRED_API_KEY", "").strip()
 UA_WEB = "Mozilla/5.0 (compatible; ai-capex-updater/1.0)"
 MOCK = os.environ.get("AI_CAPEX_MOCK", "").strip()
 TODAY = dt.datetime.now(dt.timezone.utc).date()
@@ -268,8 +270,15 @@ def price_block(t, cik=None):
     return out
 
 # ---------------------------------------------------------------- FRED
-def fred(series):
-    raw = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + series, UA_WEB).decode("utf-8", "replace")
+def _fred_rows_api(series, start):
+    url = ("https://api.stlouisfed.org/fred/series/observations?series_id=%s&api_key=%s"
+           "&file_type=json&observation_start=%s" % (series, FRED_KEY, start))
+    j = json.loads(get(url, UA_WEB, timeout=60))
+    return [(o["date"], float(o["value"])) for o in j.get("observations", []) if o.get("value") not in (".", "", None)]
+
+def _fred_rows_csv(series, start):
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=%s&cosd=%s" % (series, start)
+    raw = get(url, UA_WEB, tries=1, timeout=45).decode("utf-8", "replace")  # often slow from cloud servers; fail fast
     rows = []
     for r in csv.reader(io.StringIO(raw)):
         if len(r) < 2 or r[1] in (".", "") or not r[0][:1].isdigit():
@@ -278,6 +287,22 @@ def fred(series):
             rows.append((r[0], float(r[1])))
         except ValueError:
             pass
+    return rows
+
+def fred(series):
+    """Uses the FRED API when FRED_API_KEY is set (free key), else the public CSV,
+    which is slow from cloud servers. Only the last ~13 months are requested."""
+    start = (TODAY - dt.timedelta(days=400)).isoformat()
+    errs, rows = [], []
+    for fn in ([_fred_rows_api] if FRED_KEY else []) + [_fred_rows_csv]:
+        try:
+            rows = fn(series, start)
+            if rows:
+                break
+        except Exception as e:
+            errs.append(str(e).replace(FRED_KEY, "***") if FRED_KEY else str(e))
+    if not rows and errs:
+        raise IOError("; ".join(errs))
     if not rows:
         raise IOError("FRED: no rows for " + series)
     rows.sort()
@@ -288,6 +313,15 @@ def fred(series):
            "url": "https://fred.stlouisfed.org/series/" + series}
     if prev:
         out["prev"], out["prevDate"] = prev[-1][1], prev[-1][0]
+    yr = (d(day) - dt.timedelta(days=365)).isoformat()
+    last_year = [x for x in rows if x[0] >= yr]
+    if last_year:
+        lo = min(last_year, key=lambda x: x[1])
+        out["low12"], out["low12Date"] = lo[1], lo[0]
+    half = (d(day) - dt.timedelta(days=182)).isoformat()
+    older = [x for x in rows if x[0] <= half]
+    if older:
+        out["v6m"], out["v6mDate"] = older[-1][1], older[-1][0]
     return out
 
 # ---------------------------------------------------------------- what to pull
@@ -302,11 +336,18 @@ SEC_SERIES = [  # key, ticker, tags, unit, instant
     ("mu_gross_profit", "MU", ["GrossProfit"], "USD", False),
     ("crwv_revenue", "CRWV", REV, "USD", False),
     ("crwv_interest", "CRWV", ["InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt"], "USD", False),
+    # stance model: debt service against earnings, and how much of the build is funded from outside
+    ("crwv_opinc", "CRWV", ["OperatingIncomeLoss"], "USD", False),
+    ("crwv_da", "CRWV", ["DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "DepreciationAmortizationAndAccretionNet", "Depreciation"], "USD", False),
+    ("orcl_opinc", "ORCL", ["OperatingIncomeLoss"], "USD", False),
+    ("orcl_interest", "ORCL", ["InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt"], "USD", False),
+    ("orcl_ocf", "ORCL", OCF, "USD", False),
+    ("orcl_capex", "ORCL", CAPEX, "USD", False),
 ] + [("capex_" + t, t, CAPEX, "USD", False) for t in ("AMZN", "GOOGL", "MSFT", "META")] \
   + [("ocf_" + t, t, OCF, "USD", False) for t in ("AMZN", "GOOGL", "MSFT", "META")]
 PE_TICKERS = ["NVDA", "MU", "GEV", "ORCL", "AMZN", "GOOGL", "MSFT", "META"]
 PX_ONLY = ["CRWV", "EQIX"]
-FRED_SERIES = [("hy_oas", "BAMLH0A0HYM2"), ("bbb_oas", "BAMLC0A4CBBB")]
+FRED_SERIES = [("hy_oas", "BAMLH0A0HYM2"), ("bbb_oas", "BAMLC0A4CBBB"), ("fed_upper", "DFEDTARU")]
 
 def load(path, default):
     try:

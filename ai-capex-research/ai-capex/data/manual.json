@@ -11,7 +11,7 @@
   "oracle_cds":       {"v": 2.03,  "prev": 1.39, "date": "2026-07-20", "src": "lds_orcl"},
   "oracle_rating":    {"v": "BBB-", "src": "lds_orcl"},
   "debt_share":       {"v": 32,    "prev": 9, "label": "Mid-2026, FactSet estimate", "src": "mlq"},
-  "nv_private":       {"v": 51.2,  "prev": 22.3, "date": "2026-07-26", "src": "nv10q"},
+  "nv_private":       {"v": 51.2,  "prev": 22.3, "prevDate": "2026-01-25", "date": "2026-07-26", "src": "nv10q"},
   "nv_top5_ar":       {"v": 70,    "prev": 64, "date": "2026-07-26", "src": "nv10q"},
   "anthropic_commit": {"v": 417,   "date": "2026-10-26", "src": "ant_s1"},
   "anthropic_runrate":{"v": 65,    "date": "2026-07-31", "label": "Jul 2026, gross of cloud partners", "src": "yahoo_oai"},
@@ -21,6 +21,19 @@
   "capex_2027":       {"v": "higher", "label": "Use a number (% vs 2026) once guided, or \"cut\"", "src": "sun_msft"},
   "lab_growth":       {"v": 1258,  "label": ">1,000% (Anthropic H1)", "src": "ant_s1"},
   "eqix_paffo":       {"v": 21.3,  "avg": 23.5, "src": "fv_eqix"},
+
+  "labs": {
+    "_note": "Stance model inputs, $B. cash = cash and short-term investments; commit = fixed or planned compute spending it has to pay for.",
+    "openai":    {"cash": 122, "commit": 600, "date": "2026-10-01", "src_cash": "oai_122", "src_commit": "nw_oai", "note": "cash counts the whole March 2026 round, so the ratio is an upper bound"},
+    "anthropic": {"cash": 131.7, "commit": 265.6, "date": "2026-06-30", "src": "as_s1"}
+  },
+  "dc_build": {"uc_mw": 7481, "inv_mw": 10903, "date": "2026-06-30", "src": "cbre26", "_note": "North American primary markets: under construction and built capacity, MW. Preleased share comes from 'preleased'."},
+  "funding": {
+    "_note": "Used when the live FRED readings are missing. ipo_window: open or shut.",
+    "fed_hiking": true, "fed_note": "Fed raised to 3.75–4.00% in September; a December hike about 78% priced", "fed_src": "sa_fed",
+    "hy": 3.31, "hy_low12": 2.66, "hy_src": "convex_hy",
+    "ipo_window": "open", "ipo_src": "as_s1"
+  },
 
   "flags": {
     "gpu_loan_markdowns": false,

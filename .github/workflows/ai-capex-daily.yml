@@ -19,7 +19,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -30,10 +30,21 @@ jobs:
       - name: Fetch data
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python ai-capex-research/ai-capex/scripts/update.py
+
+      # Test runs on other branches keep their data as a downloadable artifact instead of
+      # committing it, so pull requests never conflict with main's daily data.
+      - name: Keep test-run data
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-capex-data
+          path: ai-capex-research/ai-capex/data/
 
       - name: Commit if anything changed
         id: commit
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -50,7 +61,8 @@ jobs:
       # published by a Pages workflow, start it here. Branch-published sites rebuild on their own;
       # the API call below is a harmless backup.
       - name: Republish the site
-        if: steps.commit.outputs.changed == 'true'
+        # only the main branch republishes the live site
+        if: steps.commit.outputs.changed == 'true' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

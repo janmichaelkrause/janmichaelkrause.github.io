@@ -26,10 +26,13 @@ One self-contained file: CSS in `<head>`, markup, then one `<script>`.
 - `data/manual.json` holds figures with no free feed. Edit `v`, `date`, `src`; leave `prev` out (the updater fills it).
 - The updater uses the Python standard library only and only free sources (SEC EDGAR, Stooq or Yahoo, FRED). No paid data.
 
-## The stance (read before changing it)
-It's a rules-based reading, not a validated model, and the copy must not claim more.
-- Known problems: the macro score can't reach overweight with default weights (fixed penalties for cycle, base rate and payback gap, and downside is never positive); lab equity is underweight by construction; thresholds are judgment and untested; trailing P/E against a stock's own average misreads cyclicals; no benchmark is named.
-- Planned rework: drive each layer's call from historical forcing functions (railway calls, fixed charges on railroads in 1873 and 1893, fiber's price-per-unit collapse, vendor financing, collateral re-marks in shale, orders landing in the bust, substitution). Each check asks: is there a forced seller, how close is today's reading to where it broke before, and is funding still open.
+## The stance model (read before changing it)
+Rules applied to live data, not a validated model. The copy must not claim more.
+- `MG` in the script holds one gauge per forcing function: a live reading, a red "break" line from history and an amber "close" line (history, or "ours" = two-thirds of the way, marked as judgment). Each gauge has one or more positions (for example Power, Data centers preleased, Data centers speculative).
+- Call rule: start overweight if nobody is forced to sell and the asset is long-lived, else neutral; one step down past amber, two past red; one more if the funding check fires (2 of 3: Fed raising rates, high-yield spread 1.5 pts above its 12-month low, an AI listing pulled or cut). Macro = average of all positions.
+- The calibration and its sources are in `ai-capex-research/research/forcing-functions.md`. Change a line there and in `MG` together.
+- The what-if chain's coefficients (OpenAI about a fifth of AI capex, CoreWeave's 36% top customer moves with OpenAI, 80% of lost revenue reaches operating income, Oracle's ~$64B a year from OpenAI, a point of memory margin per 1% of demand, a 25% OpenAI cut shuts the IPO window) are our assumptions and are listed under "How the calls work". Keep that list in sync with the code.
+- Known limits: two-case backtest; OpenAI's cash is an upper bound (the whole March round); CoreWeave's interest from the SEC feed is debt interest only.
 
 ## Check before you finish
 Serve from the repo root (`python3 -m http.server 8000`), open `http://localhost:8000/ai-capex-research/ai-capex/`, and check: no console errors; no horizontal scroll at 390px wide; dark mode readable; also opens as a plain file. If you changed `update.py`, run it once.
