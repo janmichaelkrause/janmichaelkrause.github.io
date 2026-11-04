@@ -4,7 +4,7 @@
 
   "vacancy":          {"v": 1.4,   "date": "2026-06-30", "label": "H1 2026; Northern Virginia 0.2%", "src": "cbre26"},
   "preleased":        {"v": 80,    "prev": 74.3, "date": "2026-06-30", "src": "cbre26"},
-  "h100_1yr":         {"v": 2.35,  "prev": 1.70, "prevDate": "2025-10-31", "date": "2026-03-31", "label": "Mar 2026", "src": "semi"},
+  "h100_1yr":         {"v": 2.40,  "prev": 1.70, "prevDate": "2025-10-31", "date": "2026-04-30", "label": "Apr 2026", "src": "semi_idx", "note": "SemiAnalysis one-year contract index, midpoint of the 25th to 75th percentile range ($2.10 to $2.70). prev is the October 2025 reading; keep it until a reading from a year after it exists."},
   "h100_od":          {"v": 3.49,  "date": "2026-10-16", "src": "cb_h100"},
   "pjm":              {"price": 325, "cap": 325, "uncapped": 554.72, "short_mw": 6831, "auction": "2028/29 auction", "src": "nrg_pjm"},
   "gev_gw":           {"v": 122,   "prev": 116, "date": "2026-09-30", "label": "Q3 2026", "src": "gev"},
@@ -23,9 +23,9 @@
   "eqix_paffo":       {"v": 21.3,  "avg": 23.5, "src": "fv_eqix"},
 
   "labs": {
-    "_note": "Stance model inputs, $B. cash = cash and short-term investments; commit = fixed or planned compute spending it has to pay for; rev = annual revenue (OpenAI: 2026 projection; Anthropic: Q3 2026 run-rate).",
-    "openai":    {"cash": 122, "commit": 856, "rev": 36, "src_rev": "dsa_oai", "date": "2026-10-01", "src_cash": "oai_122", "src_commit": "dsa_oai", "note": "cash counts the whole March 2026 round, so the ratio is an upper bound"},
-    "anthropic": {"cash": 131.7, "commit": 265.6, "rev": 67.2, "date": "2026-06-30", "src": "as_s1"}
+    "_note": "Stance model inputs, $B. cash = cash and short-term investments; commit = fixed or planned compute spending it has to pay for; rev = calendar 2026 revenue, the base for the 2027 to 2030 paths; arr = latest annualized revenue, used for today's reading.",
+    "openai":    {"cash": 122, "commit": 856, "rev": 36, "src_rev": "dsa_oai", "arr": 50, "arr_date": "2026-09-30", "src_arr": "axios_oai", "date": "2026-10-01", "src_cash": "oai_122", "src_commit": "dsa_oai", "note": "cash counts the whole March 2026 round, so the ratio is an upper bound"},
+    "anthropic": {"cash": 131.7, "commit": 265.6, "rev": 50.2, "rev_note": "nine months reported ($33.2B) plus a fourth quarter at the third quarter's $17.0B; our estimate", "src_rev": "ant_s1a", "arr": 68, "arr_date": "2026-09-30", "src_arr": "ant_s1a", "date": "2026-06-30", "src": "as_s1"}
   },
   "dc_build": {"uc_mw": 7481, "inv_mw": 10903, "date": "2026-06-30", "src": "cbre26", "_note": "North American primary markets: under construction and built capacity, MW. Preleased share comes from 'preleased'."},
   "funding": {

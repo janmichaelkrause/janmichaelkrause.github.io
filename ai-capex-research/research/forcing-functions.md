@@ -55,6 +55,7 @@ Most calls hang on how much revenue OpenAI and Anthropic make, so the page makes
 - Funded share through 2030 = (cash + 69% of 2026–30 revenue) ÷ commitments. Under its own plan OpenAI funds about 82% and still needs about $155B from outside, consistent with the reported burn net of its cash.
 - Break-evens, holding today's funding warnings and both labs growing at the same rate: OpenAI exposure moves to neutral at about $330B of OpenAI revenue in 2030 (74% a year); below about $91B (26% a year) OpenAI covers less than the 1847 line, the listing window counts as shut, the funding check fires and most calls move down a step.
 - Anthropic has published no revenue plan, so the "OpenAI's plan" preset puts it on the Absorbed path.
+- Both labs now start their paths from calendar 2026 revenue: OpenAI's own $36B projection [23], and for Anthropic $50.2B, our estimate from nine months reported ($33.2B) plus a fourth quarter at the third quarter's $17.0B [p:ant_s1a]. Before a path is picked, the gauges use each lab's latest annualized revenue instead: about $50B for OpenAI (September) [p:axios_oai] and $68B for Anthropic (Q3 times four). Until 4 November Anthropic's base was its run-rate while OpenAI's was a calendar figure, which flattered Anthropic.
 
 ## Green lines
 
