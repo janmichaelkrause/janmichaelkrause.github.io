@@ -23,9 +23,9 @@
   "eqix_paffo":       {"v": 21.3,  "avg": 23.5, "src": "fv_eqix"},
 
   "labs": {
-    "_note": "Stance model inputs, $B. cash = cash and short-term investments; commit = fixed or planned compute spending it has to pay for.",
-    "openai":    {"cash": 122, "commit": 600, "date": "2026-10-01", "src_cash": "oai_122", "src_commit": "nw_oai", "note": "cash counts the whole March 2026 round, so the ratio is an upper bound"},
-    "anthropic": {"cash": 131.7, "commit": 265.6, "date": "2026-06-30", "src": "as_s1"}
+    "_note": "Stance model inputs, $B. cash = cash and short-term investments; commit = fixed or planned compute spending it has to pay for; rev = annual revenue (OpenAI: 2026 projection; Anthropic: Q3 2026 run-rate).",
+    "openai":    {"cash": 122, "commit": 600, "rev": 36, "src_rev": "dsa_oai", "date": "2026-10-01", "src_cash": "oai_122", "src_commit": "nw_oai", "note": "cash counts the whole March 2026 round, so the ratio is an upper bound"},
+    "anthropic": {"cash": 131.7, "commit": 265.6, "rev": 67.2, "date": "2026-06-30", "src": "as_s1"}
   },
   "dc_build": {"uc_mw": 7481, "inv_mw": 10903, "date": "2026-06-30", "src": "cbre26", "_note": "North American primary markets: under construction and built capacity, MW. Preleased share comes from 'preleased'."},
   "funding": {

@@ -393,6 +393,27 @@ footer{padding-block:40px 60px;color:var(--muted);font-family:var(--f-ui);font-s
 .mg-t summary{cursor:pointer;color:var(--muted);font-size:.72rem;padding:2px 0}
 .mg-t p{margin:2px 0 0}
 .mg-j{color:var(--muted)}
+.mg-bar{touch-action:pan-y;cursor:ew-resize;user-select:none}
+.mg-f{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:2px 14px;font-size:.72rem;color:var(--muted)}
+.fl.up{color:var(--good)}.fl.down{color:var(--crit)}
+.lnk{background:none;border:0;padding:0;font:inherit;color:var(--ink-2);text-decoration:underline;cursor:pointer}
+.mg-tn{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;margin-top:6px}
+.mg-tr{height:140px;position:relative}
+.mg-tc{font-size:.72rem;color:var(--muted);line-height:1.35;margin-top:2px}
+.mg-tc .lg{display:inline-flex;gap:4px;align-items:center;margin-right:10px;color:var(--ink-2)}
+.mg-tc .lg i{width:12px;height:3px;border-radius:2px;display:inline-block}
+.mg-cards{display:flex;flex-direction:column;gap:8px}
+.mgc{border:1px solid var(--rule);border-radius:6px;padding:8px 10px;font-size:.76rem;line-height:1.4;background:var(--surface)}
+.mgc.hl{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink) inset}
+.mgc p{margin:4px 0 0;color:var(--ink-2)}
+.mgc-n span{font-weight:600;color:var(--c-ai);margin-right:4px}
+.mg-why{margin:8px 0 2px;font-size:.76rem;color:var(--ink-2);line-height:1.45}
+.tip .sw{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.mbt{margin-top:18px}
+.mbt-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.mbt-h{font-family:var(--f-ui);font-size:.8rem;font-weight:600;margin-bottom:2px}
+.mbt-h span{font-weight:400;color:var(--muted);font-size:.72rem;margin-left:6px}
+@media (max-width:760px){.mg-tn,.mbt-g{grid-template-columns:minmax(0,1fr)}}
 .mc{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--f-ui);font-size:.74rem;border:1px solid var(--rule);color:var(--ink-2)}
 .mc b{font-weight:600}
 .mc.uw{border-color:var(--crit);color:var(--crit)}.mc.ow{border-color:var(--good);color:var(--good)}.mc.n{border-color:var(--muted)}
@@ -594,8 +615,11 @@ ol.sources.compact li{margin-bottom:4px}
       <div class="mdl-fund"><div class="lbl">Funding check</div><div id="m-fund"></div></div>
       <div class="mdl-chain"><div class="lbl">The chain, upstream first</div><div id="m-chain"></div></div>
     </div>
-    <div class="lbl" style="margin-top:16px">Each forcing function against the level where it broke before <span class="lbl-sub">updated each morning · gray far · amber close · red past · hollow dot = prior reading</span></div>
+    <div class="lbl" style="margin-top:16px">Each forcing function against the level where it broke before <span class="lbl-sub">updated each morning · gray far · amber close · red past · hollow dot = prior reading · drag a marker · click a line for its history</span></div>
     <div id="m-rows" class="mgs"></div>
+    <figure class="fig mbt"><figcaption class="fig-t">Would this model have called the last two busts?</figcaption>
+      <div class="mbt-g"><div><div class="mbt-h">British railway shares, 1843–50 <span>peak = 100</span></div><div class="chart" id="bt-rail" style="height:180px"></div></div><div><div class="mbt-h">US telecom shares, 1998–2003 <span>peak = 100</span></div><div class="chart" id="bt-tel" style="height:180px"></div></div></div>
+      <p class="fig-n" id="bt-note"></p></figure>
     <div class="st-foot">
       <details class="st-adj"><summary>What if</summary><div class="inputs two" id="m-sl"></div><div id="m-fsw" class="mfsw"></div><button type="button" class="replay" id="m-reset" style="margin:8px 0 0">Reset to today</button></details>
       <details class="st-how"><summary>How the calls work</summary><div id="m-rules"></div></details>
@@ -2653,69 +2677,115 @@ const pct=v=>Math.round(v*100)+"%",xx=v=>(v<0?"−":"")+Math.abs(v).toFixed(2)+"
 const M_FB={oai:{v:122/600,d:"2026-10-01"},ant:{v:131.7/265.6,d:"2026-06-30"},neo:{v:-0.14,d:"2026-06-30"},orcl:{v:.38,d:"2026-08-31"},credit:{v:.38,d:"2026-03-31"},chips:{v:.169,d:"2026-07-26"},mem:{v:.868,d:"2026-09-03"},build:{v:.137,d:"2026-06-30"},hyper:{v:.13,d:"2026-09-30"}};
 const mlab=k=>(MAN.labs&&MAN.labs[k])||{};
 /* gauges, upstream first (the order a funding failure would travel) */
+Object.assign(SRC,{
+  rmania:["Gareth Campbell, The Railway Mania: a narrative (railwaymania.co.uk): yearly changes in the railway share index, Bank rate moves and calls, 1843–50","https://www.railwaymania.co.uk/narrative.html"],
+  frbsf01:["Federal Reserve Bank of San Francisco, Economic Letter 2001-33 (high-yield spreads rose 334 bps from June to October 1998, and more than 300 bps from early 2000)","https://www.frbsf.org/wp-content/uploads/el2001-33.pdf"],
+  boe01:["Bank of England Quarterly Bulletin, Interpreting movements in high-yield corporate bond market spreads (2001): the large widening in the second half of 2000","https://www.bankofengland.co.uk/quarterly-bulletin/2001/q1/interpreting-movements-in-high-yield-corporate-bond-market-spreads"],
+  mt_mu:["Macrotrends, Micron gross margin, trailing four quarters, 2016–2023","https://macrotrends.net/stocks/charts/MU/micron-technology/gross-margin"],
+  fed_hist:["Federal Reserve, federal funds target rate history (FRED DFEDTAR): hikes from June 1999 to May 2000, cuts from January 2001","https://fred.stlouisfed.org/series/DFEDTAR"]
+});
+const yr=s=>{const p=String(s).split("-");return +p[0]+((+p[1]||1)-1)/12+((+p[2]||15)-15)/365;};
+const mon=s=>{const p=String(s).split("-");return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][(+p[1]||1)-1]+" "+p[0];};
+/* historical paths, in the same units as the gauge they sit under */
+const HX={
+ rail:{n:"Railway shareholders",c:"var(--c-ukrail)",pts:[["1844-12",.092],["1845-12",.099],["1846-12",.192],["1847-12",.381],["1848-12",.614],["1849-12",.723]],
+   notes:{"1845-12":"Bank rate raised in Oct and Nov; shares down 18% in six weeks","1846-12":"Calls keep coming; shares −4% on the year","1847-12":"Week of Terror in October; shares −27% on the year","1848-12":"Shares −23% on the year","1849-12":"Shares −22%; the bottom came in April 1850"},src:["camp_lev","rmania"]},
+ bo:{n:"Baltimore & Ohio",c:"var(--c-usrail)",pts:[["1894-06",1.333],["1895-06",1.247],["1896-06",1.018]],brk:"1896-02",brkT:"receivership",
+   notes:{"1894-06":"Fixed charges 75% of net earnings","1895-06":"80%","1896-06":"98%; in receivership since February"},src:["daggett"]},
+ rdg:{n:"Reading",c:"var(--c-usrail)",dash:1,pts:[["1891-12",1.048],["1894-12",1.058]],brk:"1893-02",brkT:"receivership",
+   notes:{"1891-12":"Fixed charges 95% of net earnings","1894-12":"Still 95%, in receivership"},src:["daggett"]},
+ mu18:{n:"Micron 2016–20",c:"var(--c-fiber)",pts:[["2016-08",.202],["2016-11",.205],["2017-02",.257],["2017-05",.339],["2017-08",.415],["2017-11",.483],["2018-02",.531],["2018-05",.564],["2018-08",.589],["2018-11",.596],["2019-02",.579],["2019-05",.536],["2019-08",.457],["2019-11",.361],["2020-02",.303],["2020-05",.290]],brk:"2018-11",brkT:"peak",src:["mt_mu"]},
+ mu22:{n:"Micron 2022–23",c:"var(--c-fiber)",dash:1,pts:[["2022-02",.458],["2022-05",.469],["2022-08",.452],["2022-11",.413],["2023-02",.275],["2023-05",.090],["2023-08",-.091],["2023-11",-.145]],brk:"2022-05",brkT:"peak",src:["mt_mu"]},
+ shale:{n:"Shale borrowing bases",c:"var(--c-canal)",pts:[["2015-10",-.39],["2016-04",-.38],["2016-10",-.20]],notes:{"2015-10":"Banks cut 39%","2016-04":"Cut 38%; 58 producers file in 2016","2016-10":"Cuts ease to about 20%"},src:["hb16"]}
+};
+/* what happened after each line: shown when a line is clicked; lag = years from the line to the outcome */
+const CARD={
+ rail38:{h:"1847: the railway crisis",b:"Investors had paid in 38% of what they owed. In October came the Week of Terror: four banks failed in a week and the government suspended the Bank Charter Act. Railway shares fell 27% that year, then 23% in 1848 and 22% in 1849.",s:["camp_lev","nyfed_1847","rmania"],out:"bottom",lag:2.3},
+ rail72:{end:1,h:"1849: the fall runs out",b:"By the end of 1849 investors had paid in 72%. Shares bottomed four months later, in April 1850, 66% below the 1845 peak, and finished 1850 28% above the bottom.",s:["camp_lev","rmania","ct12"],out:"bottom",lag:.3},
+ rdg:{h:"1891: the Reading",b:"Fixed charges took 95% of net earnings. The Reading went into receivership in February 1893, about 14 months later. Holders of its stock and income bonds were assessed 20% to keep a stake, and fixed charges were cut by about $1.2M a year.",s:["daggett","brew1893"],out:"receivership",lag:1.2},
+ bo:{h:"1894: the B&O",b:"Fixed charges took 75% of net earnings, then 80% a year later. The B&O went into receivership in February 1896, about 20 months later. Common shareholders were assessed $20 a share and bondholders took lower interest.",s:["daggett"],out:"receivership",lag:1.7},
+ canal:{h:"1840s: canals and railways built on outside money",b:"The second canal wave of 1836–44 was almost 70% state-financed. When lending stopped, canal spending fell from $14.3M in 1840 to under $1M by 1843, and eight states and Florida defaulted in 1841–42.",s:["cranmer","wsg04"],out:"defaults",lag:1.5},
+ shale:{h:"2015–16: shale borrowing bases",b:"As oil fell, banks cut what they would lend against reserves by 39% in fall 2015 and 38% in spring 2016. In 2016, 58 producers with $50.4B of debt filed for bankruptcy.",s:["hb16"],out:"bankruptcies",lag:.7},
+ lucent:{h:"2000: Lucent",b:"Customer financing reached $8.1B, 24% of revenue. Lucent booked $3.5B of losses on those loans in 2001–02, and by September 2002 Lucent, Nortel, JDS Uniphase and Corning had lost 98% of their value.",s:["tunguz_vf","cnn_tel4"],out:"write-offs",lag:1.5},
+ mu18:{h:"2018: memory's last peak",b:"Micron's gross margin hit 61% in the August 2018 quarter. A year later it was 28.6%, and memory revenue fell 31.5% in 2019. In the next cycle the four-quarter margin peaked at 47% in May 2022 and was negative 15 months later.",s:["mu19","gartner19","mt_mu"],out:"margin halving",lag:1},
+ merchant:{h:"2000: merchant power",b:"Developers planned plants equal to 51% of the grid, with no buyers lined up. A quarter of the plans were cancelled within six months, reserve margins headed for 37%, and Mirant filed in July 2003 with $11.4B of debt.",s:["fort02","rew_rm","cw_mirant"],out:"bankruptcy",lag:3},
+ ours:{h:"Our line",b:"No historical event sits here. It marks two-thirds of the way to the red line, so a reading starts counting against the call before it reaches the break."}
+};
+const bn=v=>"$"+(Math.abs(v)>=1e9?(Math.abs(v)/1e9).toFixed(1)+"B":Math.round(Math.abs(v)/1e6)+"M"),amt=(v,more,less)=>v>=0?bn(v)+" "+more:bn(v)+" "+less;
 const MG=[
- {k:"oai",n:"OpenAI: paid in",m:"Cash in hand ÷ planned compute spending",dir:-1,min:0,max:1,fmt:pct,
-  close:{v:.38,y:"1847",t:"railway crisis",s:["camp_lev"]},brk:{v:.10,y:"1845",t:"Mania breaks",s:["camp_lev","nyfed_1847"]},
-  pos:[{n:"OpenAI exposure",f:1,l:0,ly:"labs"}],
-  read(){const o=mlab("openai");const cash=o.cash!=null?o.cash:122,com=o.commit!=null?o.commit:600;return {v:cash/com,d:o.date||M_FB.oai.d,cash,com,src:[o.src_cash||"oai_122",o.src_commit||"nw_oai"]};},
-  shock(r,S){const cash=r.cash+S.raise,com=r.com*(1-S.cut);return com>0?cash/com:1;},
-  text(r){return "Railway shareholders had paid in 9.9% of what they owed when prices broke in 1845, and 38% when the 1847 crisis hit."+cite("camp_lev","nyfed_1847")+" OpenAI's cash covers about "+pct(r.v)+" of the ~$"+r.com+"B of compute it plans through 2030, counting all $"+r.cash+"B of its March round as cash, so this is an upper bound."+cite.apply(null,r.src);}},
- {k:"ant",n:"Anthropic: paid in",m:"Cash in hand ÷ fixed commitments",dir:-1,min:0,max:1,fmt:pct,
-  close:{v:.38,y:"1847",t:"railway crisis",s:["camp_lev"]},brk:{v:.10,y:"1845",t:"Mania breaks",s:["camp_lev"]},
-  pos:[{n:"Anthropic",f:1,l:0,ly:"labs"}],
-  read(){const o=mlab("anthropic");const cash=o.cash!=null?o.cash:131.7,com=o.commit!=null?o.commit:265.6;return {v:cash/com,d:o.date||M_FB.ant.d,cash,com,src:[o.src||"as_s1"]};},
+ {k:"oai",n:"OpenAI: paid in",m:"Cash plus a year of revenue ÷ planned compute spending",dir:-1,min:0,max:1,fmt:pct,
+  close:{v:.72,y:"1849",t:"fall runs out",s:["camp_lev"],card:"rail72"},brk:{v:.38,y:"1847",t:"railway crisis",s:["camp_lev"],card:"rail38"},
+  pos:[{n:"OpenAI exposure",f:1,l:0,ly:"labs"}],trail:{hx:["rail"]},
+  read(){const o=mlab("openai");const cash=o.cash!=null?o.cash:122,com=o.commit!=null?o.commit:600,rev=o.rev!=null?o.rev:36;return {v:(cash+rev)/com,d:o.date||M_FB.oai.d,cash,com,rev,src:[o.src_cash||"oai_122",o.src_commit||"nw_oai",o.src_rev||"dsa_oai"]};},
+  shock(r,S){const com=r.com*(1-S.cut);return com>0?(r.cash+r.rev+S.raise)/com:1;},
+  need(t,r){return amt((t*r.com-r.cash-r.rev)*1e9,"more cash raised","less cash");},
+  text(r){return "The railway lines of 1845 earned nothing until they opened, so shareholders paid their calls out of their own pockets. Shares fell through 38% paid in (1847) and kept falling until 72% (1849)."+cite("camp_lev","rmania")+" OpenAI's cash and a year of revenue cover "+pct(r.v)+" of the ~$"+r.com+"B of compute it plans through 2030, counting all $"+r.cash+"B of its March round as cash, so this is an upper bound."+cite.apply(null,r.src);}},
+ {k:"ant",n:"Anthropic: paid in",m:"Cash plus a year of revenue ÷ fixed commitments",dir:-1,min:0,max:1,fmt:pct,
+  close:{v:.72,y:"1849",t:"fall runs out",s:["camp_lev"],card:"rail72"},brk:{v:.38,y:"1847",t:"railway crisis",s:["camp_lev"],card:"rail38"},
+  pos:[{n:"Anthropic",f:1,l:0,ly:"labs"}],trail:{hx:["rail"]},
+  read(){const o=mlab("anthropic");const cash=o.cash!=null?o.cash:131.7,com=o.commit!=null?o.commit:265.6,rev=o.rev!=null?o.rev:67.2;return {v:(cash+rev)/com,d:o.date||M_FB.ant.d,cash,com,rev,src:[o.src||"as_s1"]};},
   shock(r){return r.v;},
-  text(r){return "Same yardstick as the railway shareholders. Anthropic's $"+r.cash+"B of cash covers "+pct(r.v)+" of its $"+r.com+"B of fixed commitments, and it generated free cash flow in H1 2026."+cite.apply(null,r.src);}},
+  need(t,r){return amt((t*r.com-r.cash-r.rev)*1e9,"more cash or revenue","less cash or revenue");},
+  text(r){return "Same railway yardstick. Anthropic's $"+r.cash+"B of cash and $"+r.rev+"B of annualized revenue cover "+pct(r.v)+" of its $"+r.com+"B of fixed commitments, and it generated free cash flow in H1 2026."+cite.apply(null,r.src);}},
  {k:"neo",n:"CoreWeave: debt service",m:"Operating income ÷ interest, last four quarters",dir:-1,min:-1,max:3,fmt:xx,
-  close:{v:1.33,y:"1894",t:"B&O, 2 yrs before",s:["daggett"]},brk:{v:1.05,y:"1891",t:"Reading fails",s:["daggett"]},
-  pos:[{n:"Neocloud equity",f:1,l:0,ly:"neo"}],
+  close:{v:1.33,y:"1894",t:"B&O",s:["daggett"],card:"bo"},brk:{v:1.05,y:"1891",t:"Reading",s:["daggett"],card:"rdg"},
+  pos:[{n:"Neocloud equity",f:1,l:0,ly:"neo"}],trail:{hx:["bo","rdg"]},
   at(i){const oi=ttm("crwv_opinc",i),it=ttm("crwv_interest",i);return (oi!=null&&it>0)?{v:oi/it,d:qEnd("crwv_opinc",i),oi,it}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.neo.v,d:M_FB.neo.d,oi:-231e6,it:1619e6,src:["live_sec"]};},
   hist(){return series(i=>this.at(i),6);},
   shock(r,S){const rev=ttm("crwv_revenue",0)||7.59e9;const dRev=rev*(S.capex-.36*S.cut)+rev*.2*S.rent;return (r.oi+.8*dRev)/r.it;},
-  text(r){return "In 1893 railroads went into receivership once fixed charges took about 95% of net earnings, roughly 1.05× cover: the Reading from 1891, the B&O by 1896. The B&O was at 1.33× two years before it failed."+cite("daggett")+" CoreWeave's operating income covers its interest "+xx(r.v)+" over the four quarters to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Its three largest customers are 72% of revenue."+cite("bc_crwv");}},
+  need(t,r){return amt(t*r.it-r.oi,"more operating income a year","less operating income a year");},
+  text(r){return "In 1893 railroads went into receivership once fixed charges took about 95% of net earnings, roughly 1.05× cover. The B&O was at 1.33× two years before it failed."+cite("daggett")+" CoreWeave's operating income covers its interest "+xx(r.v)+" over the four quarters to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Its three largest customers are 72% of revenue."+cite("bc_crwv");}},
  {k:"orcl",n:"Oracle: outside money",m:"Capex not covered by operating cash flow, last four quarters",dir:1,min:0,max:1,fmt:pct,
-  close:{v:.33,y:"ours",t:"two-thirds",s:[],j:1},brk:{v:.5,y:"1840s",t:"canals, railways",s:["cranmer","camp13"]},
-  pos:[{n:"Oracle",f:1,l:0,ly:"orcl"}],
+  close:{v:.33,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.5,y:"1840s",t:"canals, railways",s:["cranmer","camp13"],card:"canal"},
+  pos:[{n:"Oracle",f:1,l:0,ly:"orcl"}],trail:{hx:[]},
   at(i){const c=ttm("orcl_capex",i),o=ttm("orcl_ocf",i);return (c>0&&o!=null)?{v:Math.max(0,1-o/c),d:qEnd("orcl_capex",i),c,o}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.orcl.v,d:M_FB.orcl.d,c:75.66e9,o:46.94e9,src:["live_sec"]};},
   hist(){return series(i=>this.at(i),6);},
   shock(r,S){const E=.5*638e9/5;return Math.max(0,Math.min(1.5,(r.c-r.o+S.cut*E)/r.c));},
+  need(t,r){return amt((1-t)*r.c-r.o,"more operating cash flow a year","less operating cash flow a year");},
   text(r){return "The canals of 1836–44 and the railways of the Mania were built mostly with money raised from outside, and stopped when the lending did. More than half from outside marks the danger zone."+cite("cranmer","wsg04","camp13")+" Oracle covered "+pct(1-r.v)+" of its capex from its own cash flow over the last four quarters; the rest came from debt and share sales. OpenAI is over half its backlog."+cite.apply(null,r.src.concat(["param_orcl"]));}},
  {k:"credit",n:"GPU collateral",m:"Change in H100 one-year rent since the prior reading",dir:-1,min:-.8,max:.6,fmt:v=>(v>=0?"+":"−")+Math.round(Math.abs(v)*100)+"%",
-  close:{v:-.25,y:"ours",t:"two-thirds",s:[],j:1},brk:{v:-.38,y:"2016",t:"shale cuts",s:["hb16"]},
-  pos:[{n:"GPU-backed credit",f:1,l:0,ly:"fin"}],
+  close:{v:-.25,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:-.38,y:"2016",t:"shale cuts",s:["hb16"],card:"shale"},
+  pos:[{n:"GPU-backed credit",f:1,l:0,ly:"fin"}],trail:{hx:["shale"]},
   read(){const h=val("h100_1yr",0),hp=val("h100_1yr",1);return (h!=null&&hp)?{v:h/hp-1,d:metDate("h100_1yr")||M_FB.credit.d,h,hp,src:[mcite("h100_1yr")]}:{v:M_FB.credit.v,d:M_FB.credit.d,h:2.35,hp:1.70,src:["semi"]};},
   shock(r,S){return (1+r.v)*(1+S.rent)-1;},
+  need(t,r){return "rent at $"+(r.hp*(1+t)).toFixed(2)+" an hour";},
   text(r){return "In 2015–16 banks cut shale borrowing bases by 38–39% as oil fell; 58 producers with $50.4B of debt filed in 2016."+cite("hb16")+" GPU loans are worth what the GPUs rent for. The H100 one-year rent went from $"+r.hp.toFixed(2)+" to $"+r.h.toFixed(2)+"."+cite.apply(null,r.src)+" CoreWeave's loans have no re-marking clause, so losses would arrive on default rather than gradually."+cite("wing_gpu");}},
  {k:"chips",n:"Nvidia: customer financing",m:"Stakes in private companies ÷ last four quarters' revenue",dir:1,min:0,max:.6,fmt:pct,
-  close:{v:.16,y:"ours",t:"two-thirds",s:[],j:1},brk:{v:.24,y:"2000",t:"Lucent",s:["tunguz_vf"]},
-  pos:[{n:"Nvidia",f:0,l:0,ly:"chips"}],
+  close:{v:.16,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.24,y:"2000",t:"Lucent",s:["tunguz_vf"],card:"lucent"},
+  pos:[{n:"Nvidia",f:0,l:0,ly:"chips"}],trail:{hx:[]},
   read(){const st=val("nv_private",0),rev=ttm("nvda_revenue",0);const s=st!=null?st*1e9:51.2e9,rv=rev||302.97e9;return {v:s/rv,d:metDate("nv_private")||M_FB.chips.d,s,rv,src:[mcite("nv_private"),rev?"live_sec":"nv8k"]};},
   hist(){const o=mobj("nv_private"),q=MQ("nvda_revenue"),out=[];if(o.prev!=null&&o.prevDate){const i=q.findIndex(x=>x.end<=o.prevDate);const rv=i>=0?ttm("nvda_revenue",i):null;if(rv)out.push({v:o.prev*1e9/rv,d:o.prevDate});}const r=this.read();out.push({v:r.v,d:r.d});return out.length>1?out:[];},
   shock(r,S){return r.s/(r.rv*(1+S.capexAll));},
+  need(t,r){const d=r.s/t-r.rv;return "revenue "+bn(Math.abs(d))+(d>=0?" higher":" lower");},
   text(r){return "Lucent's financing of its own customers reached 24% of revenue in 2000; it booked $3.5B of losses on those loans in 2001–02, and its shares fell 98%."+cite("tunguz_vf","cnn_tel4")+" Nvidia's stakes in private companies are "+pct(r.v)+" of its last four quarters' revenue, or about half if its $100B OpenAI commitment is fully drawn."+cite.apply(null,r.src);}},
- {k:"mem",n:"Memory: margin",m:"Micron gross margin, latest quarter",dir:1,min:0,max:1,fmt:pct,
-  close:{v:.41,y:"ours",t:"two-thirds",s:[],j:1},brk:{v:.61,y:"2018",t:"last peak",s:["mu19"]},
-  pos:[{n:"Memory",f:0,l:0,ly:"comp"}],
+ {k:"mem",n:"Memory: margin",m:"Micron gross margin, latest quarter",dir:1,min:-.2,max:1,fmt:pct,
+  close:{v:.41,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.61,y:"2018",t:"last peak",s:["mu19"],card:"mu18"},
+  pos:[{n:"Memory",f:0,l:0,ly:"comp"}],trail:{hx:["mu18","mu22"],ttm:1},
   at(i){const g=MQ("mu_gross_profit")[i],r=MQ("mu_revenue")[i];return (g&&r&&g.end===r.end&&r.v>0)?{v:g.v/r.v,d:r.end}:null;},
+  atT(i){const g=ttm("mu_gross_profit",i),r=ttm("mu_revenue",i);return (g!=null&&r>0)?{v:g/r,d:qEnd("mu_revenue",i)}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.mem.v,d:M_FB.mem.d,src:["pulse_mu"]};},
   hist(){return series(i=>this.at(i),6);},
-  shock(r,S){return Math.max(0,r.v+S.capexAll);},
-  text(r){return "Micron's gross margin peaked at 61% in mid-2018 and was 28.6% a year later, as memory revenue fell 31.5%."+cite("mu19","gartner19")+" In the quarter to "+fmtDay(r.d)+" it was "+pct(r.v)+"."+cite.apply(null,r.src);}},
+  trailAI(){const s=series(i=>this.atT(i),8);return s.length?s:[{v:.807,d:"2026-09-03"}];},
+  shock(r,S){return Math.max(-.2,r.v+S.capexAll);},
+  need(t,r){const d=Math.round((r.v-t)*100);return "margin "+Math.abs(d)+" points "+(d>=0?"lower":"higher");},
+  text(r){return "Micron's gross margin peaked at 61% in mid-2018 and was 28.6% a year later, as memory revenue fell 31.5%."+cite("mu19","gartner19")+" In the quarter to "+fmtDay(r.d)+" it was "+pct(r.v)+"."+cite.apply(null,r.src)+" The trail below uses four-quarter margins on both sides.";}},
  {k:"build",n:"New capacity without a buyer",m:"Uncontracted data center construction ÷ built capacity",dir:1,min:0,max:.8,fmt:pct,
-  close:{v:.34,y:"ours",t:"two-thirds",s:[],j:1},brk:{v:.51,y:"2000",t:"merchant power",s:["fort02"]},
-  pos:[{n:"Power",f:1,l:1,ly:"power"},{n:"Data centers, preleased",f:0,l:1,ly:"dc"},{n:"Data centers, speculative",f:1,l:1,ly:"dc"}],
+  close:{v:.34,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.51,y:"2000",t:"merchant power",s:["fort02"],card:"merchant"},
+  pos:[{n:"Power",f:1,l:1,ly:"power"},{n:"Data centers, preleased",f:0,l:1,ly:"dc"},{n:"Data centers, speculative",f:1,l:1,ly:"dc"}],trail:{hx:[]},
   read(){const o=mobj("dc_build"),pre=val("preleased",0);const uc=o.uc_mw||7481,inv=o.inv_mw||10903,p=(pre!=null?pre:80)/100;return {v:uc/inv*(1-p),d:o.date||M_FB.build.d,uc,inv,p,src:[o.src||"cbre26"]};},
   shock(r,S){const p=r.p*(1-Math.max(0,-S.capexAll));return r.uc/r.inv*(1-p);},
-  text(r){return "In 2000 merchant developers planned plants equal to 51% of the existing grid, with no buyers lined up. Reserve margins headed for 37%, and a quarter of the plans were cancelled within six months."+cite("fort02","rew_rm")+" Data centers under construction equal "+pct(r.uc/r.inv)+" of built capacity in the main markets, but "+pct(r.p)+" is preleased, so the part without a buyer is "+pct(r.v)+"."+cite.apply(null,r.src);}},
+  need(t,r){return "preleasing at "+pct(1-t*r.inv/r.uc);},
+  text(r){return "In 2000 merchant developers planned plants equal to 51% of the existing grid, with no buyers lined up."+cite("fort02","rew_rm")+" Data centers under construction equal "+pct(r.uc/r.inv)+" of built capacity in the main markets, but "+pct(r.p)+" is preleased, so the part without a buyer is "+pct(r.v)+"."+cite.apply(null,r.src);}},
  {k:"hyper",n:"Hyperscalers: outside money",m:"Big-four capex not covered by operating cash flow, latest quarter",dir:1,min:0,max:1,fmt:pct,
-  close:{v:.33,y:"ours",t:"two-thirds",s:[],j:1},brk:{v:.5,y:"1840s",t:"canals, railways",s:["cranmer","camp13"]},
-  pos:[{n:"Hyperscaler bonds",f:0,l:1,ly:"hyper"},{n:"Hyperscaler equity",f:0,l:0,ly:"hyper"}],
+  close:{v:.33,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.5,y:"1840s",t:"canals, railways",s:["cranmer","camp13"],card:"canal"},
+  pos:[{n:"Hyperscaler bonds",f:0,l:1,ly:"hyper"},{n:"Hyperscaler equity",f:0,l:0,ly:"hyper"}],trail:{hx:[]},
   at(i){let c=0,o=0,n=0,end=null;["AMZN","GOOGL","MSFT","META"].forEach(t=>{const a=MQ("capex_"+t)[i],b=MQ("ocf_"+t)[i];if(a&&b&&a.end===b.end){c+=a.v;o+=b.v;n++;end=end||a.end;}});return n===4&&c>0?{v:Math.max(0,1-o/c),d:end,c,o}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.hyper.v,d:M_FB.hyper.d,c:201.9e9,o:175.5e9,src:["dd_fcf"]};},
   hist(){return series(i=>this.at(i),6);},
   shock(r,S){const c=r.c*(1+S.capex);return c>0?Math.max(0,1-r.o/c):0;},
+  need(t,r){return amt((1-t)*r.c-r.o,"more operating cash flow a quarter","less operating cash flow a quarter");},
   text(r){return "Same line as Oracle's. The big four's operating cash flow of $"+Math.round(r.o/1e9)+"B covered "+pct(1-r.v)+" of their $"+Math.round(r.c/1e9)+"B of capex in the quarter to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Nobody here is forced to sell, which is why bonds start from overweight.";}}
 ];
 /* funding check: two of three warnings move every call one step toward underweight */
@@ -2730,59 +2800,141 @@ function fundLive(){const F=MAN.funding&&typeof MAN.funding==="object"?MAN.fundi
   const ipo=String(F.ipo_window||"open");out.push({k:"ipo",n:"AI listing pulled or cut",on:ipo==="shut",t:(F.ipo_note||(ipo==="shut"?"A major AI listing was pulled or priced down":"Window open; Anthropic expected to price around 19–20 Nov"))+cite(F.ipo_src&&SRC[F.ipo_src]?F.ipo_src:"as_s1")});
   return out;}
 const MS0={raise:0,cut:0,capex:0,rent:0,fed:null,spread:null,ipo:null};
-let MS=Object.assign({},MS0);
-const CALLN=["Underweight","Neutral","Overweight"],CALLC=["uw","n","ow"];
+let MS=Object.assign({},MS0,{over:{}});
+const CALLN=["Underweight","Neutral","Overweight"],CALLC=["uw","n","ow"],ZN=["far","close","past"];
 function zoneOf(g,v){if(g.dir>0)return v>=g.brk.v?2:v>=g.close.v?1:0;return v<=g.brk.v?2:v<=g.close.v?1:0;}
-const ZN=["far","close","past"];
 function runModel(S){const shocked=S.raise||S.cut||S.capex||S.rent;S.capexAll=S.capex-S.cut*.2;
   const F=fundLive().map(f=>{const o=S[f.k];let on=o==null?f.on:o;if(f.k==="ipo"&&S.cut>=.25&&o==null)on=true;return Object.assign({},f,{on,forced:o!=null||(f.k==="ipo"&&S.cut>=.25&&!f.on)});});
-  const fired=F.filter(f=>f.on).length>=2;
-  const rows=MG.map(g=>{const r=g.read(),v=r.v,vs=shocked?g.shock(r,S):v,z0=zoneOf(g,v),z=zoneOf(g,vs);
-    const calls=g.pos.map(p=>{const base=(!p.f&&p.l)?2:1;const c=Math.max(0,base-z-(fired?1:0));const c0=Math.max(0,base-z0-(F.filter(f=>f.on&&!f.forced).length>=2?1:0));return Object.assign({},p,{c,c0});});
-    return {g,r,v,vs,z,z0,calls};});
+  const fired=F.filter(f=>f.on).length>=2,fired0=F.filter(f=>f.on&&!f.forced).length>=2;
+  const rows=MG.map(g=>{const r=g.read(),v=r.v,dragged=S.over[g.k]!=null;const vs=dragged?S.over[g.k]:shocked?g.shock(r,S):v,z0=zoneOf(g,v),z=zoneOf(g,vs);
+    const calls=g.pos.map(p=>{const base=(!p.f&&p.l)?2:1;return Object.assign({},p,{c:Math.max(0,base-z-(fired?1:0)),c0:Math.max(0,base-z0-(fired0?1:0))});});
+    return {g,r,v,vs,z,z0,calls,dragged};});
   const all=[].concat(...rows.map(x=>x.calls)),score=all.reduce((a,c)=>a+(c.c-1),0)/all.length;
-  const first=rows.find(x=>x.z>=1&&x.g.pos.some(p=>p.f));return {rows,F,fired,score,first,shocked:!!shocked||F.some(f=>f.forced)};}
-/* countdown: pace over the readings we have, projected to the break line */
-function countdown(g,r){const h=g.hist?g.hist():[];if(zoneOf(g,r.v)===2){let since=null;for(let i=h.length-1;i>=0;i--){if(zoneOf(g,h[i].v)===2)since=h[i].d;else break;}if(!since||h.length<2)return "Past the line";return since===h[0].d?"Past the line in every reading since "+qLab(h[0].d):"Past the line since "+qLab(since);}
+  const first=rows.find(x=>x.z>=1&&x.g.pos.some(p=>p.f));
+  return {rows,F,fired,score,first,shocked:!!shocked||F.some(f=>f.forced)||Object.keys(S.over).length>0};}
+/* when a reading first went past a line, from the readings we have */
+function sinceLine(g,lineV){const h=g.hist?g.hist():[];const past=v=>g.dir>0?v>=lineV:v<=lineV;if(!h.length||!past(h[h.length-1].v))return null;let s=null;for(let i=h.length-1;i>=0;i--){if(past(h[i].v))s=h[i].d;else break;}return {d:s,all:s===h[0].d};}
+function countdown(g,r){const h=g.hist?g.hist():[];if(zoneOf(g,r.v)===2){const s=sinceLine(g,g.brk.v);if(!s||h.length<2)return "Past the line";return s.all?"Past the line in every reading since "+qLab(s.d):"Past the line since "+qLab(s.d);}
   if(h.length<2)return "Not enough history for a pace yet";
   const a=h[Math.max(0,h.length-5)],b=h[h.length-1],days=(dms(b.d)-dms(a.d))/DAY;if(days<60)return "Not enough history for a pace yet";
   const slope=(b.v-a.v)/days,toward=g.dir>0?slope>0:slope<0;if(!toward||Math.abs(slope)<1e-9)return "Moving away from the line";
   const q=(g.brk.v-b.v)/slope/91.3;return q>40?"Moving toward the line, slowly":"At this pace, reaches the line in about "+Math.max(1,Math.round(q))+" quarter"+(Math.round(q)>1?"s":"");}
+/* flip points: what it would take, from today's reading, to move one step */
+function flips(x){const g=x.g,z=x.z0,out=[],L=[["close",g.close],["brk",g.brk]];
+  if(z===2)out.push(["up",g.brk]);if(z===1){out.push(["up",g.close]);out.push(["down",g.brk]);}if(z===0)out.push(["down",g.close]);
+  return out.map(o=>{const n=g.need?g.need(o[1].v,x.r):"";return '<span class="fl '+o[0]+'">'+(o[0]==="up"?"▲ Up a step at ":"▼ Down a step at ")+g.fmt(o[1].v)+(n?": "+n:"")+'</span>';}).join("");}
 function drawGauge(box,g,v,vs,prev,anim){const sg=svgBox(box,44,g.n+" gauge");if(!sg)return;const {svg,W}=sg;const pad=6,x=lin(g.min,g.max,pad,W-pad),cl=t=>Math.max(g.min,Math.min(g.max,t)),y0=12,bh=10;
   const a=g.close.v,b=g.brk.v;const zones=g.dir>0?[[g.min,a,"var(--surface-2)"],[a,b,"var(--z-warn)"],[b,g.max,"var(--z-crit)"]]:[[g.min,b,"var(--z-crit)"],[b,a,"var(--z-warn)"],[a,g.max,"var(--surface-2)"]];
   zones.forEach(z=>S("rect",{x:x(z[0]),y:y0,width:Math.max(0,x(z[1])-x(z[0])),height:bh,style:"fill:"+z[2]},svg));
-  [[a,g.close],[b,g.brk]].forEach(L=>S("line",{x1:x(L[0]),x2:x(L[0]),y1:y0-3,y2:y0+bh+3,style:"stroke:var(--ink-2);stroke-width:1"},svg));
+  [["close",a,g.close],["brk",b,g.brk]].forEach(L=>{S("line",{x1:x(L[1]),x2:x(L[1]),y1:y0-3,y2:y0+bh+3,style:"stroke:var(--ink-2);stroke-width:1.5"},svg);
+    const hit=S("rect",{x:x(L[1])-8,y:0,width:16,height:44,"data-line":L[0],style:"fill:transparent;cursor:pointer"},svg);const tt=S("title",null,hit);tt.textContent=(L[2].y==="ours"?"Our line":L[2].y+" "+L[2].t)+": click for what happened next";});
   const lo=g.dir>0?[a,g.close]:[b,g.brk],hi=g.dir>0?[b,g.brk]:[a,g.close];
   [[lo,"end"],[hi,"start"]].forEach(o=>{const L=o[0][1];let txt=L.y==="ours"?"our line":L.y+" "+L.t;if(W<420)txt=L.y==="ours"?"ours":L.y;const est=txt.length*5.4;let xx=x(o[0][0]),an=o[1];
     if(an==="end"){xx-=4;if(xx-est<0){an="start";xx=2;}}else{xx+=4;if(xx+est>W){an="end";xx=W-2;}}
-    const t=S("text",{x:xx,y:y0+bh+13,"text-anchor":an,class:"t-ink2",style:"font-size:10px"},svg);t.textContent=txt;});
-  if(prev!=null&&isFinite(prev))S("circle",{cx:x(cl(prev)),cy:y0+bh/2,r:3.5,style:"fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2"},svg);
-  if(vs!==v)S("line",{x1:x(cl(v)),x2:x(cl(v)),y1:y0-4,y2:y0+bh+4,style:"stroke:var(--ink);stroke-width:1.5;stroke-dasharray:2 2;opacity:.6"},svg);
-  const mk=S("g",null,svg);S("line",{x1:0,x2:0,y1:y0-5,y2:y0+bh+5,style:"stroke:var(--ink);stroke-width:2.5"},mk);S("circle",{cx:0,cy:y0-6,r:3.5,style:"fill:var(--ink)"},mk);
+    const t=S("text",{x:xx,y:y0+bh+13,"text-anchor":an,class:"t-ink2 mg-ln","data-line":L===g.close?"close":"brk",style:"font-size:10px;cursor:pointer;text-decoration:underline dotted"},svg);t.textContent=txt;});
+  if(prev!=null&&isFinite(prev))S("circle",{cx:x(cl(prev)),cy:y0+bh/2,r:3.5,style:"fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2;pointer-events:none"},svg);
+  if(vs!==v)S("line",{x1:x(cl(v)),x2:x(cl(v)),y1:y0-4,y2:y0+bh+4,style:"stroke:var(--ink);stroke-width:1.5;stroke-dasharray:2 2;opacity:.6;pointer-events:none"},svg);
+  const mk=S("g",{style:"pointer-events:none"},svg);S("line",{x1:0,x2:0,y1:y0-5,y2:y0+bh+5,style:"stroke:var(--ink);stroke-width:2.5"},mk);S("circle",{cx:0,cy:y0-6,r:4.5,style:"fill:var(--ink)"},mk);
   const to=cl(vs),off=vs>g.max||vs<g.min;if(off){const t=S("text",{x:vs>g.max?-6:6,y:y0-2,"text-anchor":vs>g.max?"end":"start",style:"font-size:11px;fill:var(--ink)"},mk);t.textContent=vs>g.max?"→":"←";}
   const set=k=>mk.setAttribute("transform","translate("+x(g.min+(to-g.min)*k)+",0)");if(anim&&!RM){set(0);tween(1000,set,120);}else set(1);}
-function renderModel(anim){const R=runModel(MS),rowsEl=$("m-rows");if(!rowsEl)return;const openW=new Set([...rowsEl.querySelectorAll("details.mg-t[open]")].map(d=>d.dataset.k));
+/* then-and-now trail: the historical path matched at today's level, read forward in time */
+const ym=t=>{const y=Math.floor(t),mm=Math.min(12,Math.max(1,Math.round((t-y)*12)+1));return mon(y+"-"+mm);};
+function alignHX(h,cur,dir){const P=h.pts.map(p=>({t:yr(p[0]),v:p[1],d:p[0]}));const worse=(a,b)=>dir>0?a>b:a<b;
+  const worst=P.reduce((m,p)=>worse(p.v,m.v)?p:m,P[0]),best=P.reduce((m,p)=>worse(m.v,p.v)?p:m,P[0]);
+  if(P.every(p=>worse(cur,p.v))||(cur===worst.v))return {a:h.brk?yr(h.brk):worst.t,tag:"beyond",at:h.brk?mon(h.brk):mon(worst.d)};
+  if(P.every(p=>worse(p.v,cur)))return {a:best.t,tag:"short",at:mon(best.d)};
+  for(let i=1;i<P.length;i++){const p=P[i-1],q=P[i];if((p.v-cur)*(q.v-cur)<=0&&p.v!==q.v){const f=(cur-p.v)/(q.v-p.v);const t=p.t+f*(q.t-p.t);return {a:t,tag:"match",at:ym(t)};}}
+  return {a:best.t,tag:"short",at:mon(best.d)};}
+function drawTrail(box,cap,x){const g=x.g,sp=g.trail||{hx:[]};const ai=(g.trailAI?g.trailAI():(g.hist&&g.hist().length?g.hist():[{v:x.r.v,d:x.r.d}])).map(p=>({d:p.d,v:p.v}));
+  const now=yr(ai[ai.length-1].d),cur=ai[ai.length-1].v;
+  const SER=[{n:g.n.split(":")[0],c:"var(--c-ai)",w:2.6,pts:ai.map(p=>({x:yr(p.d)-now,v:p.v,lab:qLab(p.d)})),ai:1}];const caps=[];
+  sp.hx.forEach(k=>{const h=HX[k];const A=alignHX(h,cur,g.dir);SER.push({n:h.n,c:h.c,w:1.8,dash:h.dash,pts:h.pts.map(p=>({x:yr(p[0])-A.a,v:p[1],lab:mon(p[0]),note:(h.notes||{})[p[0]]})),brk:h.brk?yr(h.brk)-A.a:null,brkT:h.brkT});
+    caps.push(A.tag==="match"?h.n+" was at today's level around "+A.at+"; read right for what came next.":A.tag==="beyond"?"Today is past anything "+h.n+" recorded; it is lined up at its "+(h.brkT||"worst reading")+" ("+A.at+").":"Today is on the safer side of everything "+h.n+" recorded; it is lined up at its closest point ("+A.at+").");});
+  if(!sp.hx.length)caps.push("No year-by-year history exists for this line, so only today's path is shown. Click the red line on the gauge for what happened.");
+  const xs=[].concat(...SER.map(s=>s.pts.map(p=>p.x)),0);let x0=Math.min(...xs),x1=Math.max(...xs,.5);x0=Math.max(-4.5,Math.floor(x0*2)/2-.25);x1=Math.min(4.5,Math.ceil(x1*2)/2+.25);
+  const vs=[].concat(...SER.map(s=>s.pts.map(p=>p.v)));const y0v=Math.min(g.min,...vs),y1v=Math.max(g.max*.8,...vs);
+  const sg=svgBox(box,140,g.n+": then and now");if(!sg)return;const {svg,W,H}=sg;const m={l:40,r:8,t:8,b:22},X=lin(x0,x1,m.l,W-m.r),Y=lin(y0v,y1v,H-m.b,m.t);
+  const a=g.close.v,b=g.brk.v;const Z=g.dir>0?[[y0v,a,"var(--surface-2)"],[a,b,"var(--z-warn)"],[b,y1v,"var(--z-crit)"]]:[[y0v,b,"var(--z-crit)"],[b,a,"var(--z-warn)"],[a,y1v,"var(--surface-2)"]];
+  Z.forEach(z=>{const lo=Math.max(y0v,Math.min(z[0],z[1])),hi=Math.min(y1v,Math.max(z[0],z[1]));if(hi>lo)S("rect",{x:m.l,y:Y(hi),width:W-m.l-m.r,height:Y(lo)-Y(hi),style:"fill:"+z[2]+";opacity:.7"},svg);});
+  [y0v,(y0v+y1v)/2,y1v].forEach(v=>{const t=S("text",{x:m.l-4,y:Y(v)+3,"text-anchor":"end",class:"t-ink2 num",style:"font-size:9.5px"},svg);t.textContent=g.fmt(v);});
+  for(let t=Math.ceil(x0);t<=Math.floor(x1);t++){S("line",{x1:X(t),x2:X(t),y1:H-m.b,y2:H-m.b+3,style:"stroke:var(--axis)"},svg);const tx=S("text",{x:X(t),y:H-6,"text-anchor":"middle",class:"t-ink2 num",style:"font-size:9.5px"},svg);tx.textContent=t===0?"today":(t>0?"+":"−")+Math.abs(t)+"y";}
+  S("line",{x1:X(0),x2:X(0),y1:m.t,y2:H-m.b,style:"stroke:var(--c-ai);stroke-dasharray:3 3"},svg);
+  let lab=0;SER.forEach(s=>{if(s.brk!=null&&s.brk>=x0&&s.brk<=x1){S("line",{x1:X(s.brk),x2:X(s.brk),y1:m.t,y2:H-m.b,style:"stroke:"+s.c+";stroke-width:1;opacity:.6"},svg);const right=X(s.brk)<W-110;const t=S("text",{x:X(s.brk)+(right?3:-3),y:m.t+9+lab*11,"text-anchor":right?"start":"end",class:"t-ink2",style:"font-size:9.5px"},svg);t.textContent=s.n+": "+s.brkT;lab++;}});
+  SER.slice().reverse().forEach(s=>{
+    const d=s.pts.map((p,i)=>(i?"L":"M")+X(p.x)+","+Y(p.v)).join("");if(s.pts.length>1)S("path",{d,style:"fill:none;stroke:"+s.c+";stroke-width:"+s.w+(s.dash?";stroke-dasharray:4 3":"")},svg);
+    s.pts.forEach(p=>S("circle",{cx:X(p.x),cy:Y(p.v),r:s.ai?3.5:2.6,style:"fill:"+s.c},svg));});
+  const tip=tipEl(box);tip.hidden=true;const guide=S("line",{y1:m.t,y2:H-m.b,style:"stroke:var(--ink);opacity:0"},svg);const ov=S("rect",{x:m.l,y:m.t,width:W-m.l-m.r,height:H-m.t-m.b,style:"fill:transparent"},svg);
+  const mv=ev=>{const r=box.getBoundingClientRect(),px=ev.clientX-r.left,xv=X.inv(px);guide.setAttribute("x1",px);guide.setAttribute("x2",px);guide.style.opacity=.25;
+    const rows=SER.map(s=>{let best=null;s.pts.forEach(p=>{const dd=Math.abs(p.x-xv);if(dd<.6&&(!best||dd<Math.abs(best.x-xv)))best=p;});return best?'<div class="row"><span><i class="sw" style="background:'+s.c+'"></i>'+s.n+', '+best.lab+'</span><b>'+g.fmt(best.v)+'</b></div>'+(best.note?'<div class="note">'+best.note+'</div>':''):"";}).join("");
+    if(!rows){tip.hidden=true;return;}tip.innerHTML='<div class="tt">'+(Math.abs(xv)<.15?"Today's level":(xv>0?"+":"−")+Math.abs(xv).toFixed(1)+" yrs")+'</div>'+rows;placeTip(tip,box,px,ev.clientY-r.top);};
+  ov.addEventListener("pointermove",mv);ov.addEventListener("pointerdown",mv);ov.addEventListener("pointerleave",()=>{tip.hidden=true;guide.style.opacity=0;});
+  cap.innerHTML=SER.map(s=>'<span class="lg"><i style="background:'+s.c+'"></i>'+s.n+'</span>').join("")+'<div>'+caps.join(" ")+'</div>';}
+function cardHTML(x,which){const g=x.g,L=which==="close"?g.close:g.brk,C=CARD[L.card]||CARD.ours;let now="";
+  if(C.end){const past=g.dir>0?x.r.v>=L.v:x.r.v<=L.v;now=past?"Short of this level. Railway shares were still falling until investors had paid in this much.":"Beyond this level. Railway shares had stopped falling by the time investors got here.";}
+  else if(C.lag){const s=sinceLine(g,L.v),past=g.dir>0?x.r.v>=L.v:x.r.v<=L.v;
+    if(past&&s){const due=yr(s.d)+C.lag,nowY=yr(x.r.d),moS=Math.round((nowY-yr(s.d))*12);now=due<=nowY?"Past this line for at least "+moS+" months, longer than the gap before the "+C.out+" then.":"On that timing, the "+C.out+" would come around "+ym(due)+".";}
+    else if(past)now="Past this line today; the "+C.out+" came about "+(C.lag<1?Math.round(C.lag*12)+" months":C.lag.toFixed(1).replace(/\.0$/,"")+" years")+" after it then.";
+    else now="Not past this line today.";}
+  return '<div class="mgc" data-w="'+which+'"><b>'+C.h+'</b><p>'+C.b+(C.s?cite.apply(null,C.s):"")+'</p>'+(now?'<p class="mgc-n"><span>Today</span> '+now+'</p>':'')+'</div>';}
+let MBUILT=false,DRAG=null;
+function buildModel(){const el=$("m-rows");if(!el)return;
+  el.innerHTML=MG.map(g=>'<div class="mg" id="mg-'+g.k+'"><div class="mg-h"><b>'+g.n+'</b><span>'+g.m+'</span></div><div class="mg-bar chart" id="mgb-'+g.k+'" aria-label="Drag to try a different reading; click a line for its history"></div><div class="mg-v" id="mgv-'+g.k+'"></div><div class="mg-p" id="mgp-'+g.k+'"></div><div class="mg-f" id="mgf-'+g.k+'"></div><details class="mg-t" id="mgd-'+g.k+'"><summary>Then and now: '+g.brk.t+', '+g.brk.y+'</summary><div class="mg-tn"><div><div class="chart mg-tr" id="mgt-'+g.k+'"></div><div class="mg-tc" id="mgc-'+g.k+'"></div></div><div class="mg-cards" id="mgk-'+g.k+'"></div></div><p class="mg-why">'+g.text(g.read())+(g.close.j||g.brk.j?' <span class="mg-j">The amber line is our judgment: two-thirds of the way to the break.</span>':'')+'</p></details></div>').join("");
+  MG.forEach(g=>{const box=$("mgb-"+g.k),dt=$("mgd-"+g.k);
+    const toV=ev=>{const r=box.getBoundingClientRect(),pad=6;return Math.max(g.min,Math.min(g.max,g.min+(ev.clientX-r.left-pad)/Math.max(1,r.width-2*pad)*(g.max-g.min)));};
+    box.addEventListener("pointerdown",ev=>{const ln=ev.target.closest&&ev.target.closest("[data-line]");if(ln){openCard(g.k,ln.getAttribute("data-line"));return;}DRAG=g.k;try{box.setPointerCapture(ev.pointerId);}catch(e){}MS.over[g.k]=toV(ev);updateModel(false);ev.preventDefault();});
+    box.addEventListener("pointermove",ev=>{if(DRAG!==g.k)return;MS.over[g.k]=toV(ev);updateModel(false);});
+    const end=()=>{if(DRAG===g.k)DRAG=null;};box.addEventListener("pointerup",end);box.addEventListener("pointercancel",end);
+    dt.addEventListener("toggle",()=>{if(dt.open)updateRowDetail(g.k);});});
+  el.addEventListener("click",ev=>{const b=ev.target.closest("[data-reset]");if(!b)return;delete MS.over[b.getAttribute("data-reset")];updateModel(false);});
+  MBUILT=true;}
+function openCard(k,which){const dt=$("mgd-"+k);if(!dt)return;dt.open=true;updateRowDetail(k);const c=$("mgk-"+k).querySelector('[data-w="'+which+'"]');$("mgk-"+k).querySelectorAll(".mgc").forEach(e=>e.classList.toggle("hl",e===c));}
+let MR=null;
+function updateRowDetail(k){if(!MR)return;const x=MR.rows.find(r=>r.g.k===k);if(!x)return;drawTrail($("mgt-"+k),$("mgc-"+k),x);const hl=[...$("mgk-"+k).querySelectorAll(".mgc.hl")].map(e=>e.dataset.w);$("mgk-"+k).innerHTML=cardHTML(x,"brk")+cardHTML(x,"close");hl.forEach(w=>{const e=$("mgk-"+k).querySelector('[data-w="'+w+'"]');if(e)e.classList.add("hl");});}
+function updateModel(anim){if(!MBUILT)buildModel();const R=runModel(MS);MR=R;if(!$("m-rows"))return;
   const sc=R.score,lab=sc>=.34?"Overweight":sc<=-.34?"Underweight":Math.abs(sc)>=.15?(sc>0?"Neutral, leaning overweight":"Neutral, leaning underweight"):"Neutral";
   $("m-call").textContent=lab;$("m-score").textContent="average of "+R.rows.reduce((a,x)=>a+x.calls.length,0)+" calls: "+(sc>=0?"+":"−")+Math.abs(sc).toFixed(2)+" on −1 to +1"+(R.shocked?" · what-if":"");
   $("m-fund").innerHTML='<div class="mf-n"><b>'+R.F.filter(f=>f.on).length+' of 3</b> '+(R.fired?'<span class="mc uw">fired: every call one step down</span>':'<span class="mf-q">two of three would move every call one step down</span>')+'</div><ul class="mf">'+R.F.map(f=>'<li class="'+(f.on?'on':'')+'"><i></i><span><b>'+f.n+'</b> '+f.t+(f.forced?' <em>(what-if)</em>':'')+'</span></li>').join("")+'</ul>';
   $("m-chain").innerHTML='<ol class="mch">'+R.rows.filter(x=>x.g.k!=="ant").map(x=>'<li class="z'+x.z+(R.first&&x===R.first?' first':'')+'"><span>'+x.g.n.split(":")[0]+'</span></li>').join("")+'</ol><div class="mch-n">'+(R.first?'First to break: <b>'+R.first.g.n.split(":")[0]+'</b>, '+ZN[R.first.z]+(R.first.z===2?' its historical line':' to its historical line')+'.':'No forced seller is near its line.')+'</div>';
-  rowsEl.innerHTML=R.rows.map((x,i)=>{const g=x.g;const cd=countdown(g,x.r);
-    const chips=x.calls.map(c=>'<span class="mc '+CALLC[c.c]+'">'+c.n+' · <b>'+CALLN[c.c]+'</b>'+(R.shocked&&c.c!==c.c0?' <em>was '+CALLN[c.c0]+'</em>':'')+'</span>').join("");
-    return '<div class="mg"><div class="mg-h"><b>'+g.n+'</b><span>'+g.m+'</span></div><div class="mg-bar chart" id="mg-'+g.k+'"></div><div class="mg-v"><b class="num">'+g.fmt(x.vs)+'</b>'+(x.vs!==x.v?'<span class="mg-was">today '+g.fmt(x.v)+'</span>':'')+'<span class="mg-z z'+x.z+'">'+ZN[x.z]+'</span><span class="mg-cd">'+cd+'</span></div><div class="mg-p">'+chips+'</div><details class="mg-t" data-k="'+g.k+'"'+(openW.has(g.k)?' open':'')+'><summary>Why this line: '+g.brk.t+', '+g.brk.y+'</summary><p>'+g.text(x.r)+(g.close.j||g.brk.j?' <span class="mg-j">The amber line is our judgment: two-thirds of the way to the break.</span>':'')+'</p></details></div>';}).join("");
-  R.rows.forEach(x=>{const h=x.g.hist?x.g.hist():[];const prev=h.length>1?h[h.length-2].v:null;drawGauge($("mg-"+x.g.k),x.g,x.v,x.vs,prev,anim);});
-  numberStatic(rowsEl,"bs-",true);}
+  R.rows.forEach(x=>{const g=x.g;$("mgv-"+g.k).innerHTML='<b class="num">'+g.fmt(x.vs)+'</b>'+(x.vs!==x.v?'<span class="mg-was">today '+g.fmt(x.v)+(x.dragged?' · <button type="button" class="lnk" data-reset="'+g.k+'">reset</button>':'')+'</span>':'')+'<span class="mg-z z'+x.z+'">'+ZN[x.z]+'</span><span class="mg-cd">'+(x.dragged?"What-if reading":countdown(g,x.r))+'</span>';
+    $("mgp-"+g.k).innerHTML=x.calls.map(c=>'<span class="mc '+CALLC[c.c]+'">'+c.n+' · <b>'+CALLN[c.c]+'</b>'+(R.shocked&&c.c!==c.c0?' <em>was '+CALLN[c.c0]+'</em>':'')+'</span>').join("");
+    $("mgf-"+g.k).innerHTML=flips(x);
+    const h=g.hist?g.hist():[];const prev=h.length>1?h[h.length-2].v:null;drawGauge($("mgb-"+g.k),g,x.v,x.vs,prev,anim);
+    if($("mgd-"+g.k).open)updateRowDetail(g.k);});}
+/* would the model have called the last two busts? */
+const BT={rail:{n:"British railway shares, 1843–50",peak:"1845-08",fire:["1845-11","1845-11"],x0:1843,x1:1851,
+   pts:[["1843-01",50],["1843-12",61.1],["1845-08",100],["1845-10",100],["1845-11",81],["1845-12",91.7],["1846-08",90],["1846-12",87.7],["1847-12",63.7],["1848-12",49.3],["1849-12",38.4],["1850-04",33.9],["1850-12",43.3]],
+   ev:[["1845-10","Bank rate raised 16 Oct and 6 Nov: 1 of 3"],["1845-11","£4.4M of calls Oct–Dec; new railway shares stop selling (our reading): 2 of 3"],["1847-10","Week of Terror"],["1850-04","Bottom, 66% below the peak"]],src:["ct12","rmania","nyfed_1847"]},
+ tel:{n:"US telecom shares, 1998–2003",peak:"2000-03",fire:["2000-07","2000-11"],x0:1998,x1:2003.4,
+   pts:[["2000-03",100],["2000-06",84.1],["2000-09",70.7],["2000-12",59.5],["2001-03",50],["2001-06",42],["2001-09",35.4],["2001-12",29.7],["2002-03",25],["2002-06",21],["2002-09",17.7],["2002-12",14.9],["2003-03",12.5]],
+   ev:[["1998-08","Spreads up 334 bps by October, but the Fed is cutting: 1 of 3"],["1999-06","Fed starts raising rates: 1 of 3"],["2000-03","Telecom peak"],["2000-07","Spreads widen in the second half while the Fed is still higher than six months earlier: 2 of 3"],["2001-01","Fed starts cutting"]],src:["rupak","frbsf01","boe01","fed_hist","altman02"]}};
+function btAt(P,t){for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(t>=a.t&&t<=b.t)return a.v+(b.v-a.v)*(t-a.t)/(b.t-a.t);}return null;}
+function avoided(c){const P=c.pts.map(p=>({t:yr(p[0]),v:p[1]})),lo=Math.min(...P.map(p=>p.v));return c.fire.map(f=>{const v=btAt(P,yr(f));return Math.round((v-lo)/(100-lo)*100);});}
+function drawBT(id,c,anim){const box=$(id);const sg=svgBox(box,180,c.n);if(!sg)return;const {svg,W,H}=sg;const m={l:30,r:10,t:12,b:22},X=lin(c.x0,c.x1,m.l,W-m.r),Y=lin(0,110,H-m.b,m.t);
+  const f0=yr(c.fire[0]),f1=yr(c.fire[1]);S("rect",{x:X(f0),y:m.t,width:Math.max(0,X(c.x1)-X(f0)),height:H-m.b-m.t,style:"fill:var(--z-crit);opacity:.55"},svg);
+  if(f1>f0)S("rect",{x:X(f0),y:m.t,width:X(f1)-X(f0),height:H-m.b-m.t,style:"fill:var(--z-warn);opacity:.9"},svg);
+  const t=S("text",{x:X(f0)+4,y:m.t+10,class:"t-ink",style:"font-size:10px;font-weight:600"},svg);t.textContent="Underweight";
+  [0,50,100].forEach(v=>{S("line",{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v),style:"stroke:var(--grid)"},svg);const tt=S("text",{x:m.l-4,y:Y(v)+3,"text-anchor":"end",class:"t-ink2 num",style:"font-size:9.5px"},svg);tt.textContent=v;});
+  for(let yy=Math.ceil(c.x0);yy<=Math.floor(c.x1);yy++){const tt=S("text",{x:X(yy),y:H-6,"text-anchor":"middle",class:"t-ink2 num",style:"font-size:9.5px"},svg);tt.textContent="'"+String(yy).slice(2);}
+  const P=c.pts.map(p=>({t:yr(p[0]),v:p[1],d:p[0]}));const path=S("path",{d:P.map((p,i)=>(i?"L":"M")+X(p.t)+","+Y(p.v)).join(""),style:"fill:none;stroke:var(--ink);stroke-width:2"},svg);
+  const tip=tipEl(box);tip.hidden=true;
+  let lastX=-99,lift=0;c.ev.forEach(e=>{const ex=X(yr(e[0]));lift=ex-lastX<12?lift+1:0;lastX=ex;const d=S("circle",{cx:ex,cy:H-m.b-lift*11,r:4.5,style:"fill:var(--c-ai);stroke:var(--surface);stroke-width:1.5;cursor:pointer"},svg);
+    const show=ev=>{const r=box.getBoundingClientRect();tip.innerHTML='<div class="tt">'+mon(e[0])+'</div><div>'+e[1]+'</div>';placeTip(tip,box,ev.clientX-r.left,ev.clientY-r.top);};d.addEventListener("pointermove",show);d.addEventListener("pointerdown",show);d.addEventListener("pointerleave",()=>{tip.hidden=true;});});
+  if(anim&&!RM){const L=path.getTotalLength();path.style.strokeDasharray=L+" "+L;path.style.strokeDashoffset=L;path.getBoundingClientRect();path.style.transition="stroke-dashoffset 1200ms ease";path.style.strokeDashoffset="0";}}
+function renderBT(anim){if(!$("bt-rail"))return;drawBT("bt-rail",BT.rail,anim);drawBT("bt-tel",BT.tel,anim);const a=avoided(BT.rail),b=avoided(BT.tel);
+  $("bt-note").innerHTML="<b>Railways:</b> underweight from November 1845, three months after the peak, avoiding about "+a[0]+"% of the fall. <b>Telecom:</b> underweight in the second half of 2000, 4–8 months after the peak, avoiding about "+b[1]+"–"+b[0]+"%. In 1998 one warning fired alone and the rule held. Two cases, not proof. 1845 has no spread or listing data, so its second warning is our reading, and the telecom line after March 2000 is the Richmond Fed's \"about 50% a year\", not an index. Shaded amber where the firing date is uncertain. Dots are events; hover them."+cite.apply(null,BT.rail.src.concat(BT.tel.src));}
 (function(){const host=$("m-sl");if(!host)return;const SL={};
-  const add=(k,o)=>{SL[k]=slider(host,o,()=>{MS[k]=SL[k].get()*(o.mul||1);renderModel(false);});};
+  const add=(k,o)=>{SL[k]=slider(host,o,()=>{MS[k]=SL[k].get()*(o.mul||1);updateModel(false);});};
   add("raise",{id:"wi-raise",label:"New money OpenAI raises",min:0,max:300,step:10,value:0,fmt:v=>"$"+v+"B",hint:"About $207B more is needed through 2030, by one estimate."});
   add("cut",{id:"wi-cut",label:"OpenAI cuts its compute spending",min:0,max:100,step:5,value:0,mul:.01,fmt:v=>v+"%",hint:"Its spending is about a fifth of all AI capex, so a cut lowers everyone's orders."});
   add("capex",{id:"wi-capex",label:"Everyone else's AI capex",min:-50,max:30,step:5,value:0,mul:.01,fmt:v=>(v>0?"+":"")+v+"%"});
   add("rent",{id:"wi-rent",label:"GPU rent",min:-80,max:50,step:5,value:0,mul:.01,fmt:v=>(v>0?"+":"")+v+"%"});
   const fh=$("m-fsw");const live=fundLive();fh.innerHTML='<div class="lbl" style="margin:8px 0 4px">Funding check</div>'+live.map(f=>'<label class="check"><input type="checkbox" data-k="'+f.k+'"'+(f.on?' checked':'')+'> '+f.n+'</label>').join("");
-  fh.addEventListener("change",e=>{const c=e.target.closest("input");if(!c)return;const k=c.dataset.k,l=live.find(f=>f.k===k);MS[k]=c.checked===l.on?null:c.checked;renderModel(false);});
-  $("m-reset").addEventListener("click",()=>{MS=Object.assign({},MS0);Object.keys(SL).forEach(k=>SL[k].set(0));fh.querySelectorAll("input").forEach(c=>{c.checked=live.find(f=>f.k===c.dataset.k).on;});renderModel(true);});})();
-$("m-rules").innerHTML='<ul class="st-rl"><li><b>Start</b>: overweight if nobody is forced to sell and the asset is long-lived; otherwise neutral.</li><li><b>Distance</b>: one step toward underweight if today\'s reading is past the amber line, two if it is past the red line where the earlier boom broke.</li><li><b>Funding check</b>: if two of three warnings are on (central bank raising rates; high-yield spreads 1.5 pts or more above their 12-month low; a major AI listing pulled or cut), every call moves one more step. In 1845 the Bank of England\'s rate rise came two months after the railway peak;'+cite("nyfed_1847")+' in 1999 the Fed\'s hikes and wider spreads came about three months before the telecom peak.'+cite("altman02")+' One warning alone fired too early in 1998, which is why it takes two.</li><li><b>Macro</b>: the average of all calls, with underweight at −1 and overweight at +1. Beyond ±0.34 it is a full call.</li><li><b>Countdown</b>: the pace over the last year of readings, projected to the red line.</li><li><b>What if</b> assumptions, all ours: OpenAI is about a fifth of AI capex;'+cite("dsa_oai","bm")+' CoreWeave\'s largest customer (36% of revenue) moves with OpenAI, 80% of its lost revenue reaches operating income, and 20% of its capacity is exposed to spot rent; OpenAI pays Oracle about $64B a year (half its backlog over five years);'+cite("param_orcl")+' memory margins fall a point for each 1% drop in demand, as in 2019;'+cite("mu19","gartner19")+' tenants of preleased construction walk away in proportion to capex cuts; a 25% OpenAI cut shuts the AI listing window.</li></ul>';
+  fh.addEventListener("change",e=>{const c=e.target.closest("input");if(!c)return;const k=c.dataset.k,l=live.find(f=>f.k===k);MS[k]=c.checked===l.on?null:c.checked;updateModel(false);});
+  $("m-reset").addEventListener("click",()=>{MS=Object.assign({},MS0,{over:{}});Object.keys(SL).forEach(k=>SL[k].set(0));fh.querySelectorAll("input").forEach(c=>{c.checked=live.find(f=>f.k===c.dataset.k).on;});updateModel(true);});})();
+$("m-rules").innerHTML='<ul class="st-rl"><li><b>Start</b>: overweight if nobody is forced to sell and the asset is long-lived; otherwise neutral.</li><li><b>Distance</b>: one step toward underweight past the amber line, two past the red line where the earlier boom broke.</li><li><b>Funding check</b>: if two of three warnings are on (the central bank\'s rate is higher than six months ago; high-yield spreads are 1.5 pts or more above their 12-month low; a major AI listing is pulled or cut), every call moves one more step. See the backtest above: in 1845 it fired three months after the railway peak, in 2000 four to eight months after the telecom peak, and in 1998 one warning alone fired and the rule held.'+cite("rmania","boe01","frbsf01")+'</li><li><b>Macro</b>: the average of all calls, with underweight at −1 and overweight at +1. Beyond ±0.34 it is a full call.</li><li><b>Countdown</b>: the pace over the last year of readings, projected to the red line.</li><li><b>Drag</b> any marker to try a different reading; the flip points under each gauge say what it would take, from today, to move a step.</li><li><b>Then and now</b>: the historical path is lined up where it was at today\'s level, or at its break if today is already past it.</li><li><b>What if</b> assumptions, all ours: OpenAI is about a fifth of AI capex;'+cite("dsa_oai","bm")+' CoreWeave\'s largest customer (36% of revenue) moves with OpenAI, 80% of its lost revenue reaches operating income, and 20% of its capacity is exposed to spot rent; OpenAI pays Oracle about $64B a year (half its backlog over five years);'+cite("param_orcl")+' memory margins fall a point for each 1% drop in demand, as in 2019;'+cite("mu19","gartner19")+' tenants of preleased construction walk away in proportion to capex cuts; a 25% OpenAI cut shuts the AI listing window.</li></ul>';
 numberStatic($("m-rules"),"bs-",true);
-chart(1,renderModel);
+chart(1,updateModel);chart(1,renderBT);
+
 /* ---------- animate on first view, replay on request ---------- */
 const run=a=>ACTS[a].forEach(f=>{try{f(true);}catch(e){console.error(e);}});
 document.querySelectorAll(".replay[data-act]").forEach(b=>b.addEventListener("click",()=>run(b.dataset.act)));
