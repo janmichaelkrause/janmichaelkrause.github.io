@@ -56,6 +56,24 @@ Most calls hang on how much revenue OpenAI and Anthropic make, so the page makes
 - Break-evens, holding today's funding warnings and both labs growing at the same rate: OpenAI exposure moves to neutral at about $330B of OpenAI revenue in 2030 (74% a year); below about $91B (26% a year) OpenAI covers less than the 1847 line, the listing window counts as shut, the funding check fires and most calls move down a step.
 - Anthropic has published no revenue plan, so the "OpenAI's plan" preset puts it on the Absorbed path.
 
+## Green lines
+
+Every gauge started as a crash detector: a reading far from the danger lines meant "no warning", so most positions could never rise above neutral. Each gauge now also has a green line on the safe side, and a reading past it moves the call up one step. Where a boom paid off, the line comes from it; elsewhere it is our judgment, marked "ours".
+
+| Gauge | Green line | Where it comes from |
+|---|---|---|
+| OpenAI, Anthropic: paid in | 100%: cash and revenue cover the whole plan | Erie Canal: tolls repaid the construction loans in about nine years [p:brit_erie] |
+| CoreWeave: debt service | 2.5× operating income over interest | Lowest cover rated investment grade (BBB) in Damodaran's table for large firms, January 2026; the 1893 line (1.05×) is CCC on the same table [p:dam_cov] |
+| Oracle, hyperscalers: outside money | 10% of capex | The big four in fiscal 2024, when new debt was 9% of capex [p:mlq] |
+| Memory: margin | 29% | Micron's margin at the 2019 trough [11] |
+| GPU collateral | Rents up 25% over a full 12 months | Ours. Counts only once a full year of readings exists |
+| Nvidia: customer financing | 5% of revenue | Ours |
+| New capacity without a buyer | 5% | Ours |
+
+On today's readings no gauge is past its green line. Under OpenAI's plan Anthropic turns overweight (it covers 262% of its commitments on the Absorbed path); OpenAI turns overweight above about $550B of 2030 revenue.
+
+At the same time, a lab short of its plan now trims spending even while funding is open: it raises half the gap and cuts the other half (our assumption), so a weak path reaches Oracle, CoreWeave and the rest of the chain before the funding check fires.
+
 ## Rough backtest
 
 | Case | Forced seller | Funding check | Call | Outcome |
