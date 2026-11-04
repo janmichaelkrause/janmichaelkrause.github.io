@@ -2650,7 +2650,7 @@ function ttm(k,i){const q=MQ(k);if(q.length<i+4)return null;const f=q.slice(i,i+
 function qEnd(k,i){const q=MQ(k);return q[i]?q[i].end:null;}
 function series(fn,n){const out=[];for(let i=n-1;i>=0;i--){const r=fn(i);if(r&&r.v!=null&&isFinite(r.v))out.push(r);}return out;}
 const pct=v=>Math.round(v*100)+"%",xx=v=>(v<0?"−":"")+Math.abs(v).toFixed(2)+"×",qLab=s=>{const d=new Date(dms(s));return "Q"+(Math.floor(d.getUTCMonth()/3)+1)+" "+d.getUTCFullYear();};
-const M_FB={oai:{v:122/600,d:"2026-10-01"},ant:{v:131.7/265.6,d:"2026-06-30"},neo:{v:-0.08,d:"2026-06-30"},orcl:{v:.43,d:"2026-05-31"},credit:{v:.38,d:"2026-03-31"},chips:{v:.169,d:"2026-07-26"},mem:{v:.868,d:"2026-09-03"},build:{v:.137,d:"2026-06-30"},hyper:{v:.13,d:"2026-09-30"}};
+const M_FB={oai:{v:122/600,d:"2026-10-01"},ant:{v:131.7/265.6,d:"2026-06-30"},neo:{v:-0.14,d:"2026-06-30"},orcl:{v:.38,d:"2026-08-31"},credit:{v:.38,d:"2026-03-31"},chips:{v:.169,d:"2026-07-26"},mem:{v:.868,d:"2026-09-03"},build:{v:.137,d:"2026-06-30"},hyper:{v:.13,d:"2026-09-30"}};
 const mlab=k=>(MAN.labs&&MAN.labs[k])||{};
 /* gauges, upstream first (the order a funding failure would travel) */
 const MG=[
@@ -2670,15 +2670,15 @@ const MG=[
   close:{v:1.33,y:"1894",t:"B&O, 2 yrs before",s:["daggett"]},brk:{v:1.05,y:"1891",t:"Reading fails",s:["daggett"]},
   pos:[{n:"Neocloud equity",f:1,l:0,ly:"neo"}],
   at(i){const oi=ttm("crwv_opinc",i),it=ttm("crwv_interest",i);return (oi!=null&&it>0)?{v:oi/it,d:qEnd("crwv_opinc",i),oi,it}:null;},
-  read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.neo.v,d:M_FB.neo.d,oi:-49e6,it:640e6,src:["bc_crwv"],q:1};},
+  read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.neo.v,d:M_FB.neo.d,oi:-231e6,it:1619e6,src:["live_sec"]};},
   hist(){return series(i=>this.at(i),6);},
-  shock(r,S){const rev=r.q?2.575e9:(ttm("crwv_revenue",0)||4*2.575e9);const dRev=rev*(S.capex-.36*S.cut)+rev*.2*S.rent;return (r.oi+.8*dRev)/r.it;},
-  text(r){return "In 1893 railroads went into receivership once fixed charges took about 95% of net earnings, roughly 1.05× cover: the Reading from 1891, the B&O by 1896. The B&O was at 1.33× two years before it failed."+cite("daggett")+" CoreWeave's operating income covers its interest "+xx(r.v)+(r.q?" (Q2 2026)":" over the four quarters to "+fmtDay(r.d))+"."+cite.apply(null,r.src)+" Its three largest customers are 72% of revenue."+cite("bc_crwv");}},
+  shock(r,S){const rev=ttm("crwv_revenue",0)||7.59e9;const dRev=rev*(S.capex-.36*S.cut)+rev*.2*S.rent;return (r.oi+.8*dRev)/r.it;},
+  text(r){return "In 1893 railroads went into receivership once fixed charges took about 95% of net earnings, roughly 1.05× cover: the Reading from 1891, the B&O by 1896. The B&O was at 1.33× two years before it failed."+cite("daggett")+" CoreWeave's operating income covers its interest "+xx(r.v)+" over the four quarters to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Its three largest customers are 72% of revenue."+cite("bc_crwv");}},
  {k:"orcl",n:"Oracle: outside money",m:"Capex not covered by operating cash flow, last four quarters",dir:1,min:0,max:1,fmt:pct,
   close:{v:.33,y:"ours",t:"two-thirds",s:[],j:1},brk:{v:.5,y:"1840s",t:"canals, railways",s:["cranmer","camp13"]},
   pos:[{n:"Oracle",f:1,l:0,ly:"orcl"}],
   at(i){const c=ttm("orcl_capex",i),o=ttm("orcl_ocf",i);return (c>0&&o!=null)?{v:Math.max(0,1-o/c),d:qEnd("orcl_capex",i),c,o}:null;},
-  read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.orcl.v,d:M_FB.orcl.d,c:55.7e9,o:32e9,src:["param_orcl"]};},
+  read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.orcl.v,d:M_FB.orcl.d,c:75.66e9,o:46.94e9,src:["live_sec"]};},
   hist(){return series(i=>this.at(i),6);},
   shock(r,S){const E=.5*638e9/5;return Math.max(0,Math.min(1.5,(r.c-r.o+S.cut*E)/r.c));},
   text(r){return "The canals of 1836–44 and the railways of the Mania were built mostly with money raised from outside, and stopped when the lending did. More than half from outside marks the danger zone."+cite("cranmer","wsg04","camp13")+" Oracle covered "+pct(1-r.v)+" of its capex from its own cash flow over the last four quarters; the rest came from debt and share sales. OpenAI is over half its backlog."+cite.apply(null,r.src.concat(["param_orcl"]));}},
@@ -2743,7 +2743,7 @@ function runModel(S){const shocked=S.raise||S.cut||S.capex||S.rent;S.capexAll=S.
   const all=[].concat(...rows.map(x=>x.calls)),score=all.reduce((a,c)=>a+(c.c-1),0)/all.length;
   const first=rows.find(x=>x.z>=1&&x.g.pos.some(p=>p.f));return {rows,F,fired,score,first,shocked:!!shocked||F.some(f=>f.forced)};}
 /* countdown: pace over the readings we have, projected to the break line */
-function countdown(g,r){const h=g.hist?g.hist():[];if(zoneOf(g,r.v)===2){let since=null;for(let i=h.length-1;i>=0;i--){if(zoneOf(g,h[i].v)===2)since=h[i].d;else break;}return since&&h.length>1&&since!==h[0].d?"Past the line since "+qLab(since):"Past the line";}
+function countdown(g,r){const h=g.hist?g.hist():[];if(zoneOf(g,r.v)===2){let since=null;for(let i=h.length-1;i>=0;i--){if(zoneOf(g,h[i].v)===2)since=h[i].d;else break;}if(!since||h.length<2)return "Past the line";return since===h[0].d?"Past the line in every reading since "+qLab(h[0].d):"Past the line since "+qLab(since);}
   if(h.length<2)return "Not enough history for a pace yet";
   const a=h[Math.max(0,h.length-5)],b=h[h.length-1],days=(dms(b.d)-dms(a.d))/DAY;if(days<60)return "Not enough history for a pace yet";
   const slope=(b.v-a.v)/days,toward=g.dir>0?slope>0:slope<0;if(!toward||Math.abs(slope)<1e-9)return "Moving away from the line";
