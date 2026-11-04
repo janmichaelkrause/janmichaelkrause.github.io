@@ -19,6 +19,7 @@ A subpage of this site. `index.html` is the whole page. It reads `data/latest.js
 1. The `ai-capex-research` folder sits in the repo root, and the workflow at `.github/workflows/ai-capex-daily.yml`. GitHub only runs workflows from that folder.
 2. On GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
    Name: `SEC_USER_AGENT`. Value: your name and email, e.g. `Jan Krause you@example.edu`. The SEC requires this on automated requests. It stays private.
+   Optional but recommended: a free FRED API key (sign up at fred.stlouisfed.org, then My Account → API Keys). Add it as a second secret named `FRED_API_KEY`. Without it the updater falls back to FRED's public download, which often times out from GitHub's servers.
 3. **Actions → ai-capex daily data → Run workflow**. That writes the first `latest.json`.
 4. Open `https://janmichaelkrause.com/ai-capex-research/ai-capex/`. The footer should read "Live figures updated ...".
 

@@ -13,6 +13,7 @@ so a bad morning never blanks the page.
 
 Environment:
   SEC_USER_AGENT   required by the SEC, e.g. "Jane Doe jane@example.edu"
+  FRED_API_KEY     optional, free from fred.stlouisfed.org; more reliable than the CSV download
   AI_CAPEX_MOCK    optional folder of saved responses, for offline testing
 """
 import csv, io, json, os, sys, time, datetime as dt, urllib.request, urllib.error
@@ -25,6 +26,7 @@ HISTORY = os.path.join(DATA, "history.json")
 MANUAL = os.path.join(DATA, "manual.json")
 
 UA_SEC = os.environ.get("SEC_USER_AGENT", "").strip()
+FRED_KEY = os.environ.get("FRED_API_KEY", "").strip()
 UA_WEB = "Mozilla/5.0 (compatible; ai-capex-updater/1.0)"
 MOCK = os.environ.get("AI_CAPEX_MOCK", "").strip()
 TODAY = dt.datetime.now(dt.timezone.utc).date()
@@ -268,8 +270,15 @@ def price_block(t, cik=None):
     return out
 
 # ---------------------------------------------------------------- FRED
-def fred(series):
-    raw = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + series, UA_WEB).decode("utf-8", "replace")
+def _fred_rows_api(series, start):
+    url = ("https://api.stlouisfed.org/fred/series/observations?series_id=%s&api_key=%s"
+           "&file_type=json&observation_start=%s" % (series, FRED_KEY, start))
+    j = json.loads(get(url, UA_WEB, timeout=60))
+    return [(o["date"], float(o["value"])) for o in j.get("observations", []) if o.get("value") not in (".", "", None)]
+
+def _fred_rows_csv(series, start):
+    url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=%s&cosd=%s" % (series, start)
+    raw = get(url, UA_WEB, timeout=90).decode("utf-8", "replace")
     rows = []
     for r in csv.reader(io.StringIO(raw)):
         if len(r) < 2 or r[1] in (".", "") or not r[0][:1].isdigit():
@@ -278,6 +287,22 @@ def fred(series):
             rows.append((r[0], float(r[1])))
         except ValueError:
             pass
+    return rows
+
+def fred(series):
+    """Uses the FRED API when FRED_API_KEY is set (free key), else the public CSV,
+    which is slow from cloud servers. Only the last ~13 months are requested."""
+    start = (TODAY - dt.timedelta(days=400)).isoformat()
+    errs, rows = [], []
+    for fn in ([_fred_rows_api] if FRED_KEY else []) + [_fred_rows_csv]:
+        try:
+            rows = fn(series, start)
+            if rows:
+                break
+        except Exception as e:
+            errs.append(str(e).replace(FRED_KEY, "***") if FRED_KEY else str(e))
+    if not rows and errs:
+        raise IOError("; ".join(errs))
     if not rows:
         raise IOError("FRED: no rows for " + series)
     rows.sort()

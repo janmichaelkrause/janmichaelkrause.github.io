@@ -30,6 +30,7 @@ jobs:
       - name: Fetch data
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python ai-capex-research/ai-capex/scripts/update.py
 
       - name: Commit if anything changed
