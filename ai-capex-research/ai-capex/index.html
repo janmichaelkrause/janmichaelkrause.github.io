@@ -394,6 +394,32 @@ footer{padding-block:40px 60px;color:var(--muted);font-family:var(--f-ui);font-s
 .mg-t p{margin:2px 0 0}
 .mg-j{color:var(--muted)}
 .mg-bar{touch-action:pan-y;cursor:ew-resize;user-select:none}
+.msc{margin:16px 0 0;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:var(--surface);font-family:var(--f-ui)}
+.msc-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.msc-seg,.msb-seg{flex-wrap:wrap}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.glabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;margin-top:10px}
+.glab{border-top:1px solid var(--rule);padding-top:8px;font-size:.8rem}
+.gl-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.gl-h span{color:var(--muted);font-size:.74rem}.gl-h span b{color:var(--ink);font-weight:600}
+.gl-y{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:6px 0}
+.gl-y label{display:flex;flex-direction:column;gap:2px;font-size:.7rem;color:var(--muted)}
+.gl-r{font-size:.74rem;color:var(--muted)}.gl-r b{color:var(--ink);font-weight:600}
+@media (max-width:640px){.glabs{grid-template-columns:minmax(0,1fr)}}
+.gin{display:inline-flex;align-items:center;gap:2px}
+.gin input{width:100%;max-width:64px;min-width:0;font:inherit;text-align:right;padding:3px 4px;border:1px solid var(--rule);border-radius:4px;background:var(--bg);color:var(--ink)}
+.gin input::placeholder{color:var(--muted);opacity:.7}
+.gl-r .z0{color:var(--good)}.gl-r .z1{color:var(--warn)}.gl-r .z2{color:var(--crit)}
+.msc-r{font-size:.78rem;line-height:1.45;color:var(--ink-2);margin:8px 0 4px;max-width:110ch}
+.msc-more summary{cursor:pointer;color:var(--ink-2);font-weight:600;font-size:.8rem;padding:4px 0}
+.msc-ch{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.78rem;margin-top:6px}
+.msb{position:sticky;top:var(--tbh,86px);z-index:6;background:var(--bg);border-bottom:1px solid var(--rule);padding:6px 0;margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;font-family:var(--f-ui);font-size:.78rem;color:var(--ink-2)}
+.msb .seg{font-size:.74rem}.msb .seg button{padding:4px 8px}
+.mg-gs{grid-column:1/-1;display:flex;flex-direction:column;gap:2px}
+.gsr{display:grid;grid-template-columns:minmax(0,150px) minmax(0,260px) minmax(0,1fr);gap:10px;align-items:center;font-size:.72rem;color:var(--muted)}
+.gsb{height:22px;min-width:0}
+.gst{color:var(--ink-2)}
+@media (max-width:760px){.gsr{grid-template-columns:minmax(0,1fr)}.msb-seg{display:none}}
 .mg-f{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:2px 14px;font-size:.72rem;color:var(--muted)}
 .fl.up{color:var(--good)}.fl.down{color:var(--crit)}
 .lnk{background:none;border:0;padding:0;font:inherit;color:var(--ink-2);text-decoration:underline;cursor:pointer}
@@ -615,14 +641,23 @@ ol.sources.compact li{margin-bottom:4px}
       <div class="mdl-fund"><div class="lbl">Funding check</div><div id="m-fund"></div></div>
       <div class="mdl-chain"><div class="lbl">The chain, upstream first</div><div id="m-chain"></div></div>
     </div>
+    <div class="msc" id="m-sc">
+      <div class="msc-h"><div class="lbl">Lab revenue growth, 2027–30 <span class="lbl-sub">the number most of this hangs on · pick a path or type any year</span></div><div class="seg msc-seg" id="m-gp" role="group" aria-label="Growth path"></div></div>
+      <div id="m-gt"></div>
+      <p class="msc-r" id="m-gr"></p>
+      <details class="msc-more"><summary>More what-ifs</summary><div class="inputs two" id="m-sl"></div><div id="m-fsw" class="mfsw"></div></details>
+      <div class="msc-ch" id="m-ch"></div>
+      <button type="button" class="replay" id="m-reset" style="margin:6px 0 0">Reset to today</button>
+    </div>
+    <div class="msb" id="m-sb"><div class="msb-t" id="m-sbt"></div><div class="seg msb-seg" id="m-sbp" role="group" aria-label="Growth path"></div></div>
     <div class="lbl" style="margin-top:16px">Each forcing function against the level where it broke before <span class="lbl-sub">updated each morning · gray far · amber close · red past · hollow dot = prior reading · drag a marker · click a line for its history</span></div>
     <div id="m-rows" class="mgs"></div>
-    <figure class="fig mbt"><figcaption class="fig-t">Would this model have called the last two busts?</figcaption>
+    <div class="st-foot">
+      <details class="st-how"><summary>How the calls work, and a check against history</summary><div id="m-rules"></div>
+    <figure class="fig mbt"><figcaption class="fig-t">Check: if this model had existed in 1845 and 2000, when would it have said underweight, and how much of the crash would that have avoided?</figcaption>
       <div class="mbt-g"><div><div class="mbt-h">British railway shares, 1843–50 <span>peak = 100</span></div><div class="chart" id="bt-rail" style="height:180px"></div></div><div><div class="mbt-h">US telecom shares, 1998–2003 <span>peak = 100</span></div><div class="chart" id="bt-tel" style="height:180px"></div></div></div>
       <p class="fig-n" id="bt-note"></p></figure>
-    <div class="st-foot">
-      <details class="st-adj"><summary>What if</summary><div class="inputs two" id="m-sl"></div><div id="m-fsw" class="mfsw"></div><button type="button" class="replay" id="m-reset" style="margin:8px 0 0">Reset to today</button></details>
-      <details class="st-how"><summary>How the calls work</summary><div id="m-rules"></div></details>
+      </details>
       <span class="st-dis">Rules applied to live data. Red lines come from history; amber lines marked "ours" are our judgment. Not investment advice.</span>
     </div>
   </div>
@@ -2713,18 +2748,18 @@ const CARD={
 };
 const bn=v=>"$"+(Math.abs(v)>=1e9?(Math.abs(v)/1e9).toFixed(1)+"B":Math.round(Math.abs(v)/1e6)+"M"),amt=(v,more,less)=>v>=0?bn(v)+" "+more:bn(v)+" "+less;
 const MG=[
- {k:"oai",n:"OpenAI: paid in",m:"Cash plus a year of revenue ÷ planned compute spending",dir:-1,min:0,max:1,fmt:pct,
+ {k:"oai",n:"OpenAI: paid in",m:"Cash plus a year of revenue ÷ compute it plans through 2030 (with a growth path: cash plus 2026–30 revenue after other costs)",dir:-1,min:0,max:1.2,fmt:pct,
   close:{v:.72,y:"1849",t:"fall runs out",s:["camp_lev"],card:"rail72"},brk:{v:.38,y:"1847",t:"railway crisis",s:["camp_lev"],card:"rail38"},
-  pos:[{n:"OpenAI exposure",f:1,l:0,ly:"labs"}],trail:{hx:["rail"]},
-  read(){const o=mlab("openai");const cash=o.cash!=null?o.cash:122,com=o.commit!=null?o.commit:600,rev=o.rev!=null?o.rev:36;return {v:(cash+rev)/com,d:o.date||M_FB.oai.d,cash,com,rev,src:[o.src_cash||"oai_122",o.src_commit||"nw_oai",o.src_rev||"dsa_oai"]};},
-  shock(r,S){const com=r.com*(1-S.cut);return com>0?(r.cash+r.rev+S.raise)/com:1;},
+  pos:[{n:"OpenAI exposure",f:1,l:0,ly:"labs",fund:1}],trail:{hx:["rail"]},
+  read(){const o=mlab("openai");const cash=o.cash!=null?o.cash:122,com=o.commit!=null?o.commit:856,rev=o.rev!=null?o.rev:36;return {v:(cash+rev)/com,d:o.date||M_FB.oai.d,cash,com,rev,src:[o.src_cash||"oai_122",o.src_commit||"dsa_oai",o.src_rev||"dsa_oai"]};},
+  shock(r,S){if(S.LAB)return S.LAB.oai.fs;return r.com>0?(r.cash+r.rev+(S.raise||0))/r.com:1;},
   need(t,r){return amt((t*r.com-r.cash-r.rev)*1e9,"more cash raised","less cash");},
-  text(r){return "The railway lines of 1845 earned nothing until they opened, so shareholders paid their calls out of their own pockets. Shares fell through 38% paid in (1847) and kept falling until 72% (1849)."+cite("camp_lev","rmania")+" OpenAI's cash and a year of revenue cover "+pct(r.v)+" of the ~$"+r.com+"B of compute it plans through 2030, counting all $"+r.cash+"B of its March round as cash, so this is an upper bound."+cite.apply(null,r.src);}},
- {k:"ant",n:"Anthropic: paid in",m:"Cash plus a year of revenue ÷ fixed commitments",dir:-1,min:0,max:1,fmt:pct,
+  text(r){return "The railway lines of 1845 earned nothing until they opened, so shareholders paid their calls out of their own pockets. Shares fell through 38% paid in (1847) and kept falling until 72% (1849)."+cite("camp_lev","rmania")+" OpenAI's cash and a year of revenue cover "+pct(r.v)+" of the ~$"+r.com+"B of compute and infrastructure it plans through 2030, counting all $"+r.cash+"B of its March round as cash, so this is an upper bound. Unlike the railway shareholders, it can still raise money; whether it can is what the funding check watches."+cite.apply(null,r.src);}},
+ {k:"ant",n:"Anthropic: paid in",m:"Cash plus a year of revenue ÷ fixed commitments (with a growth path: cash plus 2026–30 revenue after other costs)",dir:-1,min:0,max:1.2,fmt:pct,
   close:{v:.72,y:"1849",t:"fall runs out",s:["camp_lev"],card:"rail72"},brk:{v:.38,y:"1847",t:"railway crisis",s:["camp_lev"],card:"rail38"},
   pos:[{n:"Anthropic",f:1,l:0,ly:"labs"}],trail:{hx:["rail"]},
   read(){const o=mlab("anthropic");const cash=o.cash!=null?o.cash:131.7,com=o.commit!=null?o.commit:265.6,rev=o.rev!=null?o.rev:67.2;return {v:(cash+rev)/com,d:o.date||M_FB.ant.d,cash,com,rev,src:[o.src||"as_s1"]};},
-  shock(r){return r.v;},
+  shock(r,S){return S.LAB?S.LAB.ant.fs:r.v;},
   need(t,r){return amt((t*r.com-r.cash-r.rev)*1e9,"more cash or revenue","less cash or revenue");},
   text(r){return "Same railway yardstick. Anthropic's $"+r.cash+"B of cash and $"+r.rev+"B of annualized revenue cover "+pct(r.v)+" of its $"+r.com+"B of fixed commitments, and it generated free cash flow in H1 2026."+cite.apply(null,r.src);}},
  {k:"neo",n:"CoreWeave: debt service",m:"Operating income ÷ interest, last four quarters",dir:-1,min:-1,max:3,fmt:xx,
@@ -2733,25 +2768,25 @@ const MG=[
   at(i){const oi=ttm("crwv_opinc",i),it=ttm("crwv_interest",i);return (oi!=null&&it>0)?{v:oi/it,d:qEnd("crwv_opinc",i),oi,it}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.neo.v,d:M_FB.neo.d,oi:-231e6,it:1619e6,src:["live_sec"]};},
   hist(){return series(i=>this.at(i),6);},
-  shock(r,S){const rev=ttm("crwv_revenue",0)||7.59e9;const dRev=rev*(S.capex-.36*S.cut)+rev*.2*S.rent;return (r.oi+.8*dRev)/r.it;},
+  shock(r,S){const rev=ttm("crwv_revenue",0)||7.59e9;const dRev=rev*((S.capex||0)-.36*(S.cutO||0))+rev*.2*(S.rent||0);return (r.oi+.8*dRev)/r.it;},
   need(t,r){return amt(t*r.it-r.oi,"more operating income a year","less operating income a year");},
   text(r){return "In 1893 railroads went into receivership once fixed charges took about 95% of net earnings, roughly 1.05× cover. The B&O was at 1.33× two years before it failed."+cite("daggett")+" CoreWeave's operating income covers its interest "+xx(r.v)+" over the four quarters to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Its three largest customers are 72% of revenue."+cite("bc_crwv");}},
  {k:"orcl",n:"Oracle: outside money",m:"Capex not covered by operating cash flow, last four quarters",dir:1,min:0,max:1,fmt:pct,
   close:{v:.33,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.5,y:"1840s",t:"canals, railways",s:["cranmer","camp13"],card:"canal"},
-  pos:[{n:"Oracle",f:1,l:0,ly:"orcl"}],trail:{hx:[]},
+  pos:[{n:"Oracle",f:1,l:0,ly:"orcl",fund:1}],trail:{hx:[]},
   at(i){const c=ttm("orcl_capex",i),o=ttm("orcl_ocf",i);return (c>0&&o!=null)?{v:Math.max(0,1-o/c),d:qEnd("orcl_capex",i),c,o}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.orcl.v,d:M_FB.orcl.d,c:75.66e9,o:46.94e9,src:["live_sec"]};},
   hist(){return series(i=>this.at(i),6);},
-  shock(r,S){const E=.5*638e9/5;return Math.max(0,Math.min(1.5,(r.c-r.o+S.cut*E)/r.c));},
+  shock(r,S){const E=.5*638e9/5;return Math.max(0,Math.min(1.5,(r.c-r.o+(S.cutO||0)*E)/r.c));},
   need(t,r){return amt((1-t)*r.c-r.o,"more operating cash flow a year","less operating cash flow a year");},
   text(r){return "The canals of 1836–44 and the railways of the Mania were built mostly with money raised from outside, and stopped when the lending did. More than half from outside marks the danger zone."+cite("cranmer","wsg04","camp13")+" Oracle covered "+pct(1-r.v)+" of its capex from its own cash flow over the last four quarters; the rest came from debt and share sales. OpenAI is over half its backlog."+cite.apply(null,r.src.concat(["param_orcl"]));}},
- {k:"credit",n:"GPU collateral",m:"Change in H100 one-year rent since the prior reading",dir:-1,min:-.8,max:.6,fmt:v=>(v>=0?"+":"−")+Math.round(Math.abs(v)*100)+"%",
+ {k:"credit",n:"GPU collateral",m:"Change in H100 one-year rent over 12 months, or the longest span on record until a year of readings exists",dir:-1,min:-.8,max:.6,fmt:v=>(v>=0?"+":"−")+Math.round(Math.abs(v)*100)+"%",
   close:{v:-.25,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:-.38,y:"2016",t:"shale cuts",s:["hb16"],card:"shale"},
   pos:[{n:"GPU-backed credit",f:1,l:0,ly:"fin"}],trail:{hx:["shale"]},
-  read(){const h=val("h100_1yr",0),hp=val("h100_1yr",1);return (h!=null&&hp)?{v:h/hp-1,d:metDate("h100_1yr")||M_FB.credit.d,h,hp,src:[mcite("h100_1yr")]}:{v:M_FB.credit.v,d:M_FB.credit.d,h:2.35,hp:1.70,src:["semi"]};},
-  shock(r,S){return (1+r.v)*(1+S.rent)-1;},
+  read(){const o=mobj("h100_1yr"),h=val("h100_1yr",0);let hp=o.v12!=null?o.v12:val("h100_1yr",1),pd=o.v12!=null?o.v12Date:o.prevDate;const d=metDate("h100_1yr")||M_FB.credit.d;if(h==null||!hp){hp=1.70;pd="2025-10-31";}const mo=pd?Math.max(1,Math.round((dms(d)-dms(pd))/DAY/30.4)):null;return {v:(h!=null?h:2.35)/hp-1,d,h:h!=null?h:2.35,hp,mo,src:[h!=null?mcite("h100_1yr"):"semi"]};},
+  shock(r,S){return (1+r.v)*(1+(S.rent||0))-1;},
   need(t,r){return "rent at $"+(r.hp*(1+t)).toFixed(2)+" an hour";},
-  text(r){return "In 2015–16 banks cut shale borrowing bases by 38–39% as oil fell; 58 producers with $50.4B of debt filed in 2016."+cite("hb16")+" GPU loans are worth what the GPUs rent for. The H100 one-year rent went from $"+r.hp.toFixed(2)+" to $"+r.h.toFixed(2)+"."+cite.apply(null,r.src)+" CoreWeave's loans have no re-marking clause, so losses would arrive on default rather than gradually."+cite("wing_gpu");}},
+  text(r){return "In 2015–16 banks cut shale borrowing bases by 38–39% as oil fell; 58 producers with $50.4B of debt filed in 2016."+cite("hb16")+" GPU loans are worth what the GPUs rent for. The H100 one-year rent went from $"+r.hp.toFixed(2)+" to $"+r.h.toFixed(2)+(r.mo?" over "+r.mo+" months":"")+(r.mo&&r.mo<11?"; a 12-month change takes over once the updater has a year of readings, because one quarter can swing it":"")+"."+cite.apply(null,r.src)+" CoreWeave's loans have no re-marking clause, so losses would arrive on default rather than gradually."+cite("wing_gpu");}},
  {k:"chips",n:"Nvidia: customer financing",m:"Stakes in private companies ÷ last four quarters' revenue",dir:1,min:0,max:.6,fmt:pct,
   close:{v:.16,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.24,y:"2000",t:"Lucent",s:["tunguz_vf"],card:"lucent"},
   pos:[{n:"Nvidia",f:0,l:0,ly:"chips"}],trail:{hx:[]},
@@ -2773,7 +2808,7 @@ const MG=[
   text(r){return "Micron's gross margin peaked at 61% in mid-2018 and was 28.6% a year later, as memory revenue fell 31.5%."+cite("mu19","gartner19")+" In the quarter to "+fmtDay(r.d)+" it was "+pct(r.v)+"."+cite.apply(null,r.src)+" The trail below uses four-quarter margins on both sides.";}},
  {k:"build",n:"New capacity without a buyer",m:"Uncontracted data center construction ÷ built capacity",dir:1,min:0,max:.8,fmt:pct,
   close:{v:.34,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.51,y:"2000",t:"merchant power",s:["fort02"],card:"merchant"},
-  pos:[{n:"Power",f:1,l:1,ly:"power"},{n:"Data centers, preleased",f:0,l:1,ly:"dc"},{n:"Data centers, speculative",f:1,l:1,ly:"dc"}],trail:{hx:[]},
+  pos:[{n:"Power",f:1,l:1,ly:"power"},{n:"Data centers, preleased",f:0,l:1,ly:"dc",cap:1},{n:"Data centers, speculative",f:1,l:1,ly:"dc"}],trail:{hx:[]},
   read(){const o=mobj("dc_build"),pre=val("preleased",0);const uc=o.uc_mw||7481,inv=o.inv_mw||10903,p=(pre!=null?pre:80)/100;return {v:uc/inv*(1-p),d:o.date||M_FB.build.d,uc,inv,p,src:[o.src||"cbre26"]};},
   shock(r,S){const p=r.p*(1-Math.max(0,-S.capexAll));return r.uc/r.inv*(1-p);},
   need(t,r){return "preleasing at "+pct(1-t*r.inv/r.uc);},
@@ -2784,7 +2819,7 @@ const MG=[
   at(i){let c=0,o=0,n=0,end=null;["AMZN","GOOGL","MSFT","META"].forEach(t=>{const a=MQ("capex_"+t)[i],b=MQ("ocf_"+t)[i];if(a&&b&&a.end===b.end){c+=a.v;o+=b.v;n++;end=end||a.end;}});return n===4&&c>0?{v:Math.max(0,1-o/c),d:end,c,o}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.hyper.v,d:M_FB.hyper.d,c:201.9e9,o:175.5e9,src:["dd_fcf"]};},
   hist(){return series(i=>this.at(i),6);},
-  shock(r,S){const c=r.c*(1+S.capex);return c>0?Math.max(0,1-r.o/c):0;},
+  shock(r,S){const c=r.c*(1+(S.capex||0));return c>0?Math.max(0,1-r.o/c):0;},
   need(t,r){return amt((1-t)*r.c-r.o,"more operating cash flow a quarter","less operating cash flow a quarter");},
   text(r){return "Same line as Oracle's. The big four's operating cash flow of $"+Math.round(r.o/1e9)+"B covered "+pct(1-r.v)+" of their $"+Math.round(r.c/1e9)+"B of capex in the quarter to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Nobody here is forced to sell, which is why bonds start from overweight.";}}
 ];
@@ -2799,19 +2834,50 @@ function fundLive(){const F=MAN.funding&&typeof MAN.funding==="object"?MAN.fundi
   out.push({k:"spread",n:"Spreads 1.5 pts above their low",on:!!sp,t:spT||"No reading"});
   const ipo=String(F.ipo_window||"open");out.push({k:"ipo",n:"AI listing pulled or cut",on:ipo==="shut",t:(F.ipo_note||(ipo==="shut"?"A major AI listing was pulled or priced down":"Window open; Anthropic expected to price around 19–20 Nov"))+cite(F.ipo_src&&SRC[F.ipo_src]?F.ipo_src:"as_s1")});
   return out;}
-const MS0={raise:0,cut:0,capex:0,rent:0,fed:null,spread:null,ipo:null};
+/* lab revenue scenarios: growth for each year 2027–30, separately for OpenAI and Anthropic */
+const OC=.31; /* non-compute costs as a share of revenue, implied by OpenAI's plan: $278B of cash burn on $840B of revenue and $856B of compute, 2026–30 */
+const fade=g0=>[0,1,2,3].map(k=>+(.12+(g0-.12)*Math.pow(.7,k)).toFixed(3));
+const GP=[{k:"today",n:"Today, no forecast"},{k:"plans",n:"Labs' plans",oai:[1.25,.8,.55,.55],ant:[1.25,.8,.55,.55]},{k:"abs",n:"Absorbed",oai:fade(.6),ant:fade(.6)},{k:"glut",n:"Glut, no defaults",oai:fade(.167),ant:fade(.167)},{k:"def",n:"Glut with defaults",oai:fade(-.3),ant:fade(-.3)}];
+function labPath(base,g){const R=[base];g.forEach(x=>R.push(R[R.length-1]*(1+x)));return R;}
+function labCalc(G,S){const out={};[["oai",MG[0]],["ant",MG[1]]].forEach(([k,g])=>{const r=g.read(),R=labPath(r.rev,G[k]),sum=R.reduce((a,b)=>a+b,0),avail=r.cash+(k==="oai"?(S.raise||0):0)+(1-OC)*sum;out[k]={R,sum,fs:avail/r.com,need:Math.max(0,r.com-avail),r};});return out;}
+const clamp01=v=>Math.max(0,Math.min(1,v));
+const MS0={raise:0,cut:0,capex:0,rent:0,fed:null,spread:null,ipo:null,G:null,preset:"today"};
 let MS=Object.assign({},MS0,{over:{}});
 const CALLN=["Underweight","Neutral","Overweight"],CALLC=["uw","n","ow"],ZN=["far","close","past"];
 function zoneOf(g,v){if(g.dir>0)return v>=g.brk.v?2:v>=g.close.v?1:0;return v<=g.brk.v?2:v<=g.close.v?1:0;}
-function runModel(S){const shocked=S.raise||S.cut||S.capex||S.rent;S.capexAll=S.capex-S.cut*.2;
-  const F=fundLive().map(f=>{const o=S[f.k];let on=o==null?f.on:o;if(f.k==="ipo"&&S.cut>=.25&&o==null)on=true;return Object.assign({},f,{on,forced:o!=null||(f.k==="ipo"&&S.cut>=.25&&!f.on)});});
-  const fired=F.filter(f=>f.on).length>=2,fired0=F.filter(f=>f.on&&!f.forced).length>=2;
-  const rows=MG.map(g=>{const r=g.read(),v=r.v,dragged=S.over[g.k]!=null;const vs=dragged?S.over[g.k]:shocked?g.shock(r,S):v,z0=zoneOf(g,v),z=zoneOf(g,vs);
-    const calls=g.pos.map(p=>{const base=(!p.f&&p.l)?2:1;return Object.assign({},p,{c:Math.max(0,base-z-(fired?1:0)),c0:Math.max(0,base-z0-(fired0?1:0))});});
-    return {g,r,v,vs,z,z0,calls,dragged};});
+function runModel(S){const G=S.G||null,LAB=G?labCalc(G,S):null;S.LAB=LAB;
+  const scenIpo=!!(LAB&&(LAB.oai.fs<MG[0].brk.v||LAB.ant.fs<MG[1].brk.v)),live=fundLive();
+  const F=live.map(f=>{const o=S[f.k];let on=o==null?f.on:o,why="";
+    if(o==null&&f.k==="ipo"&&!f.on){if(S.cut>=.25){on=true;why="OpenAI cuts 25% or more";}if(scenIpo){on=true;why="a lab covers under 38% of its plan from revenue";}}
+    return Object.assign({},f,{on,forced:on!==f.on,why});});
+  const nOn=F.filter(f=>f.on).length,fired=nOn>=2,nOn0=live.filter(f=>f.on).length,fired0=nOn0>=2;
+  const cutO=Math.max(S.cut||0,(LAB&&fired)?clamp01(1-LAB.oai.fs):0),cutA=(LAB&&fired)?clamp01(1-LAB.ant.fs):0;
+  S.cutO=cutO;S.cutA=cutA;S.capexAll=(S.capex||0)-.2*cutO-.1*cutA;
+  const shocked=!!(S.raise||S.cut||S.capex||S.rent||G);
+  const rows=MG.map(g=>{const r=g.read(),v=r.v,dragged=S.over[g.k]!=null;const vs=dragged?S.over[g.k]:shocked?g.shock(r,S):v,z0=zoneOf(g,v);let z=zoneOf(g,vs),cutPast=false;
+    if(g.k==="oai"&&cutO>0&&!dragged){z=2;cutPast=true;}
+    const calls=g.pos.map(p=>{let base=(!p.f&&p.l)?2:1;if(p.cap)base=Math.min(base,1);const st=p.fund?Math.min(z,nOn):z,st0=p.fund?Math.min(z0,nOn0):z0;return Object.assign({},p,{c:Math.max(0,base-st-(fired?1:0)),c0:Math.max(0,base-st0-(fired0?1:0))});});
+    return {g,r,v,vs,z,z0,calls,dragged,cutPast};});
   const all=[].concat(...rows.map(x=>x.calls)),score=all.reduce((a,c)=>a+(c.c-1),0)/all.length;
   const first=rows.find(x=>x.z>=1&&x.g.pos.some(p=>p.f));
-  return {rows,F,fired,score,first,shocked:!!shocked||F.some(f=>f.forced)||Object.keys(S.over).length>0};}
+  const anyShock=shocked||F.some(f=>f.forced)||Object.keys(S.over).length>0;
+  const moved=anyShock?all.filter(c=>c.c!==c.c0):[];
+  return {rows,F,fired,nOn,score,first,shocked:anyShock,LAB,moved};}
+/* the call at every lab growth rate, holding the other what-if settings */
+let STRIP=null,STRIPKEY="";
+function strips(){const key=JSON.stringify([MS.raise,MS.cut,MS.capex,MS.rent,MS.fed,MS.spread,MS.ipo]);if(STRIP&&key===STRIPKEY)return STRIP;
+  const gs=[];for(let i=0;i<=95;i++)gs.push(+(-.4+i*.02).toFixed(2));const res={};
+  gs.forEach(gv=>{const S=Object.assign({},MS,{G:{oai:[gv,gv,gv,gv],ant:[gv,gv,gv,gv]},over:{}});runModel(S).rows.forEach(x=>x.calls.forEach((c,i)=>{(res[x.g.k+i]=res[x.g.k+i]||[]).push(c.c);}));});
+  STRIP={gs,res};STRIPKEY=key;return STRIP;}
+const gpc=v=>(v<0?"−":"")+Math.round(Math.abs(v)*100)+"%";
+function stripRuns(arr,gs){const runs=[];arr.forEach((c,i)=>{const L=runs[runs.length-1];if(L&&L.c===c)L.to=gs[i];else runs.push({c,from:gs[i],to:gs[i]});});return runs;}
+function stripText(runs){if(runs.length===1)return CALLN[runs[0].c]+" at any lab growth from −40% to 150% a year";
+  return runs.map((r,i)=>CALLN[r.c]+(i===0?" below "+gpc(runs[1].from):i===runs.length-1?" above "+gpc(r.from):" from "+gpc(r.from)+" to "+gpc(runs[i+1].from))).join(" · ");}
+function drawStrip(box,runs,gs,mark){const sg=svgBox(box,22,"Call at each lab growth rate");if(!sg)return;const {svg,W}=sg;const x=lin(gs[0],gs[gs.length-1],4,W-4),col=["var(--z-crit)","var(--surface-2)","var(--z-good)"],step=gs[1]-gs[0];
+  runs.forEach(r=>S("rect",{x:x(r.from-step/2<gs[0]?gs[0]:r.from-step/2),y:2,width:Math.max(1,x(Math.min(gs[gs.length-1],r.to+step/2))-x(r.from-step/2<gs[0]?gs[0]:r.from-step/2)),height:8,style:"fill:"+col[r.c]},svg));
+  [0,.5,1].forEach(v=>{S("line",{x1:x(v),x2:x(v),y1:10,y2:13,style:"stroke:var(--axis)"},svg);const t=S("text",{x:x(v),y:21,"text-anchor":"middle",class:"t-ink2 num",style:"font-size:9px"},svg);t.textContent=gpc(v);});
+  if(mark!=null){const mx=x(Math.max(gs[0],Math.min(gs[gs.length-1],mark)));S("path",{d:"M"+(mx-4)+",0 L"+(mx+4)+",0 L"+mx+",6 Z",style:"fill:var(--ink)"},svg);}}
+const meanG=G=>{if(!G)return null;const a=G.oai.concat(G.ant);return a.reduce((s,v)=>s+v,0)/a.length;};
 /* when a reading first went past a line, from the readings we have */
 function sinceLine(g,lineV){const h=g.hist?g.hist():[];const past=v=>g.dir>0?v>=lineV:v<=lineV;if(!h.length||!past(h[h.length-1].v))return null;let s=null;for(let i=h.length-1;i>=0;i--){if(past(h[i].v))s=h[i].d;else break;}return {d:s,all:s===h[0].d};}
 function countdown(g,r){const h=g.hist?g.hist():[];if(zoneOf(g,r.v)===2){const s=sinceLine(g,g.brk.v);if(!s||h.length<2)return "Past the line";return s.all?"Past the line in every reading since "+qLab(s.d):"Past the line since "+qLab(s.d);}
@@ -2820,9 +2886,13 @@ function countdown(g,r){const h=g.hist?g.hist():[];if(zoneOf(g,r.v)===2){const s
   const slope=(b.v-a.v)/days,toward=g.dir>0?slope>0:slope<0;if(!toward||Math.abs(slope)<1e-9)return "Moving away from the line";
   const q=(g.brk.v-b.v)/slope/91.3;return q>40?"Moving toward the line, slowly":"At this pace, reaches the line in about "+Math.max(1,Math.round(q))+" quarter"+(Math.round(q)>1?"s":"");}
 /* flip points: what it would take, from today's reading, to move one step */
-function flips(x){const g=x.g,z=x.z0,out=[],L=[["close",g.close],["brk",g.brk]];
-  if(z===2)out.push(["up",g.brk]);if(z===1){out.push(["up",g.close]);out.push(["down",g.brk]);}if(z===0)out.push(["down",g.close]);
-  return out.map(o=>{const n=g.need?g.need(o[1].v,x.r):"";return '<span class="fl '+o[0]+'">'+(o[0]==="up"?"▲ Up a step at ":"▼ Down a step at ")+g.fmt(o[1].v)+(n?": "+n:"")+'</span>';}).join("");}
+function flips(x,R){const g=x.g,p=x.calls[0],z0=x.z0;let base=(!p.f&&p.l)?2:1;if(p.cap)base=Math.min(base,1);
+  const nOn=R?R.nOn:0,fired=R?R.fired:false,cAt=z=>Math.max(0,base-(p.fund?Math.min(z,nOn):z)-(fired?1:0)),c0=cAt(z0);
+  const up=z0===2?[[g.brk,1],[g.close,0]]:z0===1?[[g.close,0]]:[],dn=z0===0?[[g.close,1],[g.brk,2]]:z0===1?[[g.brk,2]]:[];
+  const u=up.find(o=>cAt(o[1])>c0),d=dn.find(o=>cAt(o[1])<c0),out=[];
+  if(u)out.push(["up",u[0],CALLN[cAt(u[1])]]);else if(up.length&&p.fund&&nOn>0)out.push(["note",null,"Can't move up while a funding warning is on"]);
+  if(d)out.push(["down",d[0],CALLN[cAt(d[1])]]);
+  return out.map(o=>{if(o[0]==="note")return '<span class="fl">'+o[2]+'</span>';const n=g.need?g.need(o[1].v,x.r):"";return '<span class="fl '+o[0]+'">'+(o[0]==="up"?"▲ ":"▼ ")+o[2]+(x.calls.length>1?" for "+p.n:"")+" at "+g.fmt(o[1].v)+(n?": "+n:"")+'</span>';}).join("");}
 function drawGauge(box,g,v,vs,prev,anim){const sg=svgBox(box,44,g.n+" gauge");if(!sg)return;const {svg,W}=sg;const pad=6,x=lin(g.min,g.max,pad,W-pad),cl=t=>Math.max(g.min,Math.min(g.max,t)),y0=12,bh=10;
   const a=g.close.v,b=g.brk.v;const zones=g.dir>0?[[g.min,a,"var(--surface-2)"],[a,b,"var(--z-warn)"],[b,g.max,"var(--z-crit)"]]:[[g.min,b,"var(--z-crit)"],[b,a,"var(--z-warn)"],[a,g.max,"var(--surface-2)"]];
   zones.forEach(z=>S("rect",{x:x(z[0]),y:y0,width:Math.max(0,x(z[1])-x(z[0])),height:bh,style:"fill:"+z[2]},svg));
@@ -2878,7 +2948,7 @@ function cardHTML(x,which){const g=x.g,L=which==="close"?g.close:g.brk,C=CARD[L.
   return '<div class="mgc" data-w="'+which+'"><b>'+C.h+'</b><p>'+C.b+(C.s?cite.apply(null,C.s):"")+'</p>'+(now?'<p class="mgc-n"><span>Today</span> '+now+'</p>':'')+'</div>';}
 let MBUILT=false,DRAG=null;
 function buildModel(){const el=$("m-rows");if(!el)return;
-  el.innerHTML=MG.map(g=>'<div class="mg" id="mg-'+g.k+'"><div class="mg-h"><b>'+g.n+'</b><span>'+g.m+'</span></div><div class="mg-bar chart" id="mgb-'+g.k+'" aria-label="Drag to try a different reading; click a line for its history"></div><div class="mg-v" id="mgv-'+g.k+'"></div><div class="mg-p" id="mgp-'+g.k+'"></div><div class="mg-f" id="mgf-'+g.k+'"></div><details class="mg-t" id="mgd-'+g.k+'"><summary>Then and now: '+g.brk.t+', '+g.brk.y+'</summary><div class="mg-tn"><div><div class="chart mg-tr" id="mgt-'+g.k+'"></div><div class="mg-tc" id="mgc-'+g.k+'"></div></div><div class="mg-cards" id="mgk-'+g.k+'"></div></div><p class="mg-why">'+g.text(g.read())+(g.close.j||g.brk.j?' <span class="mg-j">The amber line is our judgment: two-thirds of the way to the break.</span>':'')+'</p></details></div>').join("");
+  el.innerHTML=MG.map(g=>'<div class="mg" id="mg-'+g.k+'"><div class="mg-h"><b>'+g.n+'</b><span>'+g.m+'</span></div><div class="mg-bar chart" id="mgb-'+g.k+'" aria-label="Drag to try a different reading; click a line for its history"></div><div class="mg-v" id="mgv-'+g.k+'"></div><div class="mg-p" id="mgp-'+g.k+'"></div><div class="mg-gs" id="mgs-'+g.k+'"></div><div class="mg-f" id="mgf-'+g.k+'"></div><details class="mg-t" id="mgd-'+g.k+'"><summary>Then and now: '+g.brk.t+', '+g.brk.y+'</summary><div class="mg-tn"><div><div class="chart mg-tr" id="mgt-'+g.k+'"></div><div class="mg-tc" id="mgc-'+g.k+'"></div></div><div class="mg-cards" id="mgk-'+g.k+'"></div></div><p class="mg-why">'+g.text(g.read())+(g.close.j||g.brk.j?' <span class="mg-j">The amber line is our judgment: two-thirds of the way to the break.</span>':'')+'</p></details></div>').join("");
   MG.forEach(g=>{const box=$("mgb-"+g.k),dt=$("mgd-"+g.k);
     const toV=ev=>{const r=box.getBoundingClientRect(),pad=6;return Math.max(g.min,Math.min(g.max,g.min+(ev.clientX-r.left-pad)/Math.max(1,r.width-2*pad)*(g.max-g.min)));};
     box.addEventListener("pointerdown",ev=>{const ln=ev.target.closest&&ev.target.closest("[data-line]");if(ln){openCard(g.k,ln.getAttribute("data-line"));return;}DRAG=g.k;try{box.setPointerCapture(ev.pointerId);}catch(e){}MS.over[g.k]=toV(ev);updateModel(false);ev.preventDefault();});
@@ -2890,16 +2960,6 @@ function buildModel(){const el=$("m-rows");if(!el)return;
 function openCard(k,which){const dt=$("mgd-"+k);if(!dt)return;dt.open=true;updateRowDetail(k);const c=$("mgk-"+k).querySelector('[data-w="'+which+'"]');$("mgk-"+k).querySelectorAll(".mgc").forEach(e=>e.classList.toggle("hl",e===c));}
 let MR=null;
 function updateRowDetail(k){if(!MR)return;const x=MR.rows.find(r=>r.g.k===k);if(!x)return;drawTrail($("mgt-"+k),$("mgc-"+k),x);const hl=[...$("mgk-"+k).querySelectorAll(".mgc.hl")].map(e=>e.dataset.w);$("mgk-"+k).innerHTML=cardHTML(x,"brk")+cardHTML(x,"close");hl.forEach(w=>{const e=$("mgk-"+k).querySelector('[data-w="'+w+'"]');if(e)e.classList.add("hl");});}
-function updateModel(anim){if(!MBUILT)buildModel();const R=runModel(MS);MR=R;if(!$("m-rows"))return;
-  const sc=R.score,lab=sc>=.34?"Overweight":sc<=-.34?"Underweight":Math.abs(sc)>=.15?(sc>0?"Neutral, leaning overweight":"Neutral, leaning underweight"):"Neutral";
-  $("m-call").textContent=lab;$("m-score").textContent="average of "+R.rows.reduce((a,x)=>a+x.calls.length,0)+" calls: "+(sc>=0?"+":"−")+Math.abs(sc).toFixed(2)+" on −1 to +1"+(R.shocked?" · what-if":"");
-  $("m-fund").innerHTML='<div class="mf-n"><b>'+R.F.filter(f=>f.on).length+' of 3</b> '+(R.fired?'<span class="mc uw">fired: every call one step down</span>':'<span class="mf-q">two of three would move every call one step down</span>')+'</div><ul class="mf">'+R.F.map(f=>'<li class="'+(f.on?'on':'')+'"><i></i><span><b>'+f.n+'</b> '+f.t+(f.forced?' <em>(what-if)</em>':'')+'</span></li>').join("")+'</ul>';
-  $("m-chain").innerHTML='<ol class="mch">'+R.rows.filter(x=>x.g.k!=="ant").map(x=>'<li class="z'+x.z+(R.first&&x===R.first?' first':'')+'"><span>'+x.g.n.split(":")[0]+'</span></li>').join("")+'</ol><div class="mch-n">'+(R.first?'First to break: <b>'+R.first.g.n.split(":")[0]+'</b>, '+ZN[R.first.z]+(R.first.z===2?' its historical line':' to its historical line')+'.':'No forced seller is near its line.')+'</div>';
-  R.rows.forEach(x=>{const g=x.g;$("mgv-"+g.k).innerHTML='<b class="num">'+g.fmt(x.vs)+'</b>'+(x.vs!==x.v?'<span class="mg-was">today '+g.fmt(x.v)+(x.dragged?' · <button type="button" class="lnk" data-reset="'+g.k+'">reset</button>':'')+'</span>':'')+'<span class="mg-z z'+x.z+'">'+ZN[x.z]+'</span><span class="mg-cd">'+(x.dragged?"What-if reading":countdown(g,x.r))+'</span>';
-    $("mgp-"+g.k).innerHTML=x.calls.map(c=>'<span class="mc '+CALLC[c.c]+'">'+c.n+' · <b>'+CALLN[c.c]+'</b>'+(R.shocked&&c.c!==c.c0?' <em>was '+CALLN[c.c0]+'</em>':'')+'</span>').join("");
-    $("mgf-"+g.k).innerHTML=flips(x);
-    const h=g.hist?g.hist():[];const prev=h.length>1?h[h.length-2].v:null;drawGauge($("mgb-"+g.k),g,x.v,x.vs,prev,anim);
-    if($("mgd-"+g.k).open)updateRowDetail(g.k);});}
 /* would the model have called the last two busts? */
 const BT={rail:{n:"British railway shares, 1843–50",peak:"1845-08",fire:["1845-11","1845-11"],x0:1843,x1:1851,
    pts:[["1843-01",50],["1843-12",61.1],["1845-08",100],["1845-10",100],["1845-11",81],["1845-12",91.7],["1846-08",90],["1846-12",87.7],["1847-12",63.7],["1848-12",49.3],["1849-12",38.4],["1850-04",33.9],["1850-12",43.3]],
@@ -2912,28 +2972,72 @@ function avoided(c){const P=c.pts.map(p=>({t:yr(p[0]),v:p[1]})),lo=Math.min(...P
 function drawBT(id,c,anim){const box=$(id);const sg=svgBox(box,180,c.n);if(!sg)return;const {svg,W,H}=sg;const m={l:30,r:10,t:12,b:22},X=lin(c.x0,c.x1,m.l,W-m.r),Y=lin(0,110,H-m.b,m.t);
   const f0=yr(c.fire[0]),f1=yr(c.fire[1]);S("rect",{x:X(f0),y:m.t,width:Math.max(0,X(c.x1)-X(f0)),height:H-m.b-m.t,style:"fill:var(--z-crit);opacity:.55"},svg);
   if(f1>f0)S("rect",{x:X(f0),y:m.t,width:X(f1)-X(f0),height:H-m.b-m.t,style:"fill:var(--z-warn);opacity:.9"},svg);
-  const t=S("text",{x:X(f0)+4,y:m.t+10,class:"t-ink",style:"font-size:10px;font-weight:600"},svg);t.textContent="Underweight";
+  const P0=c.pts.map(p=>({t:yr(p[0]),v:p[1]})),lo0=Math.min(...P0.map(p=>p.v)),vf=btAt(P0,f0)!=null?btAt(P0,f0):100,avd=Math.round((vf-lo0)/(100-lo0)*100);
+  const t=S("text",{x:X(f0)+4,y:m.t+10,class:"t-ink",style:"font-size:10px;font-weight:600"},svg);t.textContent="Model says underweight from here";
+  const t2=S("text",{x:X(f0)+4,y:m.t+22,class:"t-ink2",style:"font-size:10px"},svg);t2.textContent="fall after this: −"+Math.round((1-lo0/vf)*100)+"% · "+avd+"% of the crash avoided";
   [0,50,100].forEach(v=>{S("line",{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v),style:"stroke:var(--grid)"},svg);const tt=S("text",{x:m.l-4,y:Y(v)+3,"text-anchor":"end",class:"t-ink2 num",style:"font-size:9.5px"},svg);tt.textContent=v;});
   for(let yy=Math.ceil(c.x0);yy<=Math.floor(c.x1);yy++){const tt=S("text",{x:X(yy),y:H-6,"text-anchor":"middle",class:"t-ink2 num",style:"font-size:9.5px"},svg);tt.textContent="'"+String(yy).slice(2);}
+  if(c.peak){const pk=yr(c.peak);S("line",{x1:X(pk),x2:X(pk),y1:Y(100)-6,y2:Y(100)+6,style:"stroke:var(--ink);stroke-width:1.5"},svg);const pt=S("text",{x:X(pk),y:Y(100)-9,"text-anchor":"middle",class:"t-ink2",style:"font-size:9.5px"},svg);pt.textContent="peak";}
   const P=c.pts.map(p=>({t:yr(p[0]),v:p[1],d:p[0]}));const path=S("path",{d:P.map((p,i)=>(i?"L":"M")+X(p.t)+","+Y(p.v)).join(""),style:"fill:none;stroke:var(--ink);stroke-width:2"},svg);
   const tip=tipEl(box);tip.hidden=true;
   let lastX=-99,lift=0;c.ev.forEach(e=>{const ex=X(yr(e[0]));lift=ex-lastX<12?lift+1:0;lastX=ex;const d=S("circle",{cx:ex,cy:H-m.b-lift*11,r:4.5,style:"fill:var(--c-ai);stroke:var(--surface);stroke-width:1.5;cursor:pointer"},svg);
     const show=ev=>{const r=box.getBoundingClientRect();tip.innerHTML='<div class="tt">'+mon(e[0])+'</div><div>'+e[1]+'</div>';placeTip(tip,box,ev.clientX-r.left,ev.clientY-r.top);};d.addEventListener("pointermove",show);d.addEventListener("pointerdown",show);d.addEventListener("pointerleave",()=>{tip.hidden=true;});});
   if(anim&&!RM){const L=path.getTotalLength();path.style.strokeDasharray=L+" "+L;path.style.strokeDashoffset=L;path.getBoundingClientRect();path.style.transition="stroke-dashoffset 1200ms ease";path.style.strokeDashoffset="0";}}
 function renderBT(anim){if(!$("bt-rail"))return;drawBT("bt-rail",BT.rail,anim);drawBT("bt-tel",BT.tel,anim);const a=avoided(BT.rail),b=avoided(BT.tel);
-  $("bt-note").innerHTML="<b>Railways:</b> underweight from November 1845, three months after the peak, avoiding about "+a[0]+"% of the fall. <b>Telecom:</b> underweight in the second half of 2000, 4–8 months after the peak, avoiding about "+b[1]+"–"+b[0]+"%. In 1998 one warning fired alone and the rule held. Two cases, not proof. 1845 has no spread or listing data, so its second warning is our reading, and the telecom line after March 2000 is the Richmond Fed's \"about 50% a year\", not an index. Shaded amber where the firing date is uncertain. Dots are events; hover them."+cite.apply(null,BT.rail.src.concat(BT.tel.src));}
-(function(){const host=$("m-sl");if(!host)return;const SL={};
+  $("bt-note").innerHTML="How to read it: the black line is share prices, with the peak at 100. Red shading starts where the funding check would have fired. <b>Railways:</b> underweight from November 1845, three months after the peak, avoiding about "+a[0]+"% of the fall. <b>Telecom:</b> underweight in the second half of 2000, 4–8 months after the peak, avoiding about "+b[1]+"–"+b[0]+"%. In 1998 one warning fired alone and the rule held. Two cases, not proof. 1845 has no spread or listing data, so its second warning is our reading, and the telecom line after March 2000 is the Richmond Fed's \"about 50% a year\", not an index. Shaded amber where the firing date is uncertain. Dots are events; hover them."+cite.apply(null,BT.rail.src.concat(BT.tel.src));}
+function updateModel(anim){if(!MBUILT)buildModel();const R=runModel(MS);MR=R;if(!$("m-rows"))return;
+  const sc=R.score,lab=sc>=.34?"Overweight":sc<=-.34?"Underweight":Math.abs(sc)>=.15?(sc>0?"Neutral, leaning overweight":"Neutral, leaning underweight"):"Neutral";
+  $("m-call").textContent=lab;$("m-score").textContent="average of "+R.rows.reduce((a,x)=>a+x.calls.length,0)+" calls: "+(sc>=0?"+":"−")+Math.abs(sc).toFixed(2)+" on −1 to +1"+(R.shocked?" · what-if":"");
+  $("m-fund").innerHTML='<div class="mf-n"><b>'+R.nOn+' of 3</b> '+(R.fired?'<span class="mc uw">fired: every call one step down</span>':'<span class="mf-q">two of three would move every call one step down</span>')+'</div><ul class="mf">'+R.F.map(f=>'<li class="'+(f.on?'on':'')+'"><i></i><span><b>'+f.n+'</b> '+f.t+(f.forced?' <em>(what-if'+(f.why?': '+f.why:'')+')</em>':'')+'</span></li>').join("")+'</ul>';
+  $("m-chain").innerHTML='<ol class="mch">'+R.rows.filter(x=>x.g.k!=="ant").map(x=>'<li class="z'+x.z+(R.first&&x===R.first?' first':'')+'"><span>'+x.g.n.split(":")[0]+'</span></li>').join("")+'</ol><div class="mch-n">'+(R.first?'First to break: <b>'+R.first.g.n.split(":")[0]+'</b>, '+ZN[R.first.z]+(R.first.z===2?' its historical line':' to its historical line')+'.':'No forced seller is near its line.')+'</div>';
+  const ST=strips(),mk=meanG(MS.G);
+  R.rows.forEach(x=>{const g=x.g;
+    $("mgv-"+g.k).innerHTML='<b class="num">'+(x.cutPast?"forced to cut":g.fmt(x.vs))+'</b>'+(x.vs!==x.v||x.cutPast?'<span class="mg-was">today '+g.fmt(x.v)+(x.dragged?' · <button type="button" class="lnk" data-reset="'+g.k+'">reset</button>':'')+'</span>':'')+'<span class="mg-z z'+x.z+'">'+ZN[x.z]+'</span><span class="mg-cd">'+(x.dragged?"What-if reading":x.cutPast?"A forced cut is the break itself":(MS.G&&(g.k==="oai"||g.k==="ant"))?"Funded through 2030 under this path":countdown(g,x.r))+'</span>';
+    $("mgp-"+g.k).innerHTML=x.calls.map(c=>'<span class="mc '+CALLC[c.c]+'">'+c.n+' · <b>'+CALLN[c.c]+'</b>'+(c.fund&&c.c<2?' · depends on new money':'')+(c.cap?' · tenants not yet split':'')+(R.shocked&&c.c!==c.c0?' <em>was '+CALLN[c.c0]+'</em>':'')+'</span>').join("");
+    $("mgs-"+g.k).innerHTML=x.calls.map((c,i)=>'<div class="gsr"><span class="gsn">'+(x.calls.length>1?c.n:"Call by lab growth")+'</span><div class="gsb chart" id="gsb-'+g.k+i+'"></div><span class="gst">'+stripText(stripRuns(ST.res[g.k+i],ST.gs))+'</span></div>').join("");
+    x.calls.forEach((c,i)=>drawStrip($("gsb-"+g.k+i),stripRuns(ST.res[g.k+i],ST.gs),ST.gs,mk));
+    $("mgf-"+g.k).innerHTML=flips(x,R);
+    const h=g.hist?g.hist():[];const prev=h.length>1?h[h.length-2].v:null;drawGauge($("mgb-"+g.k),g,x.v,x.vs,prev,anim);
+    if($("mgd-"+g.k).open)updateRowDetail(g.k);});
+  updateScenario(R,lab);}
+/* scenario panel: presets, per-year growth for each lab, results, and the sticky summary */
+const GLAB=[["oai","OpenAI"],["ant","Anthropic"]];
+function presetOf(k){return GP.find(p=>p.k===k);}
+function fillInputs(src){GLAB.forEach(([k])=>[0,1,2,3].forEach(i=>{const el=$("gi-"+k+i);if(!el)return;el.value=src?Math.round(src[k][i]*100):"";el.placeholder=Math.round(presetOf("plans")[k][i]*100);}));}
+function setPreset(k){MS.preset=k;const p=presetOf(k);MS.G=(p&&p.oai)?{oai:p.oai.slice(),ant:p.ant.slice()}:null;fillInputs(MS.G);updateModel(false);}
+function readInputs(){const G={oai:[],ant:[]};GLAB.forEach(([k])=>[0,1,2,3].forEach(i=>{const el=$("gi-"+k+i);let v=parseFloat(el.value);if(!isFinite(v))v=parseFloat(el.placeholder);G[k].push(Math.max(-.9,v/100));}));return G;}
+function buildScenario(){const gp=$("m-gp"),gt=$("m-gt");if(!gp)return;
+  const btns=GP.map(p=>'<button type="button" data-v="'+p.k+'">'+p.n+'</button>').join("");gp.innerHTML=btns;$("m-sbp").innerHTML=btns;
+  gt.innerHTML='<div class="glabs">'+GLAB.map(([k,n])=>'<div class="glab"><div class="gl-h"><b>'+n+'</b><span>2026 base <b class="num" id="gb-'+k+'"></b></span></div><div class="gl-y">'+[0,1,2,3].map(i=>'<label><span>'+(2027+i)+'</span><span class="gin"><input type="number" inputmode="decimal" step="5" min="-90" max="300" id="gi-'+k+i+'" aria-label="'+n+' revenue growth in '+(2027+i)+', percent">%</span></label>').join("")+'</div><div class="gl-r">2030 revenue <b class="num" id="g30-'+k+'">–</b> · funded through 2030 <b class="num" id="gfs-'+k+'">–</b></div></div>').join("")+'</div>';
+  const onPick=e=>{const b=e.target.closest("button[data-v]");if(!b)return;setPreset(b.dataset.v);};gp.addEventListener("click",onPick);$("m-sbp").addEventListener("click",onPick);
+  gt.addEventListener("input",()=>{MS.preset="custom";MS.G=readInputs();updateModel(false);});
+  fillInputs(null);}
+function updateScenario(R,lab){if(!$("m-gt"))return;const p=presetOf(MS.preset);const name=p?p.n:"Your own path";
+  [$("m-gp"),$("m-sbp")].forEach(el=>el&&el.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===MS.preset?"true":"false")));
+  GLAB.forEach(([k,n])=>{const g=k==="oai"?MG[0]:MG[1],r=g.read();$("gb-"+k).textContent="$"+r.rev+"B"+(k==="ant"?" ann.":"");
+    if(R.LAB){const L=R.LAB[k];$("g30-"+k).textContent="$"+Math.round(L.R[4])+"B";$("gfs-"+k).innerHTML='<span class="z'+zoneOf(g,L.fs)+'">'+pct(L.fs)+'</span>'+(L.need>0?' · $'+Math.round(L.need)+'B to raise':'');}
+    else{$("g30-"+k).textContent="–";$("gfs-"+k).textContent="–";}});
+  const fx=R.F.filter(f=>f.forced&&f.why);
+  $("m-gr").innerHTML=R.LAB?("Under this path OpenAI's revenue adds up to $"+Math.round(R.LAB.oai.sum)+"B over 2026–30. After other costs ("+Math.round(OC*100)+"% of revenue, as in its own plan) that pays for "+pct(R.LAB.oai.fs)+" of its $"+R.LAB.oai.r.com+"B of compute"+(R.LAB.oai.need>0?", leaving about $"+Math.round(R.LAB.oai.need)+"B to raise":"")+". Anthropic covers "+pct(R.LAB.ant.fs)+" of its $"+R.LAB.ant.r.com+"B of fixed commitments."+cite("dsa_oai","as_s1")+(fx.length?" A lab covering under 38% shuts the AI listing window, ":" ")+(R.fired?"the funding check fires, and the labs cut spending by the share they can't fund, which travels down the chain.":"The funding check doesn't fire, so the labs raise what's missing and spending goes on."))
+    :"No forecast: the gauges use today's readings. Pick a path above or type growth for any year; the grey numbers are the labs' plans and fill any year you leave blank. The strip under each gauge shows its call at every lab growth rate, so you can read off the break-even.";
+  numberStatic($("m-gr"),"bs-",true);
+  const mv=R.moved;$("m-ch").innerHTML=mv.length?'<b>'+mv.length+' call'+(mv.length>1?'s':'')+' moved</b> '+mv.map(c=>'<span class="mc '+CALLC[c.c]+'">'+c.n+': '+CALLN[c.c0]+' → <b>'+CALLN[c.c]+'</b></span>').join(" "):(R.shocked?'<b>No calls moved.</b>':'');
+  $("m-sbt").innerHTML='<b>'+name+'</b> · Macro <b>'+lab+'</b> · Funding '+R.nOn+' of 3'+(R.fired?' (fired)':'')+(mv.length?' · <b>'+mv.length+' call'+(mv.length>1?'s':'')+' moved</b>':'')+' · <a href="#m-sc">edit</a>';}
+(function(){const host=$("m-sl");if(!host)return;const SL={};buildScenario();
   const add=(k,o)=>{SL[k]=slider(host,o,()=>{MS[k]=SL[k].get()*(o.mul||1);updateModel(false);});};
-  add("raise",{id:"wi-raise",label:"New money OpenAI raises",min:0,max:300,step:10,value:0,fmt:v=>"$"+v+"B",hint:"About $207B more is needed through 2030, by one estimate."});
-  add("cut",{id:"wi-cut",label:"OpenAI cuts its compute spending",min:0,max:100,step:5,value:0,mul:.01,fmt:v=>v+"%",hint:"Its spending is about a fifth of all AI capex, so a cut lowers everyone's orders."});
+  add("raise",{id:"wi-raise",label:"New money OpenAI raises",min:0,max:300,step:10,value:0,fmt:v=>"$"+v+"B",hint:"Counts toward its funded share."});
+  add("cut",{id:"wi-cut",label:"OpenAI is forced to cut compute spending",min:0,max:100,step:5,value:0,mul:.01,fmt:v=>v+"%",hint:"A forced cut is the break itself: OpenAI goes past its line, and its suppliers lose the orders."});
   add("capex",{id:"wi-capex",label:"Everyone else's AI capex",min:-50,max:30,step:5,value:0,mul:.01,fmt:v=>(v>0?"+":"")+v+"%"});
   add("rent",{id:"wi-rent",label:"GPU rent",min:-80,max:50,step:5,value:0,mul:.01,fmt:v=>(v>0?"+":"")+v+"%"});
   const fh=$("m-fsw");const live=fundLive();fh.innerHTML='<div class="lbl" style="margin:8px 0 4px">Funding check</div>'+live.map(f=>'<label class="check"><input type="checkbox" data-k="'+f.k+'"'+(f.on?' checked':'')+'> '+f.n+'</label>').join("");
   fh.addEventListener("change",e=>{const c=e.target.closest("input");if(!c)return;const k=c.dataset.k,l=live.find(f=>f.k===k);MS[k]=c.checked===l.on?null:c.checked;updateModel(false);});
-  $("m-reset").addEventListener("click",()=>{MS=Object.assign({},MS0,{over:{}});Object.keys(SL).forEach(k=>SL[k].set(0));fh.querySelectorAll("input").forEach(c=>{c.checked=live.find(f=>f.k===c.dataset.k).on;});updateModel(true);});})();
-$("m-rules").innerHTML='<ul class="st-rl"><li><b>Start</b>: overweight if nobody is forced to sell and the asset is long-lived; otherwise neutral.</li><li><b>Distance</b>: one step toward underweight past the amber line, two past the red line where the earlier boom broke.</li><li><b>Funding check</b>: if two of three warnings are on (the central bank\'s rate is higher than six months ago; high-yield spreads are 1.5 pts or more above their 12-month low; a major AI listing is pulled or cut), every call moves one more step. See the backtest above: in 1845 it fired three months after the railway peak, in 2000 four to eight months after the telecom peak, and in 1998 one warning alone fired and the rule held.'+cite("rmania","boe01","frbsf01")+'</li><li><b>Macro</b>: the average of all calls, with underweight at −1 and overweight at +1. Beyond ±0.34 it is a full call.</li><li><b>Countdown</b>: the pace over the last year of readings, projected to the red line.</li><li><b>Drag</b> any marker to try a different reading; the flip points under each gauge say what it would take, from today, to move a step.</li><li><b>Then and now</b>: the historical path is lined up where it was at today\'s level, or at its break if today is already past it.</li><li><b>What if</b> assumptions, all ours: OpenAI is about a fifth of AI capex;'+cite("dsa_oai","bm")+' CoreWeave\'s largest customer (36% of revenue) moves with OpenAI, 80% of its lost revenue reaches operating income, and 20% of its capacity is exposed to spot rent; OpenAI pays Oracle about $64B a year (half its backlog over five years);'+cite("param_orcl")+' memory margins fall a point for each 1% drop in demand, as in 2019;'+cite("mu19","gartner19")+' tenants of preleased construction walk away in proportion to capex cuts; a 25% OpenAI cut shuts the AI listing window.</li></ul>';
+  $("m-reset").addEventListener("click",()=>{MS=Object.assign({},MS0,{over:{}});Object.keys(SL).forEach(k=>SL[k].set(0));fh.querySelectorAll("input").forEach(c=>{c.checked=live.find(f=>f.k===c.dataset.k).on;});fillInputs(null);updateModel(true);});
+  const tb=document.querySelector(".topbar"),setT=()=>{if(tb)document.documentElement.style.setProperty("--tbh",tb.offsetHeight+"px");};setT();reg(setT);
+  const how=document.querySelector(".mdl .st-how");if(how)how.addEventListener("toggle",()=>{if(how.open)renderBT(true);});})();
+$("m-rules").innerHTML='<ul class="st-rl"><li><b>Start</b>: overweight if nobody is forced to sell and the asset is long-lived; otherwise neutral. Preleased data centers are capped at neutral until leases can be split by tenant, since a lease to a neocloud is only as good as the neocloud.</li><li><b>Distance</b>: one step toward underweight past the amber line, two past the red line where the earlier boom broke. For OpenAI and Oracle, which depend on new money, the distance counts only as far as funding warnings allow: with no warnings on, they stay neutral and are labelled as depending on new money.</li><li><b>Funding check</b>: if two of three warnings are on (the central bank\'s rate is higher than six months ago; high-yield spreads are 1.5 pts or more above their 12-month low; a major AI listing is pulled or cut), every call moves one more step.'+cite("rmania","boe01","frbsf01")+'</li><li><b>Lab growth paths</b>: each lab\'s revenue grows from its 2026 base (OpenAI\'s 2026 projection; Anthropic\'s annualized run-rate) at the rates in the table. Non-compute costs take '+Math.round(OC*100)+'% of revenue, the share implied by OpenAI\'s own plan; the rest, plus cash, pays for compute.'+cite("dsa_oai","as_s1")+' "Labs\' plans" is OpenAI\'s path to $350B in 2030 ($840B in total); Anthropic has published none, so it uses the same rates. The other presets are the three paths in "Where we\'re going". If either lab covers under 38% (the 1847 line), the AI listing window counts as shut; if the funding check then fires, each lab cuts compute by the share it can\'t fund.</li><li><b>Strips</b>: the call at every lab growth rate from −40% to 150% a year (the same rate for both labs and every year), holding the other what-if settings. The triangle marks the average growth of the path you picked.</li><li><b>Macro</b>: the average of all calls, with underweight at −1 and overweight at +1. Beyond ±0.34 it is a full call.</li><li><b>Countdown</b>: the pace over the last year of readings, projected to the red line. <b>Drag</b> any marker to try a reading; the flip points say what it would take, from today, to move a step.</li><li><b>Chain assumptions</b>, all ours: OpenAI is about a fifth of AI capex and Anthropic about a tenth;'+cite("dsa_oai","bm")+' CoreWeave\'s largest customer (36% of revenue) moves with OpenAI, 80% of its lost revenue reaches operating income, and 20% of its capacity is exposed to spot rent; OpenAI pays Oracle about $64B a year (half its backlog over five years);'+cite("param_orcl")+' memory margins fall a point for each 1% drop in demand, as in 2019;'+cite("mu19","gartner19")+' tenants of preleased construction walk away in proportion to capex cuts; a forced OpenAI cut of 25% or more shuts the AI listing window.</li></ul>';
 numberStatic($("m-rules"),"bs-",true);
 chart(1,updateModel);chart(1,renderBT);
+
 
 /* ---------- animate on first view, replay on request ---------- */
 const run=a=>ACTS[a].forEach(f=>{try{f(true);}catch(e){console.error(e);}});

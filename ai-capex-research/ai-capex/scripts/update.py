@@ -425,6 +425,13 @@ def main():
         if "prev" not in o and len(log_k) >= 2:
             o["prev"] = log_k[-2][1]
             o["prevDate"] = log_k[-2][0]
+        # the reading about a year earlier, for gauges that should not swing on one quarter
+        if "v12" not in o and o.get("date"):
+            target = d(o["date"]) - dt.timedelta(days=365)
+            near = [x for x in log_k[:-1] if abs((d(x[0]) - target).days) <= 120]
+            if near:
+                best = min(near, key=lambda x: abs((d(x[0]) - target).days))
+                o["v12"], o["v12Date"] = best[1], best[0]
 
     snap = {}
     for k, m in metrics.items():
