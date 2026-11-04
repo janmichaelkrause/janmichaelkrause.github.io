@@ -11,11 +11,12 @@ A subpage of this site. `index.html` is the whole page. It reads `data/latest.js
 | `ai-capex-research/ai-capex/data/latest.json` | Written by the updater. Don't edit. |
 | `ai-capex-research/ai-capex/data/history.json` | Written by the updater: daily snapshots and every change to a manual figure. |
 | `ai-capex-research/ai-capex/scripts/update.py` | The updater. Python standard library only. |
-| `.github/workflows/ai-capex-daily.yml` | Runs the updater daily at 13:43 UTC (about 5:45 am Pacific) and commits the result. |
+| `.github/workflows/ai-capex-daily.yml` | Runs the updater daily at 13:43 UTC (about 5:45 am Pacific), commits the result, then starts `static.yml` so the site republishes. |
+| `ai-capex-research/ai-capex/CLAUDE.md` | Rules for Claude (here or in Claude Code) when editing this page. |
 
 ## One-time setup
 
-1. Keep the `ai-capex-research` folder in the repo root, next to the site's `index.html`. Move `ai-capex-research/ai-capex-daily.yml` inside `.github/workflows/` (make the `workflows` folder if it isn't there; don't replace `.github`). Commit and push.
+1. The `ai-capex-research` folder sits in the repo root, and the workflow at `.github/workflows/ai-capex-daily.yml`. GitHub only runs workflows from that folder.
 2. On GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
    Name: `SEC_USER_AGENT`. Value: your name and email, e.g. `Jan Krause you@example.edu`. The SEC requires this on automated requests. It stays private.
 3. **Actions → ai-capex daily data → Run workflow**. That writes the first `latest.json`.
