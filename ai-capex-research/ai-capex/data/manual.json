@@ -64,5 +64,7 @@
   "gauge_next": {},
 
   "_sources_format": "{\"k\": \"short_key\", \"t\": \"Publisher, title, date\", \"url\": \"https://...\"}",
-  "sources": []
+  "sources": [
+    {"k": "semi_idx", "t": "SemiAnalysis, H100 daily and contract pricing index: one-year contracts $2.10–2.70 an hour in April 2026, against $1.45–1.95 in October 2025", "url": "https://gpu-index.semianalysis.com/"}
+  ]
 }

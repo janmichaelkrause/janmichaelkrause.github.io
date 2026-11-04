@@ -48,6 +48,8 @@ Edit `data/manual.json` when a new number comes out:
 - three yes/no `flags` used by the signposts
 - `labs` (OpenAI and Anthropic cash and commitments), `dc_build` (data center construction and built capacity) and `funding` (the fallback funding check, including whether the AI IPO window is open or shut) for the stance model
 
+A weekly scheduled agent (Mondays, about 4:23 am Pacific) keeps three of these current and commits them to main: the `funding` block, the `calendar`, and the H100 one-year rent (`h100_1yr`, from SemiAnalysis's contract index; its `prev` stays at the October 2025 reading until a full year of readings exists). Everything else here is updated by hand.
+
 Change `v` and `date`. Leave `prev` out: the updater fills it with the last different value it saw. `src` is a source key already on the page. For a new source, add `{"k", "t", "url"}` to `sources` and use its `k`.
 
 ## Preview locally
