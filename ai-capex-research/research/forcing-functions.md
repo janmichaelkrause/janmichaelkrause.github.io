@@ -45,6 +45,7 @@ What changed from the draft table when it went live:
 - GPU-backed credit is measured by the change in H100 rent, against the 38–39% cut in shale borrowing bases. It reads neutral while rents are rising.
 - Speculative data centers read neutral while the uncontracted build is far from the 2000 merchant-power level.
 - Lines marked "ours" (amber, two-thirds of the way to the break) are judgment, not history.
+- Neocloud debt (added 4 November) is a second call on the debt-service gauge, beside neocloud equity. It starts at neutral, since GPUs wear out fast, and drops two steps past the 1893 line: in the 1893 reorganizations the bonds were scaled down [5], and Global Crossing sold 61.5% of itself for $250M against $12.4B of debt [p:taipei_gx]. Lenders secured on the GPUs stay under GPU-backed credit. With a 13th call, the macro average reads underweight (−0.38) instead of neutral, leaning underweight (−0.33).
 
 ## Lab revenue
 

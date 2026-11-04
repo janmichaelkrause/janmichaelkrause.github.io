@@ -2791,13 +2791,13 @@ const MG=[
   text(r){return "Same railway yardstick. Anthropic's $"+r.cash+"B of cash and $"+r.rev+"B of annualized revenue cover "+pct(r.v)+" of its $"+r.com+"B of fixed commitments, and it generated free cash flow in H1 2026."+cite.apply(null,r.src);}},
  {k:"neo",n:"CoreWeave: debt service",m:"Operating income ÷ interest, last four quarters",dir:-1,min:-1,max:3,fmt:xx,
   close:{v:1.33,y:"1894",t:"B&O",s:["daggett"],card:"bo"},brk:{v:1.05,y:"1891",t:"Reading",s:["daggett"],card:"rdg"},
-  pos:[{n:"Neocloud equity",f:1,l:0,ly:"neo"}],trail:{hx:["bo","rdg"]},
+  pos:[{n:"Neocloud equity",f:1,l:0,ly:"neo"},{n:"Neocloud debt",f:0,l:0,ly:"neo"}],trail:{hx:["bo","rdg"]},
   at(i){const oi=ttm("crwv_opinc",i),it=ttm("crwv_interest",i);return (oi!=null&&it>0)?{v:oi/it,d:qEnd("crwv_opinc",i),oi,it}:null;},
   read(){const r=this.at(0);return r?Object.assign(r,{src:["live_sec"],live:1}):{v:M_FB.neo.v,d:M_FB.neo.d,oi:-231e6,it:1619e6,src:["live_sec"]};},
   hist(){return series(i=>this.at(i),6);},
   shock(r,S){const rev=ttm("crwv_revenue",0)||7.59e9;const dRev=rev*((S.capex||0)-.36*(S.cutO||0))+rev*.2*(S.rent||0);return (r.oi+.8*dRev)/r.it;},
   need(t,r){return amt(t*r.it-r.oi,"more operating income a year","less operating income a year");},
-  text(r){return "In 1893 railroads went into receivership once fixed charges took about 95% of net earnings, roughly 1.05× cover. The B&O was at 1.33× two years before it failed."+cite("daggett")+" CoreWeave's operating income covers its interest "+xx(r.v)+" over the four quarters to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Its three largest customers are 72% of revenue."+cite("bc_crwv");}},
+  text(r){return "In 1893 railroads went into receivership once fixed charges took about 95% of net earnings, roughly 1.05× cover. The B&O was at 1.33× two years before it failed."+cite("daggett")+" CoreWeave's operating income covers its interest "+xx(r.v)+" over the four quarters to "+fmtDay(r.d)+"."+cite.apply(null,r.src)+" Its three largest customers are 72% of revenue."+cite("bc_crwv")+" In the 1893 reorganizations shareholders paid cash to keep a stake and the bonds were scaled down."+cite("daggett")+" Global Crossing's lenders fared worse: 61.5% of the company sold for $250M against $12.4B of debt."+cite("taipei_gx")+" Lenders against the GPUs themselves are under GPU collateral.";}},
  {k:"orcl",n:"Oracle: outside money",m:"Capex not covered by operating cash flow, last four quarters",dir:1,min:0,max:1,fmt:pct,
   close:{v:.33,y:"ours",t:"two-thirds",s:[],j:1,card:"ours"},brk:{v:.5,y:"1840s",t:"canals, railways",s:["cranmer","camp13"],card:"canal"},
   pos:[{n:"Oracle",f:1,l:0,ly:"orcl",fund:1}],trail:{hx:[]},
@@ -2922,9 +2922,10 @@ function flips(x,R){const g=x.g,p=x.calls[0],z0=x.z0;let base=(!p.f&&p.l)?2:1;if
   const nOn=R?R.nOn:0,fired=R?R.fired:false,cAt=z=>Math.max(0,base-(p.fund?Math.min(z,nOn):z)-(fired?1:0)),c0=cAt(z0);
   const up=z0===2?[[g.brk,1],[g.close,0]]:z0===1?[[g.close,0]]:[],dn=z0===0?[[g.close,1],[g.brk,2]]:z0===1?[[g.brk,2]]:[];
   const u=up.find(o=>cAt(o[1])>c0),d=dn.find(o=>cAt(o[1])<c0),out=[];
+  const bOf=c=>Math.min((!c.f&&c.l)?2:1,c.cap?1:2),same=x.calls.every(c=>bOf(c)===bOf(p)&&!!c.fund===!!p.fund);
   if(u)out.push(["up",u[0],CALLN[cAt(u[1])]]);else if(up.length&&p.fund&&nOn>0)out.push(["note",null,"Can't move up while a funding warning is on"]);
   if(d)out.push(["down",d[0],CALLN[cAt(d[1])]]);
-  return out.map(o=>{if(o[0]==="note")return '<span class="fl">'+o[2]+'</span>';const n=g.need?g.need(o[1].v,x.r):"";return '<span class="fl '+o[0]+'">'+(o[0]==="up"?"▲ ":"▼ ")+o[2]+(x.calls.length>1?" for "+p.n:"")+" at "+g.fmt(o[1].v)+(n?": "+n:"")+'</span>';}).join("");}
+  return out.map(o=>{if(o[0]==="note")return '<span class="fl">'+o[2]+'</span>';const n=g.need?g.need(o[1].v,x.r):"";return '<span class="fl '+o[0]+'">'+(o[0]==="up"?"▲ ":"▼ ")+o[2]+(x.calls.length>1&&!same?" for "+p.n:"")+" at "+g.fmt(o[1].v)+(n?": "+n:"")+'</span>';}).join("");}
 function drawGauge(box,g,v,vs,prev,anim){const sg=svgBox(box,44,g.n+" gauge");if(!sg)return;const {svg,W}=sg;const pad=6,x=lin(g.min,g.max,pad,W-pad),cl=t=>Math.max(g.min,Math.min(g.max,t)),y0=12,bh=10;
   const a=g.close.v,b=g.brk.v;const zones=g.dir>0?[[g.min,a,"var(--surface-2)"],[a,b,"var(--z-warn)"],[b,g.max,"var(--z-crit)"]]:[[g.min,b,"var(--z-crit)"],[b,a,"var(--z-warn)"],[a,g.max,"var(--surface-2)"]];
   zones.forEach(z=>S("rect",{x:x(z[0]),y:y0,width:Math.max(0,x(z[1])-x(z[0])),height:bh,style:"fill:"+z[2]},svg));
@@ -2982,7 +2983,7 @@ let MBUILT=false,DRAG=null;
 /* exposure list: one row per gauge, most strained first on today's readings (the order is fixed for the visit) */
 const LESSON={oai:["1847: railway shareholders had to keep paying in before the lines earned anything; shares fell until 72% was paid.",["camp_lev"]],
  ant:["Same railway yardstick as OpenAI.",["camp_lev"]],
- neo:["1893: railroads went into receivership once earnings covered their fixed charges only about 1.05 times.",["daggett"]],
+ neo:["1893: railroads went into receivership once earnings covered their fixed charges only about 1.05 times; their bonds were scaled down.",["daggett"]],
  orcl:["1836–47: canals and railways built with outside money stopped when the lending did.",["cranmer","camp13"]],
  credit:["2016: banks cut shale borrowing bases 38–39% when the collateral fell; 58 producers filed.",["hb16"]],
  chips:["2000: Lucent's financing of its own customers reached 24% of revenue; it lost $3.5B on those loans.",["tunguz_vf"]],
