@@ -1,0 +1,65 @@
+# Refreshes ai-capex-research/ai-capex/data/latest.json every morning and commits it,
+# which republishes the site. Runs at 13:43 UTC: 5:43 am Pacific in winter, 6:43 am in summer.
+name: ai-capex daily data
+
+on:
+  schedule:
+    - cron: "43 13 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # commit the new data
+  actions: write    # start the Pages workflow, if the site is deployed by one
+  pages: write      # ask for a Pages rebuild, if the site is deployed from a branch
+
+concurrency:
+  group: ai-capex-daily
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch data
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: python ai-capex-research/ai-capex/scripts/update.py
+
+      - name: Commit if anything changed
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai-capex-research/ai-capex/data
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "ai-capex: daily data $(date -u +%F)"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Pushes made by this workflow do not start other workflows, so if the site is
+      # published by a Pages workflow, start it here. Branch-published sites rebuild on their own;
+      # the API call below is a harmless backup.
+      - name: Republish the site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for f in .github/workflows/*.yml .github/workflows/*.yaml; do
+            [ -f "$f" ] || continue
+            [ "$(basename "$f")" = "ai-capex-daily.yml" ] && continue
+            if grep -q "deploy-pages" "$f" && grep -q "workflow_dispatch" "$f"; then
+              echo "Starting $(basename "$f")"
+              gh workflow run "$(basename "$f")" --ref "${GITHUB_REF_NAME}" || true
+            fi
+          done
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
