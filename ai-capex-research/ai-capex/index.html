@@ -844,7 +844,7 @@ ol.sources.compact li{margin-bottom:4px}
   <div class="mk-flow">
     <div class="mk-st"><span class="mk-who">Inputs</span><b>Sources</b><p>Company filings from SEC EDGAR, daily share prices, rate and spread data, and the economic history of canals, railways and fiber: <span id="mk-nsrc">over 150</span> cited sources in all.</p></div>
     <div class="mk-st"><span class="mk-who ag">Agents, once</span><b>Research and calibration</b><p>Read the histories, found the level where each earlier boom broke, turned each into a gauge, and sourced every figure. Filing data was checked against the companies' reported results.</p></div>
-    <div class="mk-st"><span class="mk-who">Code, daily</span><span class="mk-who ag">Agent, weekly</span><b>Kept current</b><p>A plain script pulls filings and prices each morning (13:43 UTC) and records the day's calls. An agent checks the funding warnings and the figures with no free feed every Monday, with a source for each change.</p></div>
+    <div class="mk-st"><span class="mk-who">Code, daily</span><span class="mk-who ag">Agent, weekly</span><b>Kept current</b><p>A plain script pulls filings and prices each morning (13:43 UTC). An agent checks the funding warnings and the figures with no free feed every Monday, with a source for each change.</p></div>
     <div class="mk-st"><span class="mk-who">Rules</span><b>Calls on this page</b><p>Each reading is set against its line from history; a short rule turns distance and the funding check into a call. Changes to the rules and the page go through pull requests the owner reviews.</p></div>
   </div>
   <div class="mk-cols">
@@ -3023,7 +3023,7 @@ function buildModel(){const el=$("m-rows");if(!el)return;
   el.addEventListener("click",ev=>{const b=ev.target.closest("[data-reset]");if(b){delete MS.over[b.getAttribute("data-reset")];updateModel(false);return;}
     if(ev.target.closest("a"))return;const h=ev.target.closest(".xr-h");if(h)setOpen(h.dataset.k,h.getAttribute("aria-expanded")!=="true");});
   el.addEventListener("keydown",ev=>{const h=ev.target.closest&&ev.target.closest(".xr-h");if(!h||ev.target!==h)return;if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();setOpen(h.dataset.k,h.getAttribute("aria-expanded")!=="true");}});
-  wrongIf(R0);logToday(R0);
+  wrongIf(R0);
   LYC={};R0.rows.forEach(x=>x.calls.forEach(c=>{(LYC[c.ly]=LYC[c.ly]||[]).push({n:c.n,c:c.c});}));renderPane();
   MBUILT=true;}
 function setOpen(k,on){const r=$("xr-"+k);if(!r)return;r.classList.toggle("open",on);r.querySelector(".xr-h").setAttribute("aria-expanded",on?"true":"false");$("xb-"+k).hidden=!on;
@@ -3037,13 +3037,6 @@ function wrongIf(R0){const el=$("m-wrong");if(!el)return;const o=R0.rows.find(x=
     ["Funding stays open as the commitments come due.","Today: "+R0.nOn+" of 3 funding warnings on"+(on.length?" ("+on.join(", ")+")":"")+"."+(nextPlain("ant")?" Next test: "+nextPlain("ant")+"."+((nextOf("ant")||{}).src?cite(nextOf("ant").src):""):"")],
     ["CoreWeave starts covering its interest.","Today: operating income covers interest "+n.g.fmt(n.v)+" over four quarters, against the "+n.g.fmt(n.g.brk.v)+" where railroads failed in 1893."+cite.apply(null,n.r.src.concat(["daggett"]))+(nextPlain("neo")?" Next: "+nextPlain("neo")+"."+((nextOf("neo")||{}).src?cite(nextOf("neo").src):""):"")]];
   el.innerHTML=it.map(i=>'<li><b>'+i[0]+'</b><span>'+i[1]+'</span></li>').join("");}
-/* today's calls, written into the page for the daily job to record (data/calls.json); not shown */
-function logToday(R0){safe(function logCalls(){const out={asof:ASOF,generated:(D&&D.generated)||null,live:!!LIVE,macro:+R0.score.toFixed(3),funding:R0.nOn,fired:R0.fired,flags:{},calls:{},readings:{},breakeven:{}};
-  R0.F.forEach(f=>{out.flags[f.k]=!!f.on;});
-  let ST=null;try{ST=strips();}catch(e){}
-  R0.rows.forEach(x=>{out.readings[x.g.k]={v:+(+x.v).toFixed(4),zone:ZN[x.z],date:x.r.d||null};
-    x.calls.forEach((c,i)=>{out.calls[c.n]=CALLC[c.c];if(ST&&ST.res[x.g.k+i]){const runs=stripRuns(ST.res[x.g.k+i],ST.gs);out.breakeven[c.n]=runs.map(r=>[CALLC[r.c],Math.round(r30(r.from))]);}});});
-  document.documentElement.setAttribute("data-c2c-calls",JSON.stringify(out));});}
 function openCard(k,which){const dt=$("mgd-"+k);if(!dt)return;dt.open=true;updateRowDetail(k);const c=$("mgk-"+k).querySelector('[data-w="'+which+'"]');$("mgk-"+k).querySelectorAll(".mgc").forEach(e=>e.classList.toggle("hl",e===c));}
 let MR=null;
 function updateRowDetail(k){if(!MR)return;const x=MR.rows.find(r=>r.g.k===k);if(!x)return;drawTrail($("mgt-"+k),$("mgc-"+k),x);const hl=[...$("mgk-"+k).querySelectorAll(".mgc.hl")].map(e=>e.dataset.w);$("mgk-"+k).innerHTML=cardHTML(x,"brk")+cardHTML(x,"close");hl.forEach(w=>{const e=$("mgk-"+k).querySelector('[data-w="'+w+'"]');if(e)e.classList.add("hl");});}

@@ -346,7 +346,7 @@ SEC_SERIES = [  # key, ticker, tags, unit, instant
 ] + [("capex_" + t, t, CAPEX, "USD", False) for t in ("AMZN", "GOOGL", "MSFT", "META")] \
   + [("ocf_" + t, t, OCF, "USD", False) for t in ("AMZN", "GOOGL", "MSFT", "META")]
 PE_TICKERS = ["NVDA", "MU", "GEV", "ORCL", "AMZN", "GOOGL", "MSFT", "META"]
-PX_ONLY = ["CRWV", "EQIX", "SPY"]  # SPY: benchmark for the call log
+PX_ONLY = ["CRWV", "EQIX"]
 FRED_SERIES = [("hy_oas", "BAMLH0A0HYM2"), ("bbb_oas", "BAMLC0A4CBBB"), ("fed_upper", "DFEDTARU")]
 
 def load(path, default):
