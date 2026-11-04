@@ -10,8 +10,10 @@ A subpage of this site. `index.html` is the whole page. It reads `data/latest.js
 | `ai-capex-research/ai-capex/data/manual.json` | Figures with no free daily feed. You edit this. |
 | `ai-capex-research/ai-capex/data/latest.json` | Written by the updater. Don't edit. |
 | `ai-capex-research/ai-capex/data/history.json` | Written by the updater: daily snapshots and every change to a manual figure. |
+| `ai-capex-research/ai-capex/data/calls.json` | Written by the call logger: one line per day with every call, each gauge's reading, the break-evens and closing prices. Not shown on the page. |
 | `ai-capex-research/ai-capex/scripts/update.py` | The updater. Python standard library only. |
-| `.github/workflows/ai-capex-daily.yml` | Runs the updater daily at 13:43 UTC (about 5:45 am Pacific), commits the result, then starts `static.yml` so the site republishes. |
+| `ai-capex-research/ai-capex/scripts/log_calls.py` | The call logger. Opens the page in headless Chrome after the update and records the calls it shows, so the record matches what a reader saw. |
+| `.github/workflows/ai-capex-daily.yml` | Runs the updater and the call logger daily at 13:43 UTC (about 5:45 am Pacific), commits the result, then starts `static.yml` so the site republishes. |
 | `ai-capex-research/ai-capex/CLAUDE.md` | Rules for Claude (here or in Claude Code) when editing this page. |
 
 ## One-time setup
@@ -30,10 +32,10 @@ If step 3 fails at the push step, go to **Settings → Actions → General → W
 | Source | Figures |
 |---|---|
 | SEC EDGAR (company filings) | Nvidia revenue and inventory; Micron revenue and gross margin; CoreWeave revenue and interest; capex and operating cash flow at Amazon, Alphabet, Microsoft, Meta; diluted EPS for the P/E calls |
-| Stooq, Yahoo as fallback | Daily closes and 52-week highs; trailing P/E against each stock's own five-year average |
+| Stooq, Yahoo as fallback | Daily closes and 52-week highs; trailing P/E against each stock's own five-year average; SPY as the benchmark for the call log |
 | FRED | High-yield and BBB credit spreads |
 
-From these the page recomputes, each morning: the stance model (each forcing function against the level where it broke in history, the calls that follow, the funding check and a countdown to each break line), plus the layer signals, the watchlist, the signposts and the five gauges. The calibration is in `ai-capex-research/research/forcing-functions.md`.
+From these the page recomputes, each morning: the stance model (each forcing function against the level where it broke in history, the calls that follow, the funding check, a countdown to each break line, the ranked exposure list and the "We're wrong if" readings), plus the layer table, the signposts and the five gauges in Deep dives. The calibration is in `ai-capex-research/research/forcing-functions.md`.
 
 Company figures change when a 10-Q or 10-K is filed, so expect jumps around earnings, not every day.
 
@@ -44,7 +46,7 @@ If a source fails, the last good value is kept and marked stale, so a bad mornin
 Edit `data/manual.json` when a new number comes out:
 
 - vacancy, H100 rental prices, the PJM auction, GE Vernova's backlog, Oracle's CDS and rating, debt share of capex, the Nvidia 10-Q items, lab commitments and run-rates
-- the "Latest step" list (`changes`) and the calendar (`calendar`). Past calendar dates drop off automatically.
+- the "Latest step" list (`changes`, shown on the History tab) and the calendar (`calendar`). Past calendar dates drop off automatically. Tag each event with `g`, the gauges it tests (`oai`, `ant`, `neo`, `orcl`, `credit`, `chips`, `mem`, `build`, `hyper`), and `s`, a short label: the earliest future event for a gauge shows as "Next" on its exposure row.
 - three yes/no `flags` used by the signposts
 - `labs` (OpenAI and Anthropic cash and commitments), `dc_build` (data center construction and built capacity) and `funding` (the fallback funding check, including whether the AI IPO window is open or shut) for the stance model
 

@@ -50,13 +50,14 @@
     {"dir": "down", "t": "GE Vernova gas backlog 116 → 122 GW", "src": "gev"}
   ],
 
+  "_calendar_note": "Each event: date (ISO, used to drop past events), d (shown), t (full text), src, st and call (calendar tab), g (the gauges it tests: oai, ant, neo, orcl, credit, chips, mem, build, hyper) and s (short text shown as Next on those rows).",
   "calendar": [
-    {"date": "2026-11-14", "d": "Wk of 9 Nov", "t": "Anthropic roadshow may start; listing targeted before 26 Nov (reported)", "src": "impl_ant", "st": "warn", "call": "Decides it"},
-    {"date": "2026-11-12", "d": "12 Nov", "t": "CoreWeave Q3 results", "src": "tikr_crwv", "st": "crit", "call": "Breaking"},
-    {"date": "2026-11-17", "d": "17 Nov", "t": "Nvidia Q3 FY27 results", "src": "nv_call", "st": "warn", "call": "Chips"},
-    {"date": "2026-12-22", "d": "9–22 Dec", "t": "PJM 2029/30 auction; results 22 Dec", "src": "esai_pjm", "st": "ok", "call": "Fine"},
-    {"date": "2026-12-20", "d": "Mid-Dec", "t": "Oracle FQ2; date not set (last year 10 Dec)", "src": "fz_orcl", "st": "crit", "call": "Breaking"},
-    {"date": "2026-12-31", "d": "31 Dec", "t": "GE Vernova target: ≥130 GW under contract", "src": "gev", "st": "ok", "call": "Fine"}
+    {"date": "2026-11-14", "d": "Wk of 9 Nov", "t": "Anthropic roadshow may start; listing targeted before 26 Nov (reported)", "src": "impl_ant", "st": "warn", "call": "Decides it", "g": ["ant", "oai"], "s": "Anthropic listing (funding check)"},
+    {"date": "2026-11-12", "d": "12 Nov", "t": "CoreWeave Q3 results", "src": "tikr_crwv", "st": "crit", "call": "Breaking", "g": ["neo"], "s": "Q3 results"},
+    {"date": "2026-11-17", "d": "17 Nov", "t": "Nvidia Q3 FY27 results", "src": "nv_call", "st": "warn", "call": "Chips", "g": ["chips"], "s": "Q3 FY27 results"},
+    {"date": "2026-12-22", "d": "9–22 Dec", "t": "PJM 2029/30 auction; results 22 Dec", "src": "esai_pjm", "st": "ok", "call": "Fine", "g": ["build"], "s": "PJM 2029/30 auction results"},
+    {"date": "2026-12-20", "d": "Mid-Dec", "t": "Oracle FQ2; date not set (last year 10 Dec)", "src": "fz_orcl", "st": "crit", "call": "Breaking", "g": ["orcl"], "s": "FQ2 results; date not set"},
+    {"date": "2026-12-31", "d": "31 Dec", "t": "GE Vernova target: ≥130 GW under contract", "src": "gev", "st": "ok", "call": "Fine", "g": ["build"], "s": "GE Vernova contract target"}
   ],
 
   "layers": {},

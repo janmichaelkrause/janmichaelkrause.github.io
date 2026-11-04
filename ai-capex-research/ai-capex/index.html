@@ -414,7 +414,8 @@ footer{padding-block:40px 60px;color:var(--muted);font-family:var(--f-ui);font-s
 .msc-r{font-size:.78rem;line-height:1.45;color:var(--ink-2);margin:8px 0 4px;max-width:110ch}
 .msc-more summary{cursor:pointer;color:var(--ink-2);font-weight:600;font-size:.8rem;padding:4px 0}
 .msc-ch{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.78rem;margin-top:6px}
-.msb{position:sticky;top:var(--tbh,86px);z-index:6;background:var(--bg);border-bottom:1px solid var(--rule);padding:6px 0;margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;font-family:var(--f-ui);font-size:.78rem;color:var(--ink-2)}
+.msb{position:sticky;top:var(--tbh,86px);z-index:6;height:0;margin:0}
+.msb-in{position:absolute;left:0;right:0;top:0;background:var(--bg);border-bottom:1px solid var(--rule);padding:6px 0;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s ease,transform .15s ease;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;font-family:var(--f-ui);font-size:.78rem;color:var(--ink-2)}
 .msb .seg{font-size:.74rem}.msb .seg button{padding:4px 8px}
 .mg-gs{grid-column:1/-1;display:flex;flex-direction:column;gap:2px}
 .gsr{display:grid;grid-template-columns:minmax(0,150px) minmax(0,260px) minmax(0,1fr);gap:10px;align-items:center;font-size:.72rem;color:var(--muted)}
@@ -456,6 +457,72 @@ footer{padding-block:40px 60px;color:var(--muted);font-family:var(--f-ui);font-s
 .st-rl b{color:var(--ink)}
 .st-how .cmp table td,.st-how .cmp table th{min-width:0;font-size:.76rem;white-space:nowrap}
 .st-how .cmp table td.pr-t{white-space:normal;min-width:220px;color:var(--ink-2)}
+.msb.show .msb-in{opacity:1;pointer-events:auto;transform:none}
+@media (prefers-reduced-motion: reduce){.msb-in{transition:none}}
+/* thesis */
+.th-lede{font-size:clamp(1.05rem,1.8vw,1.28rem);line-height:1.45;max-width:60ch;margin:12px 0 0}
+.th-w{list-style:none;margin:2px 0 0;padding:0;font-family:var(--f-ui);font-size:.8rem;line-height:1.38}
+.th-w li{padding:5px 0;border-top:1px solid var(--rule)}
+.th-w li:first-child{border-top:0;padding-top:0}
+.th-w b{display:block;color:var(--ink);font-weight:600}
+.th-w span{color:var(--ink-2)}
+/* exposure list */
+.xp{margin-top:22px}
+.xp-h{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:6px}
+.xp-h .h-s{font-size:1.35rem}
+.xp-sub{font-family:var(--f-ui);font-size:.76rem;color:var(--muted);flex:1 1 300px}
+.xp-all{font-family:var(--f-ui);font-size:.78rem;border:1px solid var(--rule);border-radius:4px;background:var(--surface);color:var(--ink);padding:3px 10px;cursor:pointer}
+.xr{border-bottom:1px solid var(--rule)}
+.xr-h{display:grid;grid-template-columns:22px minmax(0,1.7fr) minmax(0,.75fr) minmax(0,1.25fr) minmax(0,1fr) 14px;gap:4px 14px;align-items:start;width:100%;text-align:left;background:none;border:0;padding:10px 0;cursor:pointer;font-family:var(--f-ui);color:var(--ink)}
+.xr-h:hover{background:var(--surface)}
+.xr-n{font-family:var(--f-display);font-weight:800;font-size:1.15rem;line-height:1;color:var(--muted)}
+.xr-t>b{display:block;font-size:.9rem;line-height:1.25}
+.xr-t>span{display:block;font-size:.74rem;color:var(--ink-2);line-height:1.35;margin-top:2px}
+.xr-v{font-size:.74rem;color:var(--muted);line-height:1.3}
+.xr-v b{display:block;font-size:.95rem;color:var(--ink)}
+.xr-c{display:flex;flex-wrap:wrap;gap:4px}
+.xr-c .mc{display:inline-block;border-radius:10px;line-height:1.35}
+.xr-x{font-size:.74rem;color:var(--ink-2);line-height:1.35}
+.xr-x i{font-style:normal;color:var(--muted);display:block;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase}
+.xr-ch{width:9px;height:9px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);margin-top:6px;transition:transform .15s ease}
+.xr.open .xr-ch{transform:rotate(-135deg);margin-top:10px}
+.xr-b{padding:0 0 10px 36px}
+.xr-b .mg{border-bottom:0;padding-top:0}
+.xr-b .mg-h b{display:none}
+.mg-also{grid-column:1/-1;font-size:.74rem;color:var(--ink-2);line-height:1.4}
+.mg-also ul{list-style:none;margin:2px 0 0;padding:0}
+.mg-also li{margin:2px 0}
+.mg-also li b{color:var(--ink);font-weight:600}
+.mg-also li em{font-style:normal;color:var(--muted)}
+@media (max-width:760px){
+  .xr-h{grid-template-columns:22px minmax(0,1fr) 14px;gap:4px 10px}
+  .xr-v,.xr-c,.xr-x{grid-column:2/3}
+  .xr-ch{grid-column:3;grid-row:1}
+  .xr-v b{display:inline;margin-right:6px}
+  .xr-b{padding-left:0}
+}
+/* how it's made */
+.made{padding-top:8px}
+.mk-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;margin:8px 0 16px;font-family:var(--f-ui)}
+.mk-st{position:relative;border:1px solid var(--rule);border-radius:8px;background:var(--surface);padding:10px 12px}
+.mk-st+.mk-st::before{content:"→";position:absolute;left:-17px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem}
+.mk-st .lbl{margin-bottom:4px}
+.mk-st b{display:block;font-size:.9rem;line-height:1.25;margin-bottom:4px}
+.mk-st p{margin:0;font-size:.76rem;line-height:1.4;color:var(--ink-2)}
+.mk-who{display:inline-block;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 7px;margin-bottom:4px;background:var(--surface-2);color:var(--ink-2)}
+.mk-who.ag{background:var(--c-ai);color:#fff}
+.mk-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px;font-family:var(--f-ui);font-size:.8rem;line-height:1.45;color:var(--ink-2)}
+.mk-cols ul{margin:4px 0 0;padding-left:1.1em}
+.mk-cols li{margin:3px 0}
+.mk-cols b{color:var(--ink)}
+@media (max-width:900px){.mk-flow{grid-template-columns:minmax(0,1fr);gap:20px}.mk-st+.mk-st::before{content:"↓";left:50%;top:-17px;transform:translateX(-50%)}.mk-cols{grid-template-columns:minmax(0,1fr);gap:12px}}
+/* moved: build chart on the history tab */
+.hx-build{margin:6px 0 26px}
+.hx-build .chg{margin-top:0}
+.hx-build .chg ul{grid-template-columns:minmax(0,1fr);border-bottom:0}
+.hx-build .chg li,.hx-build .chg li+li{padding:8px 0;border-left:0;border-top:1px solid var(--rule)}
+.hx-build .chg li:first-child{border-top:0}
+.dd-body .cat{margin-top:4px}
 .pane-map{margin:0 0 22px}
 .pane-map .fig-t{margin-bottom:6px}
 .pane-map .map-wrap{max-width:720px}
@@ -599,10 +666,10 @@ ol.sources.compact li{margin-bottom:4px}
   <div class="wrap bar2">
     <nav class="secnav" data-for="brief" aria-label="Brief sections">
       <a href="#brief">Now</a>
-      <a href="#b-how">How we got here</a>
-      <a href="#b-next">Where we're going</a>
+      <a href="#b-exp">Exposures</a>
       <a href="#b-pane">Layers</a>
       <a href="#b-deep">Deep dives</a>
+      <a href="#b-made">How it's made</a>
       <a href="#b-src">Sources</a>
     </nav>
     <nav class="secnav" data-for="history" aria-label="History sections" hidden>
@@ -626,12 +693,9 @@ ol.sources.compact li{margin-bottom:4px}
 
 <!-- ============ ACT 1: WHERE WE ARE ============ -->
 <section class="act" id="brief" data-act="1">
-  <div class="act-h"><span class="act-n">1</span><span class="act-t">Where we are</span><button type="button" class="replay" data-act="1">Replay</button></div>
   <div class="eyebrow">Investor brief · AI infrastructure · Data to <span id="asof">4 Nov 2026</span></div>
-  <div class="ph-row">
-    <h1 class="ph-title">Physical shortage, financial strain.</h1>
-    <div class="ph-counts" id="ph-counts"></div>
-  </div>
+  <h1 class="ph-title" style="margin-top:8px">Physical shortage, financial strain.</h1>
+  <p class="th-lede">The AI build-out will mostly get used, as railways and fiber were. Losses will land on whoever committed to pay before the revenue arrived: OpenAI's suppliers and the companies that borrowed against its contracts.</p>
   <div class="mdl">
     <div class="mdl-top">
       <div class="mdl-call">
@@ -640,7 +704,7 @@ ol.sources.compact li{margin-bottom:4px}
         <div class="mdl-sub" id="m-score"></div>
       </div>
       <div class="mdl-fund"><div class="lbl">Funding check</div><div id="m-fund"></div></div>
-      <div class="mdl-chain"><div class="lbl">The chain, upstream first</div><div id="m-chain"></div></div>
+      <div class="mdl-wrong"><div class="lbl">We're wrong if</div><ul class="th-w" id="m-wrong"></ul></div>
     </div>
     <div class="msc" id="m-sc">
       <div class="msc-h"><div class="lbl">Lab revenue, 2027–30 <span class="lbl-sub">the numbers most of this hangs on · pick a path or type any year</span></div><div class="seg msc-seg" id="m-gp" role="group" aria-label="Growth path"></div></div>
@@ -650,90 +714,18 @@ ol.sources.compact li{margin-bottom:4px}
       <div class="msc-ch" id="m-ch"></div>
       <button type="button" class="replay" id="m-reset" style="margin:6px 0 0">Reset to today</button>
     </div>
-    <div class="msb" id="m-sb"><div class="msb-t" id="m-sbt"></div><div class="seg msb-seg" id="m-sbp" role="group" aria-label="Growth path"></div></div>
-    <div class="lbl" style="margin-top:16px">Each forcing function against the level where it broke before <span class="lbl-sub">updated each morning · gray far · amber close · red past · hollow dot = prior reading · drag a marker · click a line for its history</span></div>
-    <div id="m-rows" class="mgs"></div>
-    <div class="st-foot">
-      <details class="st-how"><summary>How the calls work, and a check against history</summary><div id="m-rules"></div>
-    <figure class="fig mbt"><figcaption class="fig-t">Check: if this model had existed in 1845 and 2000, when would it have said underweight, and how much of the crash would that have avoided?</figcaption>
-      <div class="mbt-g"><div><div class="mbt-h">British railway shares, 1843–50 <span>peak = 100</span></div><div class="chart" id="bt-rail" style="height:180px"></div></div><div><div class="mbt-h">US telecom shares, 1998–2003 <span>peak = 100</span></div><div class="chart" id="bt-tel" style="height:180px"></div></div></div>
-      <p class="fig-n" id="bt-note"></p></figure>
-      </details>
-      <span class="st-dis">Rules applied to live data. Red lines come from history; amber lines marked "ours" are our judgment. Not investment advice.</span>
-    </div>
-  </div>
-  <div class="act-row two">
-    <figure class="fig"><figcaption class="fig-t">Scale: capex as a share of GDP at each boom's peak</figcaption><div class="chart" id="a1-scale" style="height:200px"></div>
-      <p class="fig-n">AI shown as a range: narrow (AI-attributable) to broad (big-four capex).<sup class="cite" data-s="epoch_gdp"></sup><sup class="cite" data-s="forbes_tsl"></sup> Peaks: UK<sup class="cite" data-s="odly10"></sup>, US rail<sup class="cite" data-s="banxico"></sup>, fiber<sup class="cite" data-s="mmlib"></sup>, canals<sup class="cite" data-s="cranmer"></sup>.</p></figure>
-    <figure class="fig"><figcaption class="fig-t">The gap: revenue the capex needs in 2026 vs. AI revenue today</figcaption><div class="chart" id="a1-gap" style="height:200px"></div>
-      <p class="fig-n">Payback model defaults: big-four capex 2023–26, 75% AI, 5-year chips and 20-year buildings, 10% return, 30% operating costs, Sequoia's app-layer step.<sup class="cite" data-s="seq600"></sup><sup class="cite" data-s="vadd"></sup> AI revenue ≈ $120B from lab run-rates and others.<sup class="cite" data-s="axios_oai"></sup><sup class="cite" data-s="yahoo_oai"></sup> <a href="#m-pay">Open the model</a></p></figure>
-  </div>
-</section>
-
-<!-- ============ ACT 2: HOW WE GOT HERE ============ -->
-<section class="act" id="b-how" data-act="2">
-  <div class="act-h"><span class="act-n">2</span><span class="act-t">How we got here</span><button type="button" class="replay" data-act="2">Replay</button></div>
-  <div class="act-row wide">
-    <figure class="fig"><figcaption class="fig-t">The build: capex, lab revenue and the turn to debt, 2023–26</figcaption><div class="legend" id="a2-build-legend"></div><div class="chart" id="a2-build" style="height:280px"></div>
-      <p class="fig-n">Capex<sup class="cite" data-s="vadd"></sup><sup class="cite" data-s="bm"></sup>; lab run-rates<sup class="cite" data-s="nw_oai"></sup><sup class="cite" data-s="axios_oai"></sup><sup class="cite" data-s="tnw_val"></sup><sup class="cite" data-s="bi_ant"></sup><sup class="cite" data-s="yahoo_oai"></sup>; new debt as a share of hyperscaler capex<sup class="cite" data-s="mlq"></sup>. Run-rates and annual capex share a $ axis; bases differ.</p></figure>
-    <aside class="chg" aria-label="Since Q2 reporting"><div class="lbl">Latest step: since Q2 reporting</div>
-    <ul>
-      <li><span class="ar up" aria-label="stress up">▲</span>Anthropic's S-1: $417B of minimum payments (26 Oct)<sup class="cite" data-s="ant_s1"></sup></li>
-      <li><span class="ar up" aria-label="stress up">▲</span>OpenAI revenue ~$50B annualized, $20B below earlier figures (8 Oct)<sup class="cite" data-s="axios_oai"></sup></li>
-      <li><span class="ar up" aria-label="stress up">▲</span>CoreWeave Q3 interest guide $860–940M, from $640M<sup class="cite" data-s="tikr_crwv"></sup></li>
-      <li><span class="ar up" aria-label="stress up">▲</span>Meta's free cash flow negative, a first in over a decade<sup class="cite" data-s="cb_meta"></sup></li>
-      <li><span class="ar down" aria-label="stress down">▼</span>GE Vernova gas backlog 116 → 122 GW<sup class="cite" data-s="gev"></sup></li>
-    </ul>
-    </aside>
-  </div>
-  <div class="act-row two">
-    <figure class="fig"><figcaption class="fig-t">The clock: where each boom was, by years since its first demonstration</figcaption><div class="chart" id="a2-clock" style="height:220px"></div>
-      <p class="fig-n">Phases from the history tab's <a href="#clock">clock</a>. Year 0: Erie 1825, Liverpool &amp; Manchester and B&amp;O 1830, commercial internet 1995, ChatGPT 2022.</p></figure>
-    <figure class="fig"><figcaption class="fig-t">AI on the same curve: capex as a share of GDP, aligned by year</figcaption><div class="chart" id="a2-curve" style="height:220px"></div>
-      <p class="fig-n">Same data as the history tab's <a href="#overview">scale chart</a>; AI uses the broad measure.<sup class="cite" data-s="odly10"></sup><sup class="cite" data-s="cranmer"></sup><sup class="cite" data-s="mmlib"></sup><sup class="cite" data-s="vadd"></sup></p></figure>
-  </div>
-</section>
-
-<!-- ============ ACT 3: WHERE WE'RE GOING ============ -->
-<section class="act" id="b-next" data-act="3">
-  <div class="act-h"><span class="act-n">3</span><span class="act-t">Where we're going</span><button type="button" class="replay" data-act="3">Replay</button></div>
-  <div class="path-ctl"><span class="seg-label">Pick a precedent</span><span class="seg" id="path-seg" role="group" aria-label="Precedent"></span></div>
-  <p class="path-prec" id="path-prec"></p>
-  <div class="outs" id="path-outs"></div>
-  <div class="act-row three">
-    <figure class="fig"><figcaption class="fig-t">Absorption: compute utilization</figcaption><div class="chart" id="a3-abs" style="height:190px"></div></figure>
-    <figure class="fig"><figcaption class="fig-t">Payback: needed (black) vs. earned (path color)</figcaption><div class="chart" id="a3-pay" style="height:190px"></div></figure>
-    <figure class="fig"><figcaption class="fig-t">Depreciation: booked (black) vs. economic (path color)</figcaption><div class="chart" id="a3-dep" style="height:190px"></div></figure>
-  </div>
-  <p class="fig-n" id="path-note"></p>
-  <div class="act-row two">
-    <figure class="fig"><figcaption class="fig-t">Signposts: which path the evidence points to</figcaption><div id="a3-sign" class="sign"></div></figure>
-    <figure class="fig"><figcaption class="fig-t">Base rate: crash odds after a run-up</figcaption><div class="chart" id="a3-dial" style="height:190px"></div>
-      <p class="fig-n">Greenwood, Shleifer and You, 40 US industry run-ups of more than 100% in two years, 1926–2014. Run-ups raised crash odds but did not predict lower average returns.<sup class="cite" data-s="gsy"></sup></p></figure>
-  </div>
-  <figure class="fig"><figcaption class="fig-t">Five numbers that decide it</figcaption><div id="a3-gauges" class="gauges"></div>
-    <p class="fig-n">Lines marked "our threshold" are our judgment; the others are anchored to the cited level. Lab growth's 60% line: at 60% a year from a $65B run-rate, Anthropic's $417B over 2027–31 is about 40% of five years of revenue ($1.03T).<sup class="cite" data-s="ant_s1"></sup><sup class="cite" data-s="yahoo_oai"></sup></p></figure>
-  <div class="cat"><div class="lbl">Calendar</div>
-    <ol>
-      <li><b>Wk of 9 Nov</b><span>Anthropic roadshow may start; listing targeted before 26 Nov (reported)<sup class="cite" data-s="impl_ant"></sup></span><span class="st warn"><i></i>Decides it</span></li>
-      <li><b>12 Nov</b><span>CoreWeave Q3 results<sup class="cite" data-s="tikr_crwv"></sup></span><span class="st crit"><i></i>Breaking</span></li>
-      <li><b>17 Nov</b><span>Nvidia Q3 FY27 results<sup class="cite" data-s="nv_call"></sup></span><span class="st warn"><i></i>Chips</span></li>
-      <li><b>9–22 Dec</b><span>PJM 2029/30 auction; results 22 Dec<sup class="cite" data-s="esai_pjm"></sup></span><span class="st ok"><i></i>Fine</span></li>
-      <li><b>Mid-Dec</b><span>Oracle FQ2; date not set (last year 10 Dec)<sup class="cite" data-s="fz_orcl"></sup></span><span class="st crit"><i></i>Breaking</span></li>
-      <li><b>31 Dec</b><span>GE Vernova target: ≥130 GW under contract<sup class="cite" data-s="gev"></sup></span><span class="st ok"><i></i>Fine</span></li>
-    </ol>
+    <div class="msb" id="m-sb"><div class="msb-in"><div class="msb-t" id="m-sbt"></div><div class="seg msb-seg" id="m-sbp" role="group" aria-label="Growth path"></div></div></div>
+    <section class="xp" id="b-exp" aria-label="Exposures">
+      <div class="xp-h"><h2 class="h-s">Who is exposed</h2><span class="xp-sub">Most strained first, on today's readings. Each is measured against the level where an earlier boom broke. Click a row for the gauge, its history and what would change the call.</span><button type="button" class="xp-all" id="xp-all" aria-pressed="false">Open all</button></div>
+      <div id="m-rows" class="mgs"></div>
+      <p class="st-dis" style="margin-top:8px;font-family:var(--f-ui)">Rules applied to live data. Red lines come from history; amber lines marked "ours" are our judgment. <a href="#b-made">How it's made</a>. Not investment advice.</p>
+    </section>
   </div>
 </section>
 
 <!-- ============ PANE: LAYER GRID ============ -->
 <section class="pane" id="b-pane" aria-label="Layer grid">
-  <div class="pane-map">
-    <div class="fig-t">Where each layer sits: how its precedent ended × stress today</div>
-    <figure class="map-wrap">
-      <div class="map" id="map" role="group" aria-label="Layers placed by how their precedent ended and how stressed they are"></div>
-      <figcaption id="map-cap"></figcaption>
-    </figure>
-  </div>
+  <div class="strip-head"><h2 class="h-s">Layers</h2><span class="strip-sub">One row per layer of the stack: the number that matters, the call, the closest precedent and the price. Tap a row for facts, scenarios and questions.</span></div>
   <div class="pane-ctl">
     <span class="seg" id="ov-seg" role="group" aria-label="View">
       <button aria-pressed="true" data-v="now">Now</button><button aria-pressed="false" data-v="last">Last time</button><button aria-pressed="false" data-v="price">Price</button>
@@ -741,7 +733,6 @@ ol.sources.compact li{margin-bottom:4px}
     <span class="pane-hint" id="ov-hint"></span>
   </div>
   <div class="pg" id="pg" data-ov="now"></div>
-  <p class="pane-key"><span class="st ok"><i></i>calm</span> <span class="st warn"><i></i>watch</span> <span class="st crit"><i></i>strain</span> · Tap a row for facts, scenarios, money flows and questions.</p>
 </section>
 
 
@@ -751,9 +742,6 @@ ol.sources.compact li{margin-bottom:4px}
   <div class="strip-head"><h2 class="h-s">Deep dives</h2><span class="strip-sub">Collapsed. Rows above link straight in.</span></div>
   <div class="lf" id="lf" role="group" aria-label="Focus deep dives on a layer"></div>
 
-  <details class="dd" id="dd-watch"><summary><b>Watchlist</b><span id="dd-watch-sum">14 signals against their historical trouble levels</span></summary>
-    <div class="dd-body"><div class="wl" id="wl"></div></div>
-  </details>
 
   <details class="dd" id="dd-draw"><summary><b>Drawdowns</b><span>How far each layer fell last time, and AI names so far</span></summary>
     <div class="dd-body">
@@ -780,8 +768,51 @@ ol.sources.compact li{margin-bottom:4px}
     </div>
   </details>
 
-  <details class="dd" id="dd-scen"><summary><b>Scenarios</b><span>Three precedents and the first signs of each</span></summary>
-    <div class="dd-body"><div class="scen-cards" id="scen-cards"></div></div>
+  <details class="dd" id="dd-scen"><summary><b>Scenarios</b><span>Three precedents, what each would mean for payback, and the signs of each</span></summary>
+    <div class="dd-body">
+      <div class="path-ctl"><span class="seg-label">Pick a precedent</span><span class="seg" id="path-seg" role="group" aria-label="Precedent"></span></div>
+      <p class="path-prec" id="path-prec"></p>
+      <div class="outs" id="path-outs"></div>
+      <div class="act-row three">
+      <figure class="fig"><figcaption class="fig-t">Absorption: compute utilization</figcaption><div class="chart" id="a3-abs" style="height:190px"></div></figure>
+      <figure class="fig"><figcaption class="fig-t">Payback: needed (black) vs. earned (path color)</figcaption><div class="chart" id="a3-pay" style="height:190px"></div></figure>
+      <figure class="fig"><figcaption class="fig-t">Depreciation: booked (black) vs. economic (path color)</figcaption><div class="chart" id="a3-dep" style="height:190px"></div></figure>
+      </div>
+      <p class="fig-n" id="path-note"></p>
+      <div class="act-row two">
+      <figure class="fig"><figcaption class="fig-t">Signposts: which path the evidence points to</figcaption><div id="a3-sign" class="sign"></div></figure>
+      <figure class="fig"><figcaption class="fig-t">Base rate: crash odds after a run-up</figcaption><div class="chart" id="a3-dial" style="height:190px"></div>
+      <p class="fig-n">Greenwood, Shleifer and You, 40 US industry run-ups of more than 100% in two years, 1926–2014. Run-ups raised crash odds but did not predict lower average returns.<sup class="cite" data-s="gsy"></sup></p></figure>
+      </div>
+      <figure class="fig"><figcaption class="fig-t">Five numbers that decide it</figcaption><div id="a3-gauges" class="gauges"></div>
+      <p class="fig-n">Lines marked "our threshold" are our judgment; the others are anchored to the cited level. Lab growth's 60% line: at 60% a year from a $65B run-rate, Anthropic's $417B over 2027–31 is about 40% of five years of revenue ($1.03T).<sup class="cite" data-s="ant_s1"></sup><sup class="cite" data-s="yahoo_oai"></sup></p></figure>
+      <div class="scen-cards" id="scen-cards" style="margin-top:16px"></div>
+    </div>
+  </details>
+
+  <details class="dd" id="dd-cal"><summary><b>Calendar</b><span>Dated events that test the calls</span></summary>
+    <div class="dd-body">
+      <div class="cat">
+      <ol>
+      <li><b>Wk of 9 Nov</b><span>Anthropic roadshow may start; listing targeted before 26 Nov (reported)<sup class="cite" data-s="impl_ant"></sup></span><span class="st warn"><i></i>Decides it</span></li>
+      <li><b>12 Nov</b><span>CoreWeave Q3 results<sup class="cite" data-s="tikr_crwv"></sup></span><span class="st crit"><i></i>Breaking</span></li>
+      <li><b>17 Nov</b><span>Nvidia Q3 FY27 results<sup class="cite" data-s="nv_call"></sup></span><span class="st warn"><i></i>Chips</span></li>
+      <li><b>9–22 Dec</b><span>PJM 2029/30 auction; results 22 Dec<sup class="cite" data-s="esai_pjm"></sup></span><span class="st ok"><i></i>Fine</span></li>
+      <li><b>Mid-Dec</b><span>Oracle FQ2; date not set (last year 10 Dec)<sup class="cite" data-s="fz_orcl"></sup></span><span class="st crit"><i></i>Breaking</span></li>
+      <li><b>31 Dec</b><span>GE Vernova target: ≥130 GW under contract<sup class="cite" data-s="gev"></sup></span><span class="st ok"><i></i>Fine</span></li>
+      </ol>
+      </div>
+    </div>
+  </details>
+
+  <details class="dd" id="dd-map"><summary><b>Layer map</b><span>Each layer by how its closest precedent ended and its stress today</span></summary>
+    <div class="dd-body pane-map">
+      <div class="fig-t">Where each layer sits: how its precedent ended × stress today</div>
+      <figure class="map-wrap">
+      <div class="map" id="map" role="group" aria-label="Layers placed by how their precedent ended and how stressed they are"></div>
+      <figcaption id="map-cap"></figcaption>
+      </figure>
+    </div>
   </details>
 
   <details class="dd" id="dd-labs"><summary><b>Labs</b><span>OpenAI and Anthropic side by side</span></summary>
@@ -790,7 +821,7 @@ ol.sources.compact li{margin-bottom:4px}
         <thead><tr><th></th><th>OpenAI</th><th>Anthropic</th></tr></thead>
         <tbody>
           <tr><td>Revenue</td><td>~$50B annualized, Sep'26<sup class="cite" data-s="axios_oai"></sup></td><td>$16.3B H1'26 (H1'25: $1.2B)<sup class="cite" data-s="ant_s1"></sup>; $65B run-rate, Jul'26, gross of cloud partners<sup class="cite" data-s="yahoo_oai"></sup></td></tr>
-          <tr><td>Promised</td><td>~$600B compute to 2030; earlier $1.4T for 30 GW<sup class="cite" data-s="nw_oai"></sup></td><td>$417B future minimum payments<sup class="cite" data-s="ant_s1"></sup></td></tr>
+          <tr><td>Promised</td><td>~$856B of compute through 2030, Sep'26<sup class="cite" data-s="dsa_oai"></sup>; ~$600B in Feb<sup class="cite" data-s="nw_oai"></sup></td><td>$417B future minimum payments<sup class="cite" data-s="ant_s1"></sup></td></tr>
           <tr><td>Top contracts</td><td>Oracle ~$300B 2027–31; AWS $38B; CoreWeave $22.4B<sup class="cite" data-s="cap_oai"></sup>; Azure $250B<sup class="cite" data-s="wpn_azure"></sup></td><td>Equipment, DC leases, cloud; capacity lands 2028–31<sup class="cite" data-s="ant_s1"></sup></td></tr>
           <tr><td>Margin</td><td>−$1.22 per $1 of revenue, Q1'26<sup class="cite" data-s="cap_oai"></sup></td><td>−$693M operating, H1'26<sup class="cite" data-s="ant_s1"></sup></td></tr>
           <tr><td>Valuation</td><td>$852B, Mar'26<sup class="cite" data-s="tnw_val"></sup></td><td>$965B Series H, Jun'26<sup class="cite" data-s="bi_ant"></sup>; S-1 filed 26 Oct<sup class="cite" data-s="ant_s1"></sup></td></tr>
@@ -805,6 +836,39 @@ ol.sources.compact li{margin-bottom:4px}
       <ul class="dil" id="dil"></ul>
     </div>
   </details>
+</section>
+
+<!-- ============ HOW IT'S MADE ============ -->
+<section class="deep made" id="b-made">
+  <div class="strip-head"><h2 class="h-s">How it's made</h2><span class="strip-sub">What the agents did, what runs on its own, and what to distrust.</span></div>
+  <div class="mk-flow">
+    <div class="mk-st"><span class="mk-who">Inputs</span><b>Sources</b><p>Company filings from SEC EDGAR, daily share prices, rate and spread data, and the economic history of canals, railways and fiber: <span id="mk-nsrc">over 150</span> cited sources in all.</p></div>
+    <div class="mk-st"><span class="mk-who ag">Agents, once</span><b>Research and calibration</b><p>Read the histories, found the level where each earlier boom broke, turned each into a gauge, and sourced every figure. Filing data was checked against the companies' reported results.</p></div>
+    <div class="mk-st"><span class="mk-who">Code, daily</span><span class="mk-who ag">Agent, weekly</span><b>Kept current</b><p>A plain script pulls filings and prices each morning (13:43 UTC) and records the day's calls. An agent checks the funding warnings and the figures with no free feed every Monday, with a source for each change.</p></div>
+    <div class="mk-st"><span class="mk-who">Rules</span><b>Calls on this page</b><p>Each reading is set against its line from history; a short rule turns distance and the funding check into a call. Changes to the rules and the page go through pull requests the owner reviews.</p></div>
+  </div>
+  <div class="mk-cols">
+    <div><div class="lbl">Checks</div><ul>
+      <li>Every number has a source and a date; hover the small numbers.</li>
+      <li>Filing data from the daily feed was checked against reported results (Nvidia, Micron, Alphabet, Oracle, CoreWeave).</li>
+      <li>A bad or missing data file can't break the page: each step falls back on the last good figure.</li>
+      <li>The rules were run against the railway crash of 1845 and the telecom crash of 2000 (below).</li>
+    </ul></div>
+    <div><div class="lbl">Limits</div><ul>
+      <li>These are rules applied to live data, not a validated model. The backtest has two cases.</li>
+      <li>Six of the nine amber lines are our judgment (two-thirds of the way to the break), marked "ours".</li>
+      <li>Free data only. Some figures, like GPU rents and lab commitments, are kept by hand and lag.</li>
+      <li>OpenAI's cash counts its whole March round, so its funded share is an upper bound.</li>
+    </ul></div>
+  </div>
+  <div class="st-foot">
+    <details class="st-how"><summary>The rules, in full</summary><div id="m-rules"></div></details>
+    <details class="st-how" id="mk-bt"><summary>Check against history: when would these rules have said underweight in 1845 and 2000?</summary>
+      <figure class="fig mbt"><figcaption class="fig-t">If this model had existed in 1845 and 2000, when would it have said underweight, and how much of the crash would that have avoided?</figcaption>
+        <div class="mbt-g"><div><div class="mbt-h">British railway shares, 1843–50 <span>peak = 100</span></div><div class="chart" id="bt-rail" style="height:180px"></div></div><div><div class="mbt-h">US telecom shares, 1998–2003 <span>peak = 100</span></div><div class="chart" id="bt-tel" style="height:180px"></div></div></div>
+        <p class="fig-n" id="bt-note"></p></figure>
+    </details>
+  </div>
 </section>
 
 <!-- ============ SOURCES ============ -->
@@ -1075,6 +1139,19 @@ ol.sources.compact li{margin-bottom:4px}
     <div class="span">2022 – now</div>
     <h2>The AI build-out</h2>
     <p class="kicker">Financed so far by the most profitable companies in history, now shifting toward debt, and running into the power grid as its physical limit.</p>
+  </div>
+  <div class="act-row wide hx-build">
+    <figure class="fig"><figcaption class="fig-t">The build: capex, lab revenue and the turn to debt, 2023–26</figcaption><div class="legend" id="a2-build-legend"></div><div class="chart" id="a2-build" style="height:280px"></div>
+    <p class="fig-n">Capex<sup class="cite" data-s="vadd"></sup><sup class="cite" data-s="bm"></sup>; lab run-rates<sup class="cite" data-s="nw_oai"></sup><sup class="cite" data-s="axios_oai"></sup><sup class="cite" data-s="tnw_val"></sup><sup class="cite" data-s="bi_ant"></sup><sup class="cite" data-s="yahoo_oai"></sup>; new debt as a share of hyperscaler capex<sup class="cite" data-s="mlq"></sup>. Run-rates and annual capex share a $ axis; bases differ.</p></figure>
+    <aside class="chg" aria-label="Since Q2 reporting"><div class="lbl">Latest step: since Q2 reporting</div>
+    <ul>
+    <li><span class="ar up" aria-label="stress up">▲</span>Anthropic's S-1: $417B of minimum payments (26 Oct)<sup class="cite" data-s="ant_s1"></sup></li>
+    <li><span class="ar up" aria-label="stress up">▲</span>OpenAI revenue ~$50B annualized, $20B below earlier figures (8 Oct)<sup class="cite" data-s="axios_oai"></sup></li>
+    <li><span class="ar up" aria-label="stress up">▲</span>CoreWeave Q3 interest guide $860–940M, from $640M<sup class="cite" data-s="tikr_crwv"></sup></li>
+    <li><span class="ar up" aria-label="stress up">▲</span>Meta's free cash flow negative, a first in over a decade<sup class="cite" data-s="cb_meta"></sup></li>
+    <li><span class="ar down" aria-label="stress down">▼</span>GE Vernova gas backlog 116 → 122 GW<sup class="cite" data-s="gev"></sup></li>
+    </ul>
+    </aside>
   </div>
   <div class="split">
     <div class="prose">
@@ -1435,6 +1512,7 @@ const SRC = {
   ant_s1:["Outlook Business, Anthropic files for IPO, reveals $417 billion of commitments (Oct. 2026, from the registration statement)","https://www.outlookbusiness.com/markets/claude-maker-anthropic-files-for-ipo-reveals-417-bn-commitments"],
   tnw_val:["The Next Web, Anthropic considering a funding round at over $900 billion; OpenAI's $852 billion March round (Apr. 30, 2026)","https://thenextweb.com/news/anthropic-900-billion-valuation-funding-round"],
   nw_oai:["Reuters via Newswav, OpenAI expects compute spend of around $600 billion through 2030 (Feb. 22, 2026)","https://newswav.com/article/openai-expects-compute-spend-of-around-600-billion-through-2030-A2602_12QvDb"],
+  dsa_oai:["Reuters via DealStreetAsia, OpenAI sees nearly $280B cash burn by 2030; $856B of compute through 2030 (Sept. 19, 2026)","https://www.dealstreetasia.com/?p=495626"],
   cap_oai:["Capacity Global, OpenAI's IPO is the largest compute procurement vehicle in corporate history (June 9, 2026)","https://capacityglobal.com/news/openais-ipo-is-the-largest-compute-procurement-vehicle-in-corporate-history/"],
   wpn_azure:["WebProNews, Microsoft secures 27% stake in OpenAI with $250B Azure commitment (Oct. 2025)","https://www.webpronews.com/microsoft-secures-27-stake-in-135b-valued-openai-with-250b-azure-deal"],
   tikr_nvda:["TIKR, NVIDIA could become a $20 trillion stock (Oct. 5, 2026; forward P/E 19.4x vs 5-yr avg 36.6x)","https://www.tikr.com/blog/nvidia-could-become-a-20-trillion-stock-if-just-one-thing-changes"],
@@ -1755,10 +1833,10 @@ const LY={
   facts:["Q3'26 capex: Amazon $77.3B, Alphabet $51.4B, Microsoft $45.2B, Meta $34.9B."+cite("impl_amzn","quartr_goog","metirai_msft","lds_meta"),"Server lives stretched from 4 to 5–6 years since 2020; Microsoft buildings now 25 years."+cite("yahoo_dep","sun_msft"),"Microsoft: $329B of DC leases not yet commenced."+cite("sun_msft")]},
  labs:{sn:"Labs",risk:3,sig:"warn",px:1,
   prev:"warn",dir:"up",chg:"OpenAI revenue reported $20B below earlier figures; Anthropic's S-1 disclosed $417B"+cite("axios_oai","ant_s1"),
-  key:"$417B owed; $16.3B H1 revenue"+cite("ant_s1"),why:"Revenue is usage-based"+cite("ant_s1"),trend:"OpenAI ~$600B plan on ~$50B ARR"+cite("nw_oai","axios_oai"),next:"Anthropic IPO pricing",
+  key:"$417B owed; $16.3B H1 revenue"+cite("ant_s1"),why:"Revenue is usage-based"+cite("ant_s1"),trend:"OpenAI ~$856B plan on ~$50B ARR"+cite("dsa_oai","axios_oai"),next:"Anthropic IPO pricing",
   prec:"Railway Mania (1845)",ended:"Prices implied £60M of revenue; £15M came"+cite("odly10"),out:"Shares −66%"+cite("ct12"),outL:"Rail share index −66%, 1845–50"+cite("ct12"),
   mult:"~15–17× run-rate"+cite("tnw_val","axios_oai","bi_ant","yahoo_oai"),high:"Private",read:"OpenAI $852B ÷ $50B; Anthropic $965B ÷ $65B",
-  min:"OpenAI $122B round; Anthropic $65B Series H"+cite("tnw_val","bi_ant"),mout:"Anthropic $417B; OpenAI ~$600B"+cite("ant_s1","nw_oai"),conc:"Two buyers behind much of the backlog",
+  min:"OpenAI $122B round; Anthropic $65B Series H"+cite("tnw_val","bi_ant"),mout:"Anthropic $417B; OpenAI ~$856B"+cite("ant_s1","dsa_oai"),conc:"Two buyers behind much of the backlog",
   facts:["Anthropic H1'26 revenue $16.3B vs $1.2B a year earlier; operating loss $693M."+cite("ant_s1"),"OpenAI lost $1.22 per $1 of revenue in Q1'26."+cite("cap_oai"),"OpenAI contracts: Oracle ~$300B, Azure $250B, AWS $38B, CoreWeave $22.4B."+cite("cap_oai","wpn_azure")]}
 };
 safe(applyLayers);
@@ -1824,12 +1902,12 @@ const WL=[
  {n:"Oracle five-year CDS",L:["orcl","fin"],v:"~2.0 pts",d:"20 July 2026; rated BBB−",s:["lds_orcl"],dir:"Highest in nearly 18 years",was:"BBB− is the lowest investment-grade rating. One more cut would move Oracle's bonds into high-yield indexes.",ws:[],st:"crit"},
  {n:"Hyperscaler capex against cash flow",L:["hyper"],v:"1 of 4",d:"Covered Q3 2026 capex from operating cash flow",s:["dd_fcf"],dir:"Meta's free cash flow negative for the first time in over a decade",ds:["cb_meta"],was:"The fiber carriers spent beyond their cash flow and filled the gap with high-yield bonds and vendor loans.",ws:["eweek"],st:"warn"},
  {n:"Debt share of hyperscaler capex",L:["hyper","fin"],v:"32%",d:"Mid-2026, FactSet estimate",s:["mlq"],dir:"Up from 9% in fiscal 2024",was:"The new carriers of the late 1990s were debt-funded, and more than sixty telecom companies failed.",ws:["acm"],st:"warn"},
- {n:"Lab commitments against revenue",L:["labs","hyper","orcl","neo"],v:"$417B",d:"Anthropic's minimum payments, against $16.3B of H1 revenue",s:["ant_s1"],dir:"OpenAI plans about $600B through 2030 on about $50B of annualized revenue",ds:["nw_oai","axios_oai"],was:"Railway Mania share prices implied £60M of revenue; 1852 brought £15M.",ws:["odly10"],st:"warn"}
+ {n:"Lab commitments against revenue",L:["labs","hyper","orcl","neo"],v:"$417B",d:"Anthropic's minimum payments, against $16.3B of H1 revenue",s:["ant_s1"],dir:"OpenAI plans about $856B through 2030 on about $50B of annualized revenue",ds:["dsa_oai","axios_oai"],was:"Railway Mania share prices implied £60M of revenue; 1852 brought £15M.",ws:["odly10"],st:"warn"}
 ];
 safe(applyWL);
 WL.forEach(r=>{r.c1=cite.apply(null,r.s);r.c2=cite.apply(null,r.ds||[]);r.c3=cite.apply(null,r.ws||[]);});
 const STL={ok:"calm",warn:"watch",crit:"strain"};
-function renderWatch(){const list=WL.filter(r=>lfMatch(r.L));const cnt={ok:0,warn:0,crit:0};list.forEach(r=>{cnt[r.st]++;});
+function renderWatch(){if(!document.getElementById("wl"))return;const list=WL.filter(r=>lfMatch(r.L));const cnt={ok:0,warn:0,crit:0};list.forEach(r=>{cnt[r.st]++;});
   document.getElementById("dd-watch-sum").textContent=list.length+" signals: "+cnt.ok+" calm, "+cnt.warn+" watch, "+cnt.crit+" strain";
   let h='<div class="wl-row h"><div>Signal</div><div>Latest</div><div>When it meant trouble before</div><div>Reading</div></div>';
   list.forEach(r=>{h+='<div class="wl-row"><div class="wl-sig"><b>'+r.n+'</b><span class="ly">'+r.L.map(x=>amp(LN[x])).join(" · ")+'</span></div>'
@@ -1980,29 +2058,31 @@ document.getElementById("dil-reset").addEventListener("click",()=>{DONE={};saveD
 
 /* ---------- pane grid ---------- */
 const OVD={
- now:{h:["Number","Signal"],hint:"Today, dated and sourced."},
+ now:{h:["Number","Call"],hint:"Today, dated and sourced. Calls are today's, from the gauges above."},
  last:{h:["Closest precedent","How it ended"],hint:"The matching layer in an earlier bust."},
  price:{h:["Bellwether multiple","Vs. high"],hint:"One dated multiple per layer."}
 };
 let OVS="now";const OPEN=new Set();
+let LYC=null,ACT3=null; /* calls by layer, and the scenarios redraw, both set by the stance code below */
 const STN={ok:"calm",warn:"watch",crit:"strain"};
 function meterMini(n){return '<span class="mk" role="img" aria-label="'+["","Lower","Medium","High"][n]+' risk">'+[1,2,3].map(i=>'<i'+(i<=n?' class="f"':'')+'></i>').join("")+'</span>';}
 function kv(l,v){return '<dt>'+l+'</dt><dd>'+v+'</dd>';}
 function drawer(k){const r=LY[k];
   const own=DIL.filter(d=>d.L.indexOf(k)>=0),gen=DIL.filter(d=>d.L.indexOf("all")>=0),qs=own.concat(gen).slice(0,3);
-  const links=[["dd-watch","Watchlist"],["dd-draw","Drawdowns"],["dd-risk","Money map"],["dd-dil","Diligence"]];if(k==="labs")links.push(["dd-labs","Labs table"]);
+  const links=[["dd-draw","Drawdowns"],["dd-risk","Money map"],["dd-dil","Diligence"]];if(k==="labs")links.push(["dd-labs","Labs table"]);
   const sc=SCELL[k].map((c,i)=>'<li><span class="tone '+c[0]+'"><i></i>'+SCEN[i].id+' '+TONE[c[0]]+'</span> '+c[1]+'</li>').join("");
   return '<div class="drw" id="drw-'+k+'">'
    +'<div><div class="lbl">Facts</div><ul>'+r.facts.map(f=>'<li>'+f+'</li>').join("")+'</ul>'
    +'<div class="lbl">Scenarios</div><ul class="drw-sc">'+sc+'</ul>'
    +'<div class="lbl">Ask</div><ul>'+qs.map(q=>'<li>'+q.q+'</li>').join("")+'</ul></div>'
-   +'<div><dl class="drw-kv">'+kv("Signal",'<span class="st '+r.sig+'"><i></i>'+STN[r.sig]+'</span> '+r.why)+kv("Since Q2",r.chg)+kv("Trend",r.trend)+kv("Watch next",r.next)+kv("Risk",meterMini(r.risk)+' <span class="muted">our judgment</span>')
+   +'<div><dl class="drw-kv">'+kv("Call",(lyCalls(k)||"")+' '+r.why)+kv("Since Q2",r.chg)+kv("Trend",r.trend)+kv("Watch next",r.next)+kv("Risk",meterMini(r.risk)+' <span class="muted">our judgment</span>')
      +kv("Last time",r.prec+'. '+r.ended+(r.outL!=="n/a"?'. '+r.outL:'')+'.')+kv("Price",r.mult+(r.high!=="n/a"?'; '+r.high:'')+'. '+r.read)+kv("Money in",r.min)+kv("Money out",r.mout)+kv("Exposure",r.conc)+'</dl>'
    +'<div class="drw-links">'+links.map(x=>'<button type="button" data-dd="'+x[0]+'" data-k="'+k+'">'+x[1]+'</button>').join("")+'</div></div></div>';}
-function cells(r){if(OVS==="now")return [r.key,'<span class="st '+r.sig+'"><i></i>'+STN[r.sig]+'</span>'];if(OVS==="last")return [r.prec,r.out];return [r.mult,r.high];}
+function lyCalls(k){return (LYC&&LYC[k])?LYC[k].map(c=>'<span class="mc '+["uw","n","ow"][c.c]+'">'+(LYC[k].length>1?c.n+' · ':'')+'<b>'+["Underweight","Neutral","Overweight"][c.c]+'</b></span>').join(" "):"";}
+function cells(r,k){if(OVS==="now")return [r.key,lyCalls(k)];if(OVS==="last")return [r.prec,r.out];return [r.mult,r.high];}
 function renderPane(){const pg=document.getElementById("pg");pg.dataset.ov=OVS;const d=OVD[OVS];
   let h='<div class="pr pg-h" aria-hidden="true"><div class="pc">Layer</div><div class="pc">'+d.h[0]+'</div><div class="pc">'+d.h[1]+'</div></div>';let g="";
-  LAYERS.forEach(l=>{const r=LY[l.k];if(l.g!==g){g=l.g;h+='<div class="pg-g">'+g+'</div>';}const open=OPEN.has(l.k);const c=cells(r);
+  LAYERS.forEach(l=>{const r=LY[l.k];if(l.g!==g){g=l.g;h+='<div class="pg-g">'+g+'</div>';}const open=OPEN.has(l.k);const c=cells(r,l.k);
     h+='<div class="pr'+(open?' open':'')+'" data-k="'+l.k+'"><div class="pc c0"><button type="button" class="pg-open" aria-expanded="'+open+'" aria-controls="drw-'+l.k+'"><span class="chev" aria-hidden="true"></span>'+amp(l.n)+'</button></div><div class="pc kv">'+c[0]+'</div><div class="pc">'+c[1]+'</div></div>';
     if(open)h+=drawer(l.k);});
   pg.innerHTML=h;document.getElementById("ov-hint").textContent=d.hint;}
@@ -2050,16 +2130,11 @@ document.getElementById("map").addEventListener("click",e=>{const b=e.target.clo
 /* ---------- scenario cards (deep dive) ---------- */
 function renderScenCards(){document.getElementById("scen-cards").innerHTML=SCEN.map(s=>'<div class="scen-card"><div class="sid">'+s.id+'. '+s.n+'</div><div class="sp">'+s.prec+'</div><div class="lbl">First signs</div><ul>'+s.signs.map(x=>'<li>'+x+'</li>').join("")+'</ul></div>').join("");}
 
-/* ---------- verdict counts ---------- */
-(function(){const c={ok:0,warn:0,crit:0};WL.forEach(r=>{c[r.st]++;});
-  document.getElementById("ph-counts").innerHTML='<button type="button" data-dd="dd-watch">'+["ok","warn","crit"].map(k=>'<span class="st '+k+'"><i></i><b>'+c[k]+'</b>'+STN[k]+'</span>').join("")+'<span class="ph-of">of '+WL.length+' signals ›</span></button>';})();
-document.getElementById("ph-counts").addEventListener("click",e=>{const b=e.target.closest("[data-dd]");if(b)openDD(b.dataset.dd);});
-
 /* ---------- deep dives ---------- */
-function renderOpen(d){if(d.id==="dd-draw")renderDD();else if(d.id==="dd-risk"){renderRM();rmDetail();}}
+function renderOpen(d){if(d.id==="dd-draw")renderDD();else if(d.id==="dd-risk"){renderRM();rmDetail();}else if(d.id==="dd-scen"){if(ACT3)ACT3();}else if(d.id==="dd-map")renderMap();}
 document.querySelectorAll("details.dd").forEach(d=>d.addEventListener("toggle",()=>{if(d.open)renderOpen(d);}));
 function openDD(id,k){setLayer(k||"all");const d=document.getElementById(id);if(!d)return;document.querySelectorAll("details.dd").forEach(x=>{if(x!==d)x.open=false;});d.open=true;renderOpen(d);requestAnimationFrame(()=>document.getElementById("lf").scrollIntoView({block:"start"}));}
-["dd-watch","dd-draw","dd-risk","dd-dil"].forEach(id=>{const s=document.querySelector("#"+id+">summary");const e=document.createElement("em");e.className="dd-f";s.appendChild(e);});
+["dd-draw","dd-risk","dd-dil"].forEach(id=>{const s=document.querySelector("#"+id+">summary");const e=document.createElement("em");e.className="dd-f";s.appendChild(e);});
 
 const lfEl=document.getElementById("lf");
 (function(){let h='<span class="g">Focus</span><button type="button" data-k="all" aria-pressed="true">All layers</button>';LAYERS.forEach(l=>{h+='<button type="button" data-k="'+l.k+'" aria-pressed="false">'+amp(l.n)+'</button>';});lfEl.innerHTML=h;})();
@@ -2493,30 +2568,6 @@ let PS="abs";
 
 /* ---------- ACT 1 ---------- */
 const SCALE=[{k:"ukrail",n:"UK Railway Mania, 1847",v:7.3},{k:"usrail",n:"US railroads, 1870s–80s",v:4.5,ap:1},{k:"fiber",n:"US telecom & fiber, 2000",v:1.2},{k:"canal",n:"US canals, 1840",v:0.9},{k:"ai",n:"AI build-out, 2026",v:2.3,lo:0.8}];
-chart(1,function(anim){const box=$("a1-scale");const rh=32,top=4,H=top+SCALE.length*rh+20;const g=svgBox(box,H,"Peak capital spending as a share of GDP by boom");if(!g)return;const {svg,W}=g;const narrow=W<460;
-  const lw=narrow?70:168,x=lin(0,8,lw,W-58);
-  [0,2,4,6,8].forEach(v=>{S("line",{x1:x(v),x2:x(v),y1:top,y2:H-18,style:"stroke:var(--grid)"},svg);const t=S("text",{x:x(v),y:H-4,"text-anchor":"middle",class:"num"},svg);t.textContent=v+"%";});
-  SCALE.forEach((r,i)=>{const y=top+i*rh+7,bh=16,isAI=r.k==="ai";const t=S("text",{x:lw-8,y:y+12,"text-anchor":"end",class:isAI?"t-ink":"t-ink2",style:isAI?"font-weight:600":""},svg);t.textContent=narrow?ERA[r.k].short:r.n;
-    const lab=S("text",{x:0,y:y+12,class:"t-ink num",style:"font-weight:600"},svg);
-    if(isAI){const band=S("rect",{x:x(r.lo),y:y,width:0,height:bh,rx:3,style:"fill:var(--c-ai);opacity:.28"},svg);const mk=S("rect",{x:x(r.lo)-2,y:y-3,width:4,height:bh+6,rx:2,style:"fill:var(--c-ai)"},svg);
-      const set=k=>{const v=r.lo+(r.v-r.lo)*k;band.setAttribute("width",Math.max(0,x(v)-x(r.lo)));mk.setAttribute("x",x(v)-2);lab.setAttribute("x",x(v)+8);lab.textContent=k<1?v.toFixed(1)+"%":"0.8–2.3%";};
-      if(anim){set(0);tween(1300,set,500);}else set(1);}
-    else{const p=S("path",{style:"fill:"+ERA[r.k].c},svg);const set=k=>{const w=Math.max(0,(x(r.v)-x(0))*k);p.setAttribute("d",roundRight(x(0),y,w,bh,3));lab.setAttribute("x",x(0)+w+6);lab.textContent=(r.ap?"~":"")+(r.v*k).toFixed(1)+"%";};
-      if(anim){set(0);tween(900,set,i*90);}else set(1);}});});
-
-chart(1,function(anim){const box=$("a1-gap");const g=svgBox(box,200,"Revenue needed in 2026 versus AI revenue today");if(!g)return;const {svg,W}=g;const pb=payback(PATHS[0]);const need=pb.req[2026],have=BASE.rev,pct=have/need;
-  const lw=W<460?84:150,x=lin(0,need*1.05,lw,W-62);
-  const big=S("text",{x:0,y:44,class:"t-ink",style:"font-family:var(--f-display);font-weight:800;font-size:44px"},svg);
-  const sub=S("text",{x:0,y:66,class:"t-ink2"},svg);sub.textContent=W<460?"of the 2026 need is covered":"of the 2026 need is covered by AI revenue today";
-  const nr=W<460;const rows=[{n:nr?"Needed":"Needed in 2026",v:need,c:"var(--ink)"},{n:nr?"Earned":"AI revenue today",v:have,c:"var(--c-ai)"}];
-  rows.forEach((r,i)=>{const y=92+i*42,bh=20;const t=S("text",{x:lw-8,y:y+14,"text-anchor":"end",class:"t-ink2"},svg);t.textContent=r.n;
-    S("rect",{x:x(0),y,width:x(need)-x(0),height:bh,rx:3,style:"fill:var(--surface-2)"},svg);
-    const p=S("path",{style:"fill:"+r.c},svg),lab=S("text",{x:0,y:y+14,class:"t-ink num",style:"font-weight:600"},svg);
-    const set=k=>{const w=Math.max(0,(x(r.v)-x(0))*k);p.setAttribute("d",roundRight(x(0),y,w,bh,3));lab.setAttribute("x",x(0)+w+6);lab.textContent=fmtB(r.v*k);};
-    if(anim){set(0);tween(1100,set,i*250);}else set(1);});
-  const setBig=k=>{big.textContent=Math.round(pct*100*k)+"%";};if(anim){setBig(0);tween(1400,setBig,300);}else setBig(1);
-  const cr=S("text",{x:0,y:192,class:"t-ink2"},svg);cr.textContent=pb.cross?"Base case: covered by "+pb.cross+".":(nr?"Base case: not covered by 2035.":"Even in the base case, revenue does not catch the need by 2035. Act 3 varies the path.");});
-
 /* ---------- ACT 2 ---------- */
 const LABPTS={oai:[[2025.5,13,"2025 revenue"],[2026.75,50,"Annualized, end of Sep 2026"]],ant:[[2025.98,9,"Run-rate, end of 2025"],[2026.24,30,"Run-rate, end of Mar 2026"],[2026.38,47,"Run-rate, May 2026"],[2026.58,65,"Run-rate, end of Jul 2026"]]};
 const DEBT=[[2024.5,9,"FY2024"],[2026.5,32,"Mid-2026"]];
@@ -2541,30 +2592,6 @@ chart(2,function(anim){const box=$("a2-build");const g=svgBox(box,280,"Capex, la
   lbl(x(2026.75)-4,y(50)+16,narrow?"$50B":"OpenAI $50B","end");lbl(x(2026.58)-6,y(65)-8,narrow?"$65B":"Anthropic $65B","end");lbl(x(2026.5)-6,y2(32)-6,narrow?"32%":"32% of capex from new debt","end");lbl(x(2024.5)+6,y2(9)+14,"9%");
   const qx=x(2026.84);const mk=S("line",{x1:qx,x2:qx,y1:m.t,y2:H-m.b,style:"stroke:var(--ink-2);stroke-width:1;opacity:.6"},svg);const mt=S("text",{x:qx+3,y:H-m.b-4,class:"t-ink2",style:"font-size:10px"},svg);mt.textContent=narrow?"":"Q3";
   if(anim){drawLines(svg,1100,250);fadeDots(svg,400,900);}});
-
-chart(2,function(anim){const box=$("a2-clock");const g=svgBox(box,220,"Phase timeline of each boom by years since first demonstration");if(!g)return;const {svg,W,H}=g;const narrow=W<520;const tip=tipEl(box);tip.hidden=true;
-  const m={l:narrow?56:120,r:12,t:8,b:26},x=lin(-5,30,m.l,W-m.r),rh=(H-m.t-m.b)/CLOCK.length;
-  [-5,0,5,10,15,20,25,30].forEach(v=>{S("line",{x1:x(v),x2:x(v),y1:m.t,y2:H-m.b,style:"stroke:var(--grid)"},svg);if(!narrow||v%10===0){const t=S("text",{x:x(v),y:H-8,"text-anchor":"middle",class:"num"},svg);t.textContent=v>0?"+"+v:v;}});
-  CLOCK.forEach((row,i)=>{const e=ERA[row.k],yc=m.t+rh*i+rh/2,bh=Math.min(20,rh*.6);const t=S("text",{x:m.l-8,y:yc+4,"text-anchor":"end",class:"t-ink",style:"font-weight:600"},svg);t.textContent=narrow?e.short:e.name;
-    row.ph.forEach(p=>{const a0=p[1]-e.demo,b0=Math.min(p[2]-e.demo,30);if(b0<-5||a0>30)return;const a=x(Math.max(a0,-5)),b=x(b0);const w=Math.max(1,b-a-2),isB=p[0]==="bust",isD=p[0]==="deploy";
-      const r=S("rect",{x:a+1,y:yc-bh/2,width:w,height:bh,rx:3,style:"fill:"+(isB?"var(--ink)":isD?"transparent":e.c)+";opacity:"+(isB?.85:isD?1:PH[p[0]].o)+(isD?";stroke:"+e.c+";stroke-width:1.5":"")},svg);
-      if(anim&&!RM){r.style.opacity=0;r.style.transition="opacity 500ms ease "+(i*120)+"ms";requestAnimationFrame(()=>requestAnimationFrame(()=>{r.style.opacity=isB?.85:isD?1:PH[p[0]].o;}));}
-      const s0=r.style.stroke,w0=r.style.strokeWidth;
-      const show=ev=>{const rr=box.getBoundingClientRect();tip.innerHTML='<div class="tt">'+e.name+' · '+PH[p[0]].n+'</div><div>'+p[1]+'–'+(p[2]>2026?"now":p[2])+' (year '+(a0>0?"+":"")+a0+' to '+(Math.round(p[2]-e.demo)>0?"+":"")+Math.round(p[2]-e.demo)+')</div>'+(p[3]?'<div class="note">'+p[3]+'</div>':'');placeTip(tip,box,ev.clientX-rr.left,ev.clientY-rr.top);r.style.stroke="var(--ink)";r.style.strokeWidth="2";};
-      r.addEventListener("pointermove",show);r.addEventListener("pointerdown",show);
-      r.addEventListener("pointerleave",()=>{tip.hidden=true;r.style.stroke=s0;r.style.strokeWidth=w0;});});
-    if(row.k==="ai"){const nd=S("line",{x1:x(0),x2:x(0),y1:yc-bh/2-5,y2:yc+bh/2+5,style:"stroke:var(--c-ai);stroke-width:2.5"},svg);const nt=S("text",{x:x(0)+6,y:yc+4,class:"t-ink",style:"font-weight:600;font-size:11px"},svg);
-      const set=k=>{const v=YRS*k;nd.setAttribute("x1",x(v));nd.setAttribute("x2",x(v));nt.setAttribute("x",x(v)+6);nt.textContent=(narrow?"":"you are here, ")+"year "+v.toFixed(1);};if(anim){set(0);tween(1600,set,700);}else set(1);
-      const hit=S("rect",{x:x(YRS)-8,y:yc-bh/2-6,width:16,height:bh+12,style:"fill:transparent;cursor:default"},svg);
-      const showN=ev=>{const rr=box.getBoundingClientRect();tip.innerHTML='<div class="tt">AI build-out · now</div><div>'+MONYR+', year '+YRS.toFixed(1)+' on this clock</div><div class="note">Fiber\'s bust began in year 5; the Railway Mania peaked in year 17.</div>';placeTip(tip,box,ev.clientX-rr.left,ev.clientY-rr.top);nd.style.strokeWidth="4";};
-      hit.addEventListener("pointermove",showN);hit.addEventListener("pointerdown",showN);hit.addEventListener("pointerleave",()=>{tip.hidden=true;nd.style.strokeWidth="";});}
-  });
-  const gl=S("line",{x1:x(YRS),x2:x(YRS),y1:m.t,y2:H-m.b,style:"stroke:var(--c-ai);stroke-width:1;stroke-dasharray:3 3;opacity:0"},svg);
-  if(anim&&!RM){gl.style.transition="opacity 400ms ease 2200ms";requestAnimationFrame(()=>requestAnimationFrame(()=>{gl.style.opacity=.8;}));}else gl.style.opacity=.8;});
-
-chart(2,function(anim){const box=$("a2-curve");const al=ERA_ORDER.map(k=>{const pts=seriesData(k).map(p=>({x:p.x-ERA[k].demo,y:p.y,src:p.src,cal:p.x})).filter(p=>p.x>=-3&&p.x<=30);return {key:k,name:ERA[k].short,short:ERA[k].short,c:ERA[k].c,pts,pri:k==="ai"?2:1,w:k==="ai"?2.8:1.8,o:k==="ai"?1:.75,r:k==="ai"?4:2.5};});
-  const r=lineChart(box,{series:al,xMin:-3,xMax:30,yMin:0,yMax:8,endLabels:true,xTicks:[0,5,10,15,20,25,30],xFmt:v=>v>0?"+"+v:v,yFmt:v=>v+"%",tipTitle:v=>"Year "+(v>0?"+":"")+v,tipName:(s,p)=>s.short+" ("+p.cal+")",tipVal:(s,p)=>p.y.toFixed(2)+"%",aria:"Capex as a share of GDP by years since demonstration"});
-  if(anim&&r){const aiPath=[...r.svg.querySelectorAll("path")].find(p=>/var\(--c-ai\)/.test(p.getAttribute("style")||""));drawLines(r.svg,900,0,p=>p!==aiPath);if(aiPath&&!RM){const L=aiPath.getTotalLength();aiPath.style.strokeDasharray=L+" "+L;aiPath.style.strokeDashoffset=L;aiPath.getBoundingClientRect();aiPath.style.transition="stroke-dashoffset 900ms ease 900ms";aiPath.style.strokeDashoffset="0";}fadeDots(r.svg,300,1500);}});
 
 /* ---------- ACT 3 ---------- */
 const pseg=$("path-seg");pseg.innerHTML=PATHS.map(p=>'<button type="button" aria-pressed="'+(p.id===PS)+'" data-v="'+p.id+'"><i class="pdot" style="background:'+p.c+'"></i>'+p.n+'</button>').join("");
@@ -2695,7 +2722,6 @@ Object.assign(SRC,{
   rew_rm:["Renewable Energy World, U.S. reserve margins expected to peak in 2004 at 37% (Apr. 2002, citing Energy Ventures Analysis)","https://www.renewableenergyworld.com/?p=8079811070"],
   as_s1:["AlphaSense, Anthropic company primer on the public S-1 (Oct. 2026): cash, commitments, free cash flow","https://www.alpha-sense.com/api/html-embed/file-4c88b5685d7120f5cdcdc99545773cca679d25fd-html/"],
   oai_122:["Engadget, OpenAI secures another $122 billion in funding (Mar. 31, 2026)","https://www.engadget.com/ai/openai-secures-another-110-billion-in-funding-from-amazon-nvidia-and-softbank-171006356.html"],
-  dsa_oai:["Reuters via DealStreetAsia, OpenAI sees nearly $280B cash burn by 2030; $856B of compute through 2030 (Sept. 19, 2026)","https://www.dealstreetasia.com/?p=495626"],
   param_orcl:["Parameter, Oracle fiscal 2026 results: free cash flow −$23.7B, OpenAI over half of RPO (June 11, 2026)","https://parameter.io/oracle-orcl-stock-plunges-10-despite-earnings-beat-on-40b-fundraising-plan/"],
   bc_crwv:["Beancount, CoreWeave FY2026 Q2 earnings analysis (customer concentration, adjusted EBITDA)","https://beancount.io/blog/2026/09/22/coreweave-fy2026-q2-earnings-analysis"],
   sa_fed:["StockAnalysis, Fed holds rates at 3.75–4.00% after a September hike; two dissents for a hike (Oct. 28, 2026)","https://stockanalysis.com/news/fed-holds-rates-steady-oct-2026/"],
@@ -2838,7 +2864,7 @@ function fundLive(){const F=MAN.funding&&typeof MAN.funding==="object"?MAN.fundi
 /* lab revenue scenarios: growth for each year 2027–30, separately for OpenAI and Anthropic */
 const OC=.31; /* non-compute costs as a share of revenue, implied by OpenAI's plan: $278B of cash burn on $840B of revenue and $856B of compute, 2026–30 */
 const fade=g0=>[0,1,2,3].map(k=>+(.12+(g0-.12)*Math.pow(.7,k)).toFixed(3));
-/* presets are revenue paths in $B a year; the history paths grow each lab's 2026 base at the rates in "Where we're going" */
+/* presets are revenue paths in $B a year; the history paths grow each lab's 2026 base at the rates of the Scenarios deep dive */
 const GP=[{k:"today",n:"Today, no forecast"},{k:"plans",n:"OpenAI's plan",oai:[81,146,226,350],antG:fade(.6)},{k:"abs",n:"Absorbed",g:fade(.6)},{k:"glut",n:"Glut, no defaults",g:fade(.167)},{k:"def",n:"Glut with defaults",g:fade(-.3)}];
 function grow(base,rates){const R=[];let v=base;rates.forEach(x=>{v=v*(1+x);R.push(Math.round(v));});return R;}
 const labBase=k=>(k==="oai"?MG[0]:MG[1]).read().rev;
@@ -2953,16 +2979,71 @@ function cardHTML(x,which){const g=x.g,L=which==="close"?g.close:g.brk,C=CARD[L.
     else now="Not past this line today.";}
   return '<div class="mgc" data-w="'+which+'"><b>'+C.h+'</b><p>'+C.b+(C.s?cite.apply(null,C.s):"")+'</p>'+(now?'<p class="mgc-n"><span>Today</span> '+now+'</p>':'')+'</div>';}
 let MBUILT=false,DRAG=null;
+/* exposure list: one row per gauge, most strained first on today's readings (the order is fixed for the visit) */
+const LESSON={oai:["1847: railway shareholders had to keep paying in before the lines earned anything; shares fell until 72% was paid.",["camp_lev"]],
+ ant:["Same railway yardstick as OpenAI.",["camp_lev"]],
+ neo:["1893: railroads went into receivership once earnings covered their fixed charges only about 1.05 times.",["daggett"]],
+ orcl:["1836–47: canals and railways built with outside money stopped when the lending did.",["cranmer","camp13"]],
+ credit:["2016: banks cut shale borrowing bases 38–39% when the collateral fell; 58 producers filed.",["hb16"]],
+ chips:["2000: Lucent's financing of its own customers reached 24% of revenue; it lost $3.5B on those loans.",["tunguz_vf"]],
+ mem:["2018–19: Micron's gross margin went from 61% to 28.6% in a year as memory revenue fell.",["mu19","gartner19"]],
+ build:["2000: merchant developers planned plants equal to half the grid with no buyers; Mirant went bankrupt.",["fort02","cw_mirant"]],
+ hyper:["Same outside-money line as Oracle, but nobody here is forced to sell.",["cranmer","camp13"]]};
+/* the watchlist's figures, each shown once, under the exposure it bears on */
+const ALSO={ant:["Lab commitments against revenue"],neo:["Neocloud interest burden"],orcl:["Oracle five-year CDS"],credit:["GPU rental prices"],
+ chips:["Nvidia inventory","Customer concentration at Nvidia"],mem:["Memory margins"],
+ build:["Data center vacancy, North America","PJM capacity price","Gas turbine backlog and slots"],hyper:["Hyperscaler capex against cash flow","Debt share of hyperscaler capex"]};
+/* what to watch next for each exposure: manual.json's calendar (entries tagged with g), else these */
+const CAL0=[{date:"2026-11-14",d:"Wk of 9 Nov",s:"Anthropic listing (funding check)",g:["ant","oai"],src:"impl_ant"},{date:"2026-11-12",d:"12 Nov",s:"Q3 results",g:["neo"],src:"tikr_crwv"},{date:"2026-11-17",d:"17 Nov",s:"Q3 FY27 results",g:["chips"],src:"nv_call"},{date:"2026-12-20",d:"Mid-Dec",s:"FQ2 results; date not set",g:["orcl"],src:"fz_orcl"},{date:"2026-12-22",d:"22 Dec",s:"PJM 2029/30 auction results",g:["build"],src:"esai_pjm"},{date:"2026-12-31",d:"31 Dec",s:"GE Vernova contract target",g:["build"],src:"gev"}];
+const NEXT0={credit:["SemiAnalysis's next rent index","semi"],mem:["Micron's next quarterly results",null],hyper:["Q4 reports and 2027 capex guidance",null]};
+const escT=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function nextOf(k){const src=(Array.isArray(MAN.calendar)&&MAN.calendar.some(c=>c&&c.g))?MAN.calendar:CAL0;
+  const c=src.filter(c=>c&&(!c.date||c.date>=ASOF)&&c.g&&[].concat(c.g).indexOf(k)>=0).sort((a,b)=>String(a.date).localeCompare(String(b.date)))[0];
+  if(c)return {d:c.d,t:c.s||c.t,src:c.src&&SRC[c.src]?c.src:null};const n=NEXT0[k];return n?{d:"",t:n[0],src:n[1]}:null;}
+const nextHTML=k=>{const n=nextOf(k);return n?(n.d?'<b>'+escT(n.d)+'</b> · ':'')+escT(n.t)+(n.src?cite(n.src):""):"";};
+const nextPlain=k=>{const n=nextOf(k);return n?(n.d?n.d+", ":"")+n.t.replace(/ \(funding check\)$/,""):"";};
+const sev=x=>{const g=x.g;return (g.dir>0?(x.v-g.brk.v):(g.brk.v-x.v))/(g.max-g.min);};
+function rankRows(R){return R.rows.slice().sort((a,b)=>{const ma=Math.min(...a.calls.map(c=>c.c)),mb=Math.min(...b.calls.map(c=>c.c));if(ma!==mb)return ma-mb;if(a.z!==b.z)return b.z-a.z;
+  const fa=a.g.pos.some(p=>p.f)?1:0,fb=b.g.pos.some(p=>p.f)?1:0;if(fa!==fb)return fb-fa;return sev(b)-sev(a);});}
+function alsoHTML(k){const it=(ALSO[k]||[]).map(n=>WL.find(r=>r.n===n)).filter(Boolean);if(!it.length)return "";
+  return '<div class="lbl" style="margin-top:4px">Also watching</div><ul>'+it.map(r=>'<li><b>'+r.n+'</b> '+r.v+' · '+r.d+r.c1+' <em>'+r.dir+(r.c2||"")+'</em></li>').join("")+'</ul>';}
 function buildModel(){const el=$("m-rows");if(!el)return;
-  el.innerHTML=MG.map(g=>'<div class="mg" id="mg-'+g.k+'"><div class="mg-h"><b>'+g.n+'</b><span>'+g.m+'</span></div><div class="mg-bar chart" id="mgb-'+g.k+'" aria-label="Drag to try a different reading; click a line for its history"></div><div class="mg-v" id="mgv-'+g.k+'"></div><div class="mg-p" id="mgp-'+g.k+'"></div><div class="mg-gs" id="mgs-'+g.k+'"></div><div class="mg-f" id="mgf-'+g.k+'"></div><details class="mg-t" id="mgd-'+g.k+'"><summary>Then and now: '+g.brk.t+', '+g.brk.y+'</summary><div class="mg-tn"><div><div class="chart mg-tr" id="mgt-'+g.k+'"></div><div class="mg-tc" id="mgc-'+g.k+'"></div></div><div class="mg-cards" id="mgk-'+g.k+'"></div></div><p class="mg-why">'+g.text(g.read())+(g.close.j||g.brk.j?' <span class="mg-j">The amber line is our judgment: two-thirds of the way to the break.</span>':'')+'</p></details></div>').join("");
+  const R0=runModel(Object.assign({},MS0,{over:{}}));
+  el.innerHTML=rankRows(R0).map((x,i)=>{const g=x.g,L=LESSON[g.k]||["",[]];
+    return '<div class="xr" id="xr-'+g.k+'"><div class="xr-h" role="button" tabindex="0" aria-expanded="false" aria-controls="xb-'+g.k+'" data-k="'+g.k+'">'
+     +'<span class="xr-n num">'+(i+1)+'</span><span class="xr-t"><b>'+g.n+'</b><span>'+L[0]+cite.apply(null,L[1])+'</span></span>'
+     +'<span class="xr-v" id="xv-'+g.k+'"></span><span class="xr-c" id="xc-'+g.k+'"></span><span class="xr-x"><i>Next</i>'+nextHTML(g.k)+'</span><span class="xr-ch" aria-hidden="true"></span></div>'
+     +'<div class="xr-b" id="xb-'+g.k+'" hidden><div class="mg" id="mg-'+g.k+'"><div class="mg-h"><b>'+g.n+'</b><span>'+g.m+'</span></div><div class="mg-bar chart" id="mgb-'+g.k+'" aria-label="Drag to try a different reading; click a line for its history"></div><div class="mg-v" id="mgv-'+g.k+'"></div><div class="mg-gs" id="mgs-'+g.k+'"></div><div class="mg-f" id="mgf-'+g.k+'"></div><div class="mg-also">'+alsoHTML(g.k)+'</div><details class="mg-t" id="mgd-'+g.k+'"><summary>Then and now: '+g.brk.t+', '+g.brk.y+'</summary><div class="mg-tn"><div><div class="chart mg-tr" id="mgt-'+g.k+'"></div><div class="mg-tc" id="mgc-'+g.k+'"></div></div><div class="mg-cards" id="mgk-'+g.k+'"></div></div><p class="mg-why">'+g.text(g.read())+(g.close.j||g.brk.j?' <span class="mg-j">The amber line is our judgment: two-thirds of the way to the break.</span>':'')+'</p></details></div></div></div>';}).join("");
   MG.forEach(g=>{const box=$("mgb-"+g.k),dt=$("mgd-"+g.k);
     const toV=ev=>{const r=box.getBoundingClientRect(),pad=6;return Math.max(g.min,Math.min(g.max,g.min+(ev.clientX-r.left-pad)/Math.max(1,r.width-2*pad)*(g.max-g.min)));};
     box.addEventListener("pointerdown",ev=>{const ln=ev.target.closest&&ev.target.closest("[data-line]");if(ln){openCard(g.k,ln.getAttribute("data-line"));return;}DRAG=g.k;try{box.setPointerCapture(ev.pointerId);}catch(e){}MS.over[g.k]=toV(ev);updateModel(false);ev.preventDefault();});
     box.addEventListener("pointermove",ev=>{if(DRAG!==g.k)return;MS.over[g.k]=toV(ev);updateModel(false);});
     const end=()=>{if(DRAG===g.k)DRAG=null;};box.addEventListener("pointerup",end);box.addEventListener("pointercancel",end);
     dt.addEventListener("toggle",()=>{if(dt.open)updateRowDetail(g.k);});});
-  el.addEventListener("click",ev=>{const b=ev.target.closest("[data-reset]");if(!b)return;delete MS.over[b.getAttribute("data-reset")];updateModel(false);});
+  el.addEventListener("click",ev=>{const b=ev.target.closest("[data-reset]");if(b){delete MS.over[b.getAttribute("data-reset")];updateModel(false);return;}
+    if(ev.target.closest("a"))return;const h=ev.target.closest(".xr-h");if(h)setOpen(h.dataset.k,h.getAttribute("aria-expanded")!=="true");});
+  el.addEventListener("keydown",ev=>{const h=ev.target.closest&&ev.target.closest(".xr-h");if(!h||ev.target!==h)return;if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();setOpen(h.dataset.k,h.getAttribute("aria-expanded")!=="true");}});
+  wrongIf(R0);logToday(R0);
+  LYC={};R0.rows.forEach(x=>x.calls.forEach(c=>{(LYC[c.ly]=LYC[c.ly]||[]).push({n:c.n,c:c.c});}));renderPane();
   MBUILT=true;}
+function setOpen(k,on){const r=$("xr-"+k);if(!r)return;r.classList.toggle("open",on);r.querySelector(".xr-h").setAttribute("aria-expanded",on?"true":"false");$("xb-"+k).hidden=!on;
+  if(on&&MR){const x=MR.rows.find(y=>y.g.k===k);if(x)drawRow(x,MR,true);}
+  const all=[...document.querySelectorAll(".xr")],n=all.filter(e=>e.classList.contains("open")).length,b=$("xp-all");if(b){b.textContent=n===all.length?"Close all":"Open all";b.setAttribute("aria-pressed",n===all.length?"true":"false");}}
+/* the three things that would make the thesis wrong, with today's reading for each */
+function wrongIf(R0){const el=$("m-wrong");if(!el)return;const o=R0.rows.find(x=>x.g.k==="oai"),n=R0.rows.find(x=>x.g.k==="neo");
+  let be=null;try{const ST=strips(),runs=stripRuns(ST.res.oai0,ST.gs),up=runs.find((r,i)=>i>0&&r.c>runs[i-1].c);if(up)be=bnB(r30(up.from));}catch(e){}
+  const on=R0.F.filter(f=>f.on).map(f=>f.n.toLowerCase());
+  const it=[["OpenAI's revenue keeps to its own plan: $350B in 2030, $840B over 2026–30.","Today: $"+o.r.rev+"B projected for 2026; the plan implies roughly $80B in 2027 (our interpolation)."+(be?" On today's funding, OpenAI exposure turns neutral above about "+be+" of 2030 revenue.":"")+cite("dsa_oai")],
+    ["Funding stays open as the commitments come due.","Today: "+R0.nOn+" of 3 funding warnings on"+(on.length?" ("+on.join(", ")+")":"")+"."+(nextPlain("ant")?" Next test: "+nextPlain("ant")+"."+((nextOf("ant")||{}).src?cite(nextOf("ant").src):""):"")],
+    ["CoreWeave starts covering its interest.","Today: operating income covers interest "+n.g.fmt(n.v)+" over four quarters, against the "+n.g.fmt(n.g.brk.v)+" where railroads failed in 1893."+cite.apply(null,n.r.src.concat(["daggett"]))+(nextPlain("neo")?" Next: "+nextPlain("neo")+"."+((nextOf("neo")||{}).src?cite(nextOf("neo").src):""):"")]];
+  el.innerHTML=it.map(i=>'<li><b>'+i[0]+'</b><span>'+i[1]+'</span></li>').join("");}
+/* today's calls, written into the page for the daily job to record (data/calls.json); not shown */
+function logToday(R0){safe(function logCalls(){const out={asof:ASOF,generated:(D&&D.generated)||null,live:!!LIVE,macro:+R0.score.toFixed(3),funding:R0.nOn,fired:R0.fired,flags:{},calls:{},readings:{},breakeven:{}};
+  R0.F.forEach(f=>{out.flags[f.k]=!!f.on;});
+  let ST=null;try{ST=strips();}catch(e){}
+  R0.rows.forEach(x=>{out.readings[x.g.k]={v:+(+x.v).toFixed(4),zone:ZN[x.z],date:x.r.d||null};
+    x.calls.forEach((c,i)=>{out.calls[c.n]=CALLC[c.c];if(ST&&ST.res[x.g.k+i]){const runs=stripRuns(ST.res[x.g.k+i],ST.gs);out.breakeven[c.n]=runs.map(r=>[CALLC[r.c],Math.round(r30(r.from))]);}});});
+  document.documentElement.setAttribute("data-c2c-calls",JSON.stringify(out));});}
 function openCard(k,which){const dt=$("mgd-"+k);if(!dt)return;dt.open=true;updateRowDetail(k);const c=$("mgk-"+k).querySelector('[data-w="'+which+'"]');$("mgk-"+k).querySelectorAll(".mgc").forEach(e=>e.classList.toggle("hl",e===c));}
 let MR=null;
 function updateRowDetail(k){if(!MR)return;const x=MR.rows.find(r=>r.g.k===k);if(!x)return;drawTrail($("mgt-"+k),$("mgc-"+k),x);const hl=[...$("mgk-"+k).querySelectorAll(".mgc.hl")].map(e=>e.dataset.w);$("mgk-"+k).innerHTML=cardHTML(x,"brk")+cardHTML(x,"close");hl.forEach(w=>{const e=$("mgk-"+k).querySelector('[data-w="'+w+'"]');if(e)e.classList.add("hl");});}
@@ -2991,20 +3072,26 @@ function drawBT(id,c,anim){const box=$(id);const sg=svgBox(box,180,c.n);if(!sg)r
   if(anim&&!RM){const L=path.getTotalLength();path.style.strokeDasharray=L+" "+L;path.style.strokeDashoffset=L;path.getBoundingClientRect();path.style.transition="stroke-dashoffset 1200ms ease";path.style.strokeDashoffset="0";}}
 function renderBT(anim){if(!$("bt-rail"))return;drawBT("bt-rail",BT.rail,anim);drawBT("bt-tel",BT.tel,anim);const a=avoided(BT.rail),b=avoided(BT.tel);
   $("bt-note").innerHTML="How to read it: the black line is share prices, with the peak at 100. Red shading starts where the funding check would have fired. <b>Railways:</b> underweight from November 1845, three months after the peak, avoiding about "+a[0]+"% of the fall. <b>Telecom:</b> underweight in the second half of 2000, 4–8 months after the peak, avoiding about "+b[1]+"–"+b[0]+"%. In 1998 one warning fired alone and the rule held. Two cases, not proof. 1845 has no spread or listing data, so its second warning is our reading, and the telecom line after March 2000 is the Richmond Fed's \"about 50% a year\", not an index. Shaded amber where the firing date is uncertain. Dots are events; hover them."+cite.apply(null,BT.rail.src.concat(BT.tel.src));}
+let STR=null,MKR=null;
+const chipHTML=(c,R)=>'<span class="mc '+CALLC[c.c]+'">'+c.n+' · <b>'+CALLN[c.c]+'</b>'+(c.fund&&c.c<2?' · depends on new money':'')+(c.cap?' · tenants not yet split':'')+(R.shocked&&c.c!==c.c0?' <em>was '+CALLN[c.c0]+'</em>':'')+'</span>';
+/* one exposure row: the summary always, the gauge and its detail only when the row is open */
+function drawRow(x,R,anim){const g=x.g,k=g.k;if(!$("xv-"+k))return;
+  $("xv-"+k).innerHTML='<b class="num">'+(x.cutPast?"forced to cut":g.fmt(x.vs))+'</b><span class="mg-z z'+x.z+'">'+ZN[x.z]+'</span> · broke at '+g.fmt(g.brk.v)+(x.vs!==x.v||x.cutPast?' · today '+g.fmt(x.v):'');
+  $("xc-"+k).innerHTML=x.calls.map(c=>chipHTML(c,R)).join("");
+  if($("xb-"+k).hidden)return;
+  $("mgv-"+k).innerHTML='<b class="num">'+(x.cutPast?"forced to cut":g.fmt(x.vs))+'</b>'+(x.vs!==x.v||x.cutPast?'<span class="mg-was">today '+g.fmt(x.v)+(x.dragged?' · <button type="button" class="lnk" data-reset="'+k+'">reset</button>':'')+'</span>':'')+'<span class="mg-z z'+x.z+'">'+ZN[x.z]+'</span><span class="mg-cd">'+(x.dragged?"What-if reading":x.cutPast?"A forced cut is the break itself":(MS.G&&(k==="oai"||k==="ant"))?"Funded through 2030 under this path":countdown(g,x.r))+'</span>';
+  const ST=STR||strips(),mk=MKR;
+  $("mgs-"+k).innerHTML=x.calls.map((c,i)=>'<div class="gsr"><span class="gsn">'+(x.calls.length>1?c.n:"Call by lab revenue")+'</span><div class="gsb chart" id="gsb-'+k+i+'"></div><span class="gst">'+stripText(stripRuns(ST.res[k+i],ST.gs))+'</span></div>').join("");
+  x.calls.forEach((c,i)=>drawStrip($("gsb-"+k+i),stripRuns(ST.res[k+i],ST.gs),ST.gs,mk));
+  $("mgf-"+k).innerHTML=flips(x,R);
+  const h=g.hist?g.hist():[];const prev=h.length>1?h[h.length-2].v:null;drawGauge($("mgb-"+k),g,x.v,x.vs,prev,anim);
+  if($("mgd-"+k).open)updateRowDetail(k);}
 function updateModel(anim){if(!MBUILT)buildModel();const R=runModel(MS);MR=R;if(!$("m-rows"))return;
   const sc=R.score,lab=sc>=.34?"Overweight":sc<=-.34?"Underweight":Math.abs(sc)>=.15?(sc>0?"Neutral, leaning overweight":"Neutral, leaning underweight"):"Neutral";
   $("m-call").textContent=lab;$("m-score").textContent="average of "+R.rows.reduce((a,x)=>a+x.calls.length,0)+" calls: "+(sc>=0?"+":"−")+Math.abs(sc).toFixed(2)+" on −1 to +1"+(R.shocked?" · what-if":"");
   $("m-fund").innerHTML='<div class="mf-n"><b>'+R.nOn+' of 3</b> '+(R.fired?'<span class="mc uw">fired: every call one step down</span>':'<span class="mf-q">two of three would move every call one step down</span>')+'</div><ul class="mf">'+R.F.map(f=>'<li class="'+(f.on?'on':'')+'"><i></i><span><b>'+f.n+'</b> '+f.t+(f.forced?' <em>(what-if'+(f.why?': '+f.why:'')+')</em>':'')+'</span></li>').join("")+'</ul>';
-  $("m-chain").innerHTML='<ol class="mch">'+R.rows.filter(x=>x.g.k!=="ant").map(x=>'<li class="z'+x.z+(R.first&&x===R.first?' first':'')+'"><span>'+x.g.n.split(":")[0]+'</span></li>').join("")+'</ol><div class="mch-n">'+(R.first?'First to break: <b>'+R.first.g.n.split(":")[0]+'</b>, '+ZN[R.first.z]+(R.first.z===2?' its historical line':' to its historical line')+'.':'No forced seller is near its line.')+'</div>';
-  const ST=strips(),mk=meanG(MS.G);
-  R.rows.forEach(x=>{const g=x.g;
-    $("mgv-"+g.k).innerHTML='<b class="num">'+(x.cutPast?"forced to cut":g.fmt(x.vs))+'</b>'+(x.vs!==x.v||x.cutPast?'<span class="mg-was">today '+g.fmt(x.v)+(x.dragged?' · <button type="button" class="lnk" data-reset="'+g.k+'">reset</button>':'')+'</span>':'')+'<span class="mg-z z'+x.z+'">'+ZN[x.z]+'</span><span class="mg-cd">'+(x.dragged?"What-if reading":x.cutPast?"A forced cut is the break itself":(MS.G&&(g.k==="oai"||g.k==="ant"))?"Funded through 2030 under this path":countdown(g,x.r))+'</span>';
-    $("mgp-"+g.k).innerHTML=x.calls.map(c=>'<span class="mc '+CALLC[c.c]+'">'+c.n+' · <b>'+CALLN[c.c]+'</b>'+(c.fund&&c.c<2?' · depends on new money':'')+(c.cap?' · tenants not yet split':'')+(R.shocked&&c.c!==c.c0?' <em>was '+CALLN[c.c0]+'</em>':'')+'</span>').join("");
-    $("mgs-"+g.k).innerHTML=x.calls.map((c,i)=>'<div class="gsr"><span class="gsn">'+(x.calls.length>1?c.n:"Call by lab revenue")+'</span><div class="gsb chart" id="gsb-'+g.k+i+'"></div><span class="gst">'+stripText(stripRuns(ST.res[g.k+i],ST.gs))+'</span></div>').join("");
-    x.calls.forEach((c,i)=>drawStrip($("gsb-"+g.k+i),stripRuns(ST.res[g.k+i],ST.gs),ST.gs,mk));
-    $("mgf-"+g.k).innerHTML=flips(x,R);
-    const h=g.hist?g.hist():[];const prev=h.length>1?h[h.length-2].v:null;drawGauge($("mgb-"+g.k),g,x.v,x.vs,prev,anim);
-    if($("mgd-"+g.k).open)updateRowDetail(g.k);});
+  STR=strips();MKR=meanG(MS.G);
+  R.rows.forEach(x=>drawRow(x,R,anim));
   updateScenario(R,lab);}
 /* scenario panel: presets, per-year growth for each lab, results, and the sticky summary */
 const GLAB=[["oai","OpenAI"],["ant","Anthropic"]];
@@ -3040,9 +3127,16 @@ function updateScenario(R,lab){if(!$("m-gt"))return;const p=presetOf(MS.preset);
   fh.addEventListener("change",e=>{const c=e.target.closest("input");if(!c)return;const k=c.dataset.k,l=live.find(f=>f.k===k);MS[k]=c.checked===l.on?null:c.checked;updateModel(false);});
   $("m-reset").addEventListener("click",()=>{MS=Object.assign({},MS0,{over:{}});Object.keys(SL).forEach(k=>SL[k].set(0));fh.querySelectorAll("input").forEach(c=>{c.checked=live.find(f=>f.k===c.dataset.k).on;});fillInputs(null);updateModel(true);});
   const tb=document.querySelector(".topbar"),setT=()=>{if(tb)document.documentElement.style.setProperty("--tbh",tb.offsetHeight+"px");};setT();reg(setT);
-  const how=document.querySelector(".mdl .st-how");if(how)how.addEventListener("toggle",()=>{if(how.open)renderBT(true);});})();
-$("m-rules").innerHTML='<ul class="st-rl"><li><b>Start</b>: overweight if nobody is forced to sell and the asset is long-lived; otherwise neutral. Preleased data centers are capped at neutral until leases can be split by tenant, since a lease to a neocloud is only as good as the neocloud.</li><li><b>Distance</b>: one step toward underweight past the amber line, two past the red line where the earlier boom broke. For OpenAI and Oracle, which depend on new money, the distance counts only as far as funding warnings allow: with no warnings on, they stay neutral and are labelled as depending on new money.</li><li><b>Funding check</b>: if two of three warnings are on (the central bank\'s rate is higher than six months ago; high-yield spreads are 1.5 pts or more above their 12-month low; a major AI listing is pulled or cut), every call moves one more step.'+cite("rmania","boe01","frbsf01")+'</li><li><b>Lab revenue paths</b>: revenue for each year 2027–30, in $ billions, after a 2026 base (OpenAI\'s 2026 projection; Anthropic\'s annualized run-rate, which overstates its 2026 total). Non-compute costs take '+Math.round(OC*100)+'% of revenue, the share implied by OpenAI\'s own plan; the rest, plus cash, pays for compute.'+cite("dsa_oai","as_s1")+' "OpenAI\'s plan" is its path to $350B in 2030 ($840B in total); Anthropic has published no plan, so that preset gives it the Absorbed path. The other presets grow each lab\'s 2026 base at the rates of the three paths in "Where we\'re going". If either lab covers under 38% (the 1847 line), the AI listing window counts as shut; if the funding check then fires, each lab cuts compute by the share it can\'t fund.</li><li><b>Strips</b>: the call at each level of OpenAI\'s 2030 revenue, with Anthropic growing at the same rate and steady growth in between, holding the other what-if settings. The triangle marks the OpenAI 2030 revenue of the path you picked.</li><li><b>Macro</b>: the average of all calls, with underweight at −1 and overweight at +1. Beyond ±0.34 it is a full call.</li><li><b>Countdown</b>: the pace over the last year of readings, projected to the red line. <b>Drag</b> any marker to try a reading; the flip points say what it would take, from today, to move a step.</li><li><b>Chain assumptions</b>, all ours: OpenAI is about a fifth of AI capex and Anthropic about a tenth;'+cite("dsa_oai","bm")+' CoreWeave\'s largest customer (36% of revenue) moves with OpenAI, 80% of its lost revenue reaches operating income, and 20% of its capacity is exposed to spot rent; OpenAI pays Oracle about $64B a year (half its backlog over five years);'+cite("param_orcl")+' memory margins fall a point for each 1% drop in demand, as in 2019;'+cite("mu19","gartner19")+' tenants of preleased construction walk away in proportion to capex cuts; a forced OpenAI cut of 25% or more shuts the AI listing window.</li></ul>';
+  const how=document.getElementById("mk-bt");if(how)how.addEventListener("toggle",()=>{if(how.open)renderBT(true);});})();
+$("m-rules").innerHTML='<ul class="st-rl"><li><b>Start</b>: overweight if nobody is forced to sell and the asset is long-lived; otherwise neutral. Preleased data centers are capped at neutral until leases can be split by tenant, since a lease to a neocloud is only as good as the neocloud.</li><li><b>Distance</b>: one step toward underweight past the amber line, two past the red line where the earlier boom broke. For OpenAI and Oracle, which depend on new money, the distance counts only as far as funding warnings allow: with no warnings on, they stay neutral and are labelled as depending on new money.</li><li><b>Funding check</b>: if two of three warnings are on (the central bank\'s rate is higher than six months ago; high-yield spreads are 1.5 pts or more above their 12-month low; a major AI listing is pulled or cut), every call moves one more step.'+cite("rmania","boe01","frbsf01")+'</li><li><b>Lab revenue paths</b>: revenue for each year 2027–30, in $ billions, after a 2026 base (OpenAI\'s 2026 projection; Anthropic\'s annualized run-rate, which overstates its 2026 total). Non-compute costs take '+Math.round(OC*100)+'% of revenue, the share implied by OpenAI\'s own plan; the rest, plus cash, pays for compute.'+cite("dsa_oai","as_s1")+' "OpenAI\'s plan" is its path to $350B in 2030 ($840B in total; the years in between are our interpolation); Anthropic has published no plan, so that preset gives it the Absorbed path. The other presets grow each lab\'s 2026 base at the rates of the three paths in Deep dives, Scenarios. If either lab covers under 38% (the 1847 line), the AI listing window counts as shut; if the funding check then fires, each lab cuts compute by the share it can\'t fund.</li><li><b>Strips</b>: the call at each level of OpenAI\'s 2030 revenue, with Anthropic growing at the same rate and steady growth in between, holding the other what-if settings. The triangle marks the OpenAI 2030 revenue of the path you picked.</li><li><b>Macro</b>: the average of all calls, with underweight at −1 and overweight at +1. Beyond ±0.34 it is a full call.</li><li><b>Countdown</b>: the pace over the last year of readings, projected to the red line. <b>Drag</b> any marker to try a reading; the flip points say what it would take, from today, to move a step.</li><li><b>Chain assumptions</b>, all ours: OpenAI is about a fifth of AI capex and Anthropic about a tenth;'+cite("dsa_oai","bm")+' CoreWeave\'s largest customer (36% of revenue) moves with OpenAI, 80% of its lost revenue reaches operating income, and 20% of its capacity is exposed to spot rent; OpenAI pays Oracle about $64B a year (half its backlog over five years);'+cite("param_orcl")+' memory margins fall a point for each 1% drop in demand, as in 2019;'+cite("mu19","gartner19")+' tenants of preleased construction walk away in proportion to capex cuts; a forced OpenAI cut of 25% or more shuts the AI listing window.</li></ul>';
 numberStatic($("m-rules"),"bs-",true);
+safe(function xpAll(){const b=$("xp-all");if(!b)return;b.addEventListener("click",()=>{const open=b.getAttribute("aria-pressed")!=="true";document.querySelectorAll(".xr").forEach(r=>setOpen(r.id.slice(3),open));});});
+/* the sticky summary shows only once the lab revenue panel has scrolled away, so one row of presets is in view at a time */
+safe(function stickyBar(){const sc=$("m-sc"),sb=$("m-sb");if(!sc||!sb)return;if(!IO_OK){sb.classList.add("show");return;}
+  const tb=document.querySelector(".topbar"),top=tb?tb.offsetHeight:86;
+  new IntersectionObserver(es=>{es.forEach(e=>{const rt=e.rootBounds?e.rootBounds.top:top;sb.classList.toggle("show",!e.isIntersecting&&e.boundingClientRect.top<rt);});},{rootMargin:"-"+top+"px 0px 0px 0px",threshold:0}).observe(sc);});
+ACT3=()=>ACTS[3].forEach(f=>{try{f(true);}catch(e){console.error(e);}});
+safe(function nsrc(){const e=$("mk-nsrc");if(e)e.textContent=Object.keys(SRC).length;});
 chart(1,updateModel);chart(1,renderBT);
 
 
