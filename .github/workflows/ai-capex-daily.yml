@@ -33,12 +33,6 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python ai-capex-research/ai-capex/scripts/update.py
 
-      # Opens the page in headless Chrome and records the calls it shows in data/calls.json.
-      # A failure here never blocks the data update.
-      - name: Log today's calls
-        continue-on-error: true
-        run: python ai-capex-research/ai-capex/scripts/log_calls.py
-
       # Test runs on other branches keep their data as a downloadable artifact instead of
       # committing it, so pull requests never conflict with main's daily data.
       - name: Keep test-run data
