@@ -51,7 +51,8 @@ jobs:
       # published by a Pages workflow, start it here. Branch-published sites rebuild on their own;
       # the API call below is a harmless backup.
       - name: Republish the site
-        if: steps.commit.outputs.changed == 'true'
+        # only the main branch republishes the live site
+        if: steps.commit.outputs.changed == 'true' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

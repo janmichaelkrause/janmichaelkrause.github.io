@@ -313,6 +313,15 @@ def fred(series):
            "url": "https://fred.stlouisfed.org/series/" + series}
     if prev:
         out["prev"], out["prevDate"] = prev[-1][1], prev[-1][0]
+    yr = (d(day) - dt.timedelta(days=365)).isoformat()
+    last_year = [x for x in rows if x[0] >= yr]
+    if last_year:
+        lo = min(last_year, key=lambda x: x[1])
+        out["low12"], out["low12Date"] = lo[1], lo[0]
+    half = (d(day) - dt.timedelta(days=182)).isoformat()
+    older = [x for x in rows if x[0] <= half]
+    if older:
+        out["v6m"], out["v6mDate"] = older[-1][1], older[-1][0]
     return out
 
 # ---------------------------------------------------------------- what to pull
@@ -327,11 +336,18 @@ SEC_SERIES = [  # key, ticker, tags, unit, instant
     ("mu_gross_profit", "MU", ["GrossProfit"], "USD", False),
     ("crwv_revenue", "CRWV", REV, "USD", False),
     ("crwv_interest", "CRWV", ["InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt"], "USD", False),
+    # stance model: debt service against earnings, and how much of the build is funded from outside
+    ("crwv_opinc", "CRWV", ["OperatingIncomeLoss"], "USD", False),
+    ("crwv_da", "CRWV", ["DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "DepreciationAmortizationAndAccretionNet", "Depreciation"], "USD", False),
+    ("orcl_opinc", "ORCL", ["OperatingIncomeLoss"], "USD", False),
+    ("orcl_interest", "ORCL", ["InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt"], "USD", False),
+    ("orcl_ocf", "ORCL", OCF, "USD", False),
+    ("orcl_capex", "ORCL", CAPEX, "USD", False),
 ] + [("capex_" + t, t, CAPEX, "USD", False) for t in ("AMZN", "GOOGL", "MSFT", "META")] \
   + [("ocf_" + t, t, OCF, "USD", False) for t in ("AMZN", "GOOGL", "MSFT", "META")]
 PE_TICKERS = ["NVDA", "MU", "GEV", "ORCL", "AMZN", "GOOGL", "MSFT", "META"]
 PX_ONLY = ["CRWV", "EQIX"]
-FRED_SERIES = [("hy_oas", "BAMLH0A0HYM2"), ("bbb_oas", "BAMLC0A4CBBB")]
+FRED_SERIES = [("hy_oas", "BAMLH0A0HYM2"), ("bbb_oas", "BAMLC0A4CBBB"), ("fed_upper", "DFEDTARU")]
 
 def load(path, default):
     try:
